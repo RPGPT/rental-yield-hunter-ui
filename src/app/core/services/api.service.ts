@@ -35,13 +35,13 @@ export class ApiService {
 
   triggerSnapshot(id: string): Observable<{ id: string; exists: boolean; url?: string }> {
     return this.http.post<{ id: string; exists: boolean; url?: string }>(
-      `${this.baseUrl}/listings/${id}/snapshot`,
+      `${this.baseUrl}/listings/snapshot?id=${id}`,
       null
     );
   }
 
   getSnapshotStatus(id: string): Observable<{ exists: boolean; url?: string }> {
-    return this.http.get<{ exists: boolean; url?: string }>(`${this.baseUrl}/listings/${id}/snapshot`);
+    return this.http.get<{ exists: boolean; url?: string }>(`${this.baseUrl}/listings/snapshot?id=${id}`);
   }
 
   getStats(): Observable<Stats> {

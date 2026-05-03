@@ -61,12 +61,10 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/listings' && req.method === 'GET') {
       await listingsHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/listings/snapshot') {
+      await snapshotHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/listings/snapshot-download') {
       await snapshotDownloadHandler(fakeReq, fakeRes);
-    } else if (pathname.match(/^\/api\/listings\/([^/]+)\/snapshot$/)) {
-      const id = pathname.replace('/api/listings/', '').replace('/snapshot', '');
-      fakeReq.query = { ...query, id };
-      await snapshotHandler(fakeReq, fakeRes);
     } else if (pathname.startsWith('/api/listings/')) {
       const id = pathname.replace('/api/listings/', '');
       fakeReq.query = { ...query, id };
