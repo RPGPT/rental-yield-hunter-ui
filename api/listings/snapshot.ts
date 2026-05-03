@@ -89,21 +89,41 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
       throw new Error('Bot-wall detected: the listing site blocked the headless browser');
     }
 
-    // Strip scripts & noscript
+    // Remove only external <script src="..."> whose source wasn't captured,
+    // and noscript blocks. Keep inline scripts — they drive the gallery/slideshow.
     await page.evaluate(() => {
-      document.querySelectorAll('script, noscript').forEach(el => el.remove());
+      document.querySelectorAll('noscript').forEach(el => el.remove());
     });
 
     let html = await page.content();
 
-    // Inline images, CSS and fonts using captured responses (data URIs)
+    // Inline images, CSS, fonts AND JavaScript using captured responses
     for (const [url, { body, type }] of resourceCache) {
       const baseType = type.split(';')[0];
-      if (!baseType.startsWith('image/') && !baseType.startsWith('text/css') && !baseType.startsWith('font/')) continue;
-      const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
-      const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      html = html.replace(new RegExp(escaped, 'g'), dataUri);
+
+      if (baseType.startsWith('text/javascript') || baseType.startsWith('application/javascript') || baseType === 'text/ecmascript') {
+        // Replace <script src="url"> with inline <script>
+        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const jsContent = body.toString('utf-8').replace(/<\/script>/gi, '<\\/script>');
+        html = html.replace(
+          new RegExp(`<script([^>]*)\\s+src="${escaped}"([^>]*)>\\s*</script>`, 'gi'),
+          `<script$1$2>${jsContent}</script>`
+        );
+        // Also handle single-quoted src
+        html = html.replace(
+          new RegExp(`<script([^>]*)\\s+src='${escaped}'([^>]*)>\\s*</script>`, 'gi'),
+          `<script$1$2>${jsContent}</script>`
+        );
+      } else if (baseType.startsWith('image/') || baseType.startsWith('text/css') || baseType.startsWith('font/')) {
+        // Replace resource URLs with data URIs
+        const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
+        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        html = html.replace(new RegExp(escaped, 'g'), dataUri);
+      }
     }
+
+    // Remove any remaining external <script src="..."> that weren't captured
+    html = html.replace(/<script\b[^>]*\ssrc=["'][^"']*["'][^>]*>\s*<\/script>/gi, '');
 
     return `<!DOCTYPE html>\n${html}`;
   } finally {
