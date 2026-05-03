@@ -105,6 +105,13 @@ export class DetailComponent implements OnInit {
         this.snapshotExists.set(exists);
         if (url) this.snapshotUrl.set(url);
         this.snapshotLoading.set(false);
+        // Auto-download as soon as the snapshot is ready
+        if (url) {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = '';
+          a.click();
+        }
       },
       error: () => this.snapshotLoading.set(false),
     });

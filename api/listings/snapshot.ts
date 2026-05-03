@@ -74,7 +74,7 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 
     await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 });
 
-    // Detect bot-wall: if the page title or content looks like a block page, throw
+    // Detect bot-wall
     const blocked = await page.evaluate(() => {
       const text = document.body?.innerText ?? '';
       const title = document.title ?? '';
@@ -85,45 +85,87 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
         title.toLowerCase().includes('403')
       );
     });
-    if (blocked) {
-      throw new Error('Bot-wall detected: the listing site blocked the headless browser');
-    }
+    if (blocked) throw new Error('Bot-wall detected: the listing site blocked the headless browser');
 
-    // Remove only external <script src="..."> whose source wasn't captured,
-    // and noscript blocks. Keep inline scripts — they drive the gallery/slideshow.
+    // Strip ALL scripts and noscript — we inject our own gallery below
     await page.evaluate(() => {
-      document.querySelectorAll('noscript').forEach(el => el.remove());
+      document.querySelectorAll('script, noscript').forEach(el => el.remove());
     });
 
     let html = await page.content();
 
-    // Inline images, CSS, fonts AND JavaScript using captured responses
+    // Inline images, CSS and fonts only (no JS — avoids 100MB bloat and mangling)
     for (const [url, { body, type }] of resourceCache) {
       const baseType = type.split(';')[0];
-
-      if (baseType.startsWith('text/javascript') || baseType.startsWith('application/javascript') || baseType === 'text/ecmascript') {
-        // Replace <script src="url"> with inline <script>
-        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const jsContent = body.toString('utf-8').replace(/<\/script>/gi, '<\\/script>');
-        html = html.replace(
-          new RegExp(`<script([^>]*)\\s+src="${escaped}"([^>]*)>\\s*</script>`, 'gi'),
-          `<script$1$2>${jsContent}</script>`
-        );
-        // Also handle single-quoted src
-        html = html.replace(
-          new RegExp(`<script([^>]*)\\s+src='${escaped}'([^>]*)>\\s*</script>`, 'gi'),
-          `<script$1$2>${jsContent}</script>`
-        );
-      } else if (baseType.startsWith('image/') || baseType.startsWith('text/css') || baseType.startsWith('font/')) {
-        // Replace resource URLs with data URIs
-        const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
-        const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        html = html.replace(new RegExp(escaped, 'g'), dataUri);
-      }
+      if (!baseType.startsWith('image/') && !baseType.startsWith('text/css') && !baseType.startsWith('font/')) continue;
+      const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
+      const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      html = html.replace(new RegExp(escaped, 'g'), dataUri);
     }
 
-    // Remove any remaining external <script src="..."> that weren't captured
+    // Remove leftover external <script src="..."> tags
     html = html.replace(/<script\b[^>]*\ssrc=["'][^"']*["'][^>]*>\s*<\/script>/gi, '');
+
+    // Inject a self-contained lightweight image lightbox before </body>
+    const lightbox = `
+<style>
+#__lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;align-items:center;justify-content:center;flex-direction:column}
+#__lb.open{display:flex}
+#__lb-img{max-width:92vw;max-height:85vh;object-fit:contain;border-radius:4px}
+#__lb-bar{display:flex;align-items:center;gap:16px;margin-top:12px}
+.lb-btn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;padding:6px 18px;cursor:pointer;border-radius:4px;line-height:1}
+.lb-btn:hover{background:rgba(255,255,255,.3)}
+#__lb-close{position:absolute;top:14px;right:18px}
+#__lb-counter{color:rgba(255,255,255,.7);font-size:.9rem;min-width:60px;text-align:center}
+img[data-lb]{cursor:zoom-in!important}
+</style>
+<div id="__lb">
+  <button class="lb-btn" id="__lb-close" onclick="__lbClose()">✕</button>
+  <img id="__lb-img" src="" alt="">
+  <div id="__lb-bar">
+    <button class="lb-btn" onclick="__lbMove(-1)">&#8249;</button>
+    <span id="__lb-counter"></span>
+    <button class="lb-btn" onclick="__lbMove(1)">&#8250;</button>
+  </div>
+</div>
+<script>
+(function(){
+  var imgs=[],cur=0;
+  function init(){
+    imgs=[...document.querySelectorAll('img')].filter(function(i){
+      return i.src&&i.src.startsWith('data:image')&&i.src.length>2000;
+    });
+    imgs.forEach(function(img,i){
+      img.setAttribute('data-lb',i);
+      img.addEventListener('click',function(){__lbOpen(i);});
+    });
+  }
+  window.__lbOpen=function(i){
+    cur=i;
+    document.getElementById('__lb-img').src=imgs[i].src;
+    document.getElementById('__lb-counter').textContent=(i+1)+' / '+imgs.length;
+    document.getElementById('__lb').classList.add('open');
+  };
+  window.__lbClose=function(){document.getElementById('__lb').classList.remove('open');};
+  window.__lbMove=function(d){
+    cur=(cur+d+imgs.length)%imgs.length;
+    __lbOpen(cur);
+  };
+  document.getElementById('__lb').addEventListener('click',function(e){
+    if(e.target===this)__lbClose();
+  });
+  document.addEventListener('keydown',function(e){
+    if(!document.getElementById('__lb').classList.contains('open'))return;
+    if(e.key==='Escape')__lbClose();
+    if(e.key==='ArrowLeft')__lbMove(-1);
+    if(e.key==='ArrowRight')__lbMove(1);
+  });
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+  else init();
+})();
+</script>`;
+
+    html = html.replace(/<\/body>/i, lightbox + '</body>');
 
     return `<!DOCTYPE html>\n${html}`;
   } finally {
