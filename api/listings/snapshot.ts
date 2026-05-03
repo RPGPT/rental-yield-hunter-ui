@@ -13,7 +13,7 @@ const CHROMIUM_URL =
   process.env['CHROMIUM_DOWNLOAD_URL'] ??
   `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${CHROMIUM_ARCH}.tar`;
 
-async function capturePageMHTML(pageUrl: string): Promise<string> {
+async function capturePageHTML(pageUrl: string): Promise<string> {
   const chromium = (await import('@sparticuz/chromium-min')).default;
   const { chromium: pw } = await import('playwright-core');
 
@@ -26,9 +26,7 @@ async function capturePageMHTML(pageUrl: string): Promise<string> {
   try {
     const page = await browser.newPage();
     await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 45_000 });
-    const client = await page.context().newCDPSession(page);
-    const { data } = await client.send('Page.captureSnapshot', { format: 'mhtml' }) as { data: string };
-    return data;
+    return await page.content();
   } finally {
     await browser.close();
   }
@@ -42,13 +40,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const useBlob = !!process.env['BLOB_READ_WRITE_TOKEN'];
   const isVercel = !!process.env['VERCEL'];
-  const blobKey = `snapshots/${id}.mhtml`;
+  const blobKey = `snapshots/${id}.html`;
 
   if (req.method === 'GET') {
     if (useBlob) {
       const { list } = await import('@vercel/blob');
-      const { blobs } = await list({ prefix: blobKey });
-      if (blobs.length > 0 && blobs[0].size > 0) {
+      // check both new .html and old .mhtml keys
+      const { blobs } = await list({ prefix: `snapshots/${id}` });
+      const found = blobs.find(b => b.size > 0);
+      if (found) {
         return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       }
       return res.status(200).json({ exists: false });
@@ -71,22 +71,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { url } = result[0] as { url: string };
 
       if (isVercel || useBlob) {
-        const mhtml = await capturePageMHTML(url);
-        if (!mhtml || mhtml.length < 100) {
+        const html = await capturePageHTML(url);
+        if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
-        const buffer = Buffer.from(mhtml, 'utf-8');
+        const buffer = Buffer.from(html, 'utf-8');
         console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
         const { put } = await import('@vercel/blob');
         const blob = await put(blobKey, buffer, {
           access: 'private',
           addRandomSuffix: false,
-          contentType: 'multipart/related; type="text/html"',
+          contentType: 'text/html; charset=utf-8',
         });
         console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
-        // Return a proxy URL so the file can be force-downloaded
-        const downloadUrl = `/api/listings/snapshot-download?id=${id}`;
-        return res.status(200).json({ exists: true, url: downloadUrl });
+        return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       } else {
         if (!existsSync(SNAPSHOTS_DIR)) mkdirSync(SNAPSHOTS_DIR, { recursive: true });
         const snapshotPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
