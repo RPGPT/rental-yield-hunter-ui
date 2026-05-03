@@ -26,7 +26,47 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
   try {
     const page = await browser.newPage();
     await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 45_000 });
-    return await page.content();
+
+    // Make the page self-contained: inline CSS, base64 images, strip scripts.
+    // Runs inside the browser context so the listing site sees a real browser
+    // (no CloudFront / anti-bot blocking when resources are fetched).
+    const html = await page.evaluate(async () => {
+      // 1. Inline <link rel="stylesheet"> as <style>
+      const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]')];
+      await Promise.all(links.map(async link => {
+        try {
+          const r = await fetch(link.href);
+          const css = await r.text();
+          const style = document.createElement('style');
+          style.textContent = css;
+          link.replaceWith(style);
+        } catch { link.remove(); }
+      }));
+
+      // 2. Convert <img src> to data URLs
+      const imgs = [...document.querySelectorAll<HTMLImageElement>('img[src]')];
+      await Promise.all(imgs.map(async img => {
+        if (img.src.startsWith('data:')) return;
+        try {
+          const r = await fetch(img.src);
+          const blob = await r.blob();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          img.src = dataUrl;
+        } catch { img.removeAttribute('src'); }
+      }));
+
+      // 3. Strip scripts and noscript (no JS needed in static snapshot)
+      document.querySelectorAll('script, noscript').forEach(el => el.remove());
+
+      return `<!DOCTYPE html>\n${document.documentElement.outerHTML}`;
+    });
+
+    return html;
   } finally {
     await browser.close();
   }
