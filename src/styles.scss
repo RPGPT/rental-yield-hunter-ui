@@ -1,5 +1,6 @@
-@use './styles/theme';
-@use './styles/variables' as vars;
+@use './theme';
+@use 'colors' as *;
+@use 'sizes' as *;
 
 html, body {
   height: 100%;
@@ -8,16 +9,16 @@ html, body {
 }
 
 body {
-  background-color: vars.$background;
+  background-color: $color-bg;
 }
 
 .dark-theme body {
-  background-color: #121212;
+  background-color: $color-dark-bg;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: $size-8;
+  height: $size-8;
 }
 
 ::-webkit-scrollbar-track {
@@ -25,39 +26,39 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bdbdbd;
-  border-radius: 4px;
+  background: $color-grey-mid;
+  border-radius: $size-4;
 }
 
 .mat-mdc-table {
   .mat-mdc-header-cell {
-    font-size: 12px;
+    font-size: $size-12;
     text-transform: uppercase;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: $letter-spacing-sm;
   }
   .mat-mdc-cell {
-    font-size: 14px;
+    font-size: $size-14;
   }
 }
 
 .dark-theme .loading-overlay {
-  background: rgba(18, 18, 18, 0.7) !important;
+  background: $color-dark-surface !important;
 }
 
 .dark-theme {
   .mat-mdc-card-title {
-    color: #ffffff;
+    color: $color-white;
   }
 
   .mat-mdc-list-item-title,
   .mat-mdc-list-item-line,
   [matListItemTitle],
   [matListItemLine] {
-    color: rgba(255, 255, 255, 0.87) !important;
+    color: $color-dark-text !important;
   }
 
   .description-text {
-    color: rgba(255, 255, 255, 0.87);
+    color: $color-dark-text;
   }
 }

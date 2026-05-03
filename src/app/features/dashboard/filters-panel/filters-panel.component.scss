@@ -1,29 +1,31 @@
+@use 'colors' as *;
+@use 'sizes' as *;
+
 .filter-group--heart {
   justify-content: end;
-  align-items: center;
 }
 
 .heart-filter-btn {
   color: inherit;
-  width: 40px;
-  height: 40px;
+  width: $size-40;
+  height: $size-40;
 
   mat-icon {
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    font-size: $size-24;
+    width: $size-24;
+    height: $size-24;
   }
 
   &--fav {
-    color: #e53935;
+    color: $color-danger;
   }
 }
 
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  padding: 8px 0;
+  gap: $size-16;
+  padding: $size-8 0;
 
   &--toggles {
     grid-template-columns: repeat(6, 1fr);
@@ -34,29 +36,28 @@
 .filter-group-pair {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: $size-16;
   min-width: 0;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: $size-8;
   min-width: 0;
 }
 
-
 .filter-label {
-  font-size: 12px;
+  font-size: $size-12;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--mat-sys-on-surface-variant, #666);
+  letter-spacing: $letter-spacing-sm;
+  color: var(--mat-sys-on-surface-variant, #{$color-grey-dark});
 }
 
 .filter-row {
   display: flex;
-  gap: 8px;
+  gap: $size-8;
 }
 
 .filter-field {
@@ -71,12 +72,12 @@
 .filters-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 16px;
-  border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
-  margin-top: 16px;
+  padding-top: $size-16;
+  border-top: $size-1 solid var(--mat-sys-outline-variant, #{$color-grey-light});
+  margin-top: $size-16;
 }
 
 mat-button-toggle-group {
-  font-size: 13px;
+  font-size: $size-13;
   width: fit-content;
 }

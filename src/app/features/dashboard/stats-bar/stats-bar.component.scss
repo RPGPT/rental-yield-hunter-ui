@@ -1,47 +1,50 @@
+@use 'colors' as *;
+@use 'sizes' as *;
+
 .stats-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  padding: 16px 0;
+  gap: $size-16;
+  padding: $size-16 0;
 
   &--loading {
     justify-content: center;
     align-items: center;
-    min-height: 80px;
+    min-height: $size-80;
   }
 }
 
 .stat-card {
-  flex: 1 1 140px;
-  min-width: 140px;
+  flex: 1 1 $size-140;
+  min-width: $size-140;
   text-align: center;
 
   mat-card-content {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 16px !important;
+    gap: $size-4;
+    padding: $size-16 !important;
   }
 
   &__value {
-    font-size: 24px;
+    font-size: $size-24;
     font-weight: 700;
     line-height: 1.2;
   }
 
   &__label {
-    font-size: 12px;
+    font-size: $size-12;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(0, 0, 0, 0.6);
+    letter-spacing: $letter-spacing-sm;
+    color: $color-label;
   }
 
-  &--primary .stat-card__value { color: #1565C0; }
-  &--green .stat-card__value { color: #2E7D32; }
-  &--red .stat-card__value { color: #C62828; }
-  &--amber .stat-card__value { color: #FF8F00; }
+  &--primary .stat-card__value { color: $color-primary; }
+  &--green .stat-card__value   { color: $color-success; }
+  &--red .stat-card__value     { color: $color-error; }
+  &--amber .stat-card__value   { color: $color-amber; }
 }
 
 :host-context(.dark-theme) .stat-card__label {
-  color: rgba(255, 255, 255, 0.7);
+  color: $color-dark-label;
 }

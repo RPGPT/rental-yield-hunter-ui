@@ -1,9 +1,12 @@
+@use 'colors' as *;
+@use 'sizes' as *;
+
 .app-toolbar {
-  background-color: #1565C0;
-  color: #fff;
+  background-color: $color-primary;
+  color: $color-white;
 
   mat-icon {
-    margin-right: 8px;
+    margin-right: $size-8;
   }
 }
 
@@ -20,7 +23,7 @@
 }
 
 .toolbar-title {
-  font-size: 20px;
+  font-size: $size-20;
   font-weight: 500;
 }
 
@@ -29,10 +32,9 @@
 }
 
 .app-content {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - #{$size-64});
 }
 
 :host {
   display: block;
 }
-

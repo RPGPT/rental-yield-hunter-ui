@@ -1,0 +1,32 @@
+@use 'colors' as *;
+@use 'sizes' as *;
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $size-48 $size-24;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant, #{$color-grey-dark});
+}
+
+.empty-state__icon {
+  font-size: $size-64;
+  width: $size-64;
+  height: $size-64;
+  opacity: 0.5;
+  margin-bottom: $size-16;
+}
+
+.empty-state__title {
+  margin: 0 0 $size-8;
+  font-size: $size-20;
+  font-weight: 500;
+}
+
+.empty-state__message {
+  margin: 0;
+  font-size: $size-14;
+  max-width: $size-400;
+}

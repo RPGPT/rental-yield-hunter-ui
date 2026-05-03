@@ -14,6 +14,7 @@ import {
   Filler,
 } from 'chart.js';
 import { PricePoint } from '../../../core/models/listing.model';
+import { CHART_COLORS } from '../../../../styles/chart-colors';
 
 Chart.register(
   LineController, LineElement, PointElement,
@@ -53,8 +54,8 @@ export class PriceChartComponent {
         {
           label: 'Price',
           data: points.map(p => p.price),
-          borderColor: '#1565C0',
-          backgroundColor: 'rgba(21, 101, 192, 0.1)',
+          borderColor: CHART_COLORS.primary,
+          backgroundColor: CHART_COLORS.primaryAlpha,
           fill: true,
           tension: 0.3,
           pointRadius: 4,
