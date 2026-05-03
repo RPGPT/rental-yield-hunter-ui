@@ -33,6 +33,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--mat-sys-on-surface, #{$color-dark-text});
 }
 
 .header-actions {

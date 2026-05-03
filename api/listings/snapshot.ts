@@ -7,9 +7,11 @@ import path from 'path';
 
 const execFileAsync = promisify(execFile);
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
+const CHROMIUM_VERSION = '148.0.0';
+const CHROMIUM_ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const CHROMIUM_URL =
   process.env['CHROMIUM_DOWNLOAD_URL'] ??
-  'https://github.com/Sparticuz/chromium/releases/download/v148.0.0/chromium-v148.0.0-pack.tar';
+  `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${CHROMIUM_ARCH}.tar`;
 
 async function capturePageMHTML(pageUrl: string): Promise<string> {
   const chromium = (await import('@sparticuz/chromium-min')).default;
