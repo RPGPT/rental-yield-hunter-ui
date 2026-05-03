@@ -1,0 +1,47 @@
+.stats-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 0;
+
+  &--loading {
+    justify-content: center;
+    align-items: center;
+    min-height: 80px;
+  }
+}
+
+.stat-card {
+  flex: 1 1 140px;
+  min-width: 140px;
+  text-align: center;
+
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px !important;
+  }
+
+  &__value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  &--primary .stat-card__value { color: #1565C0; }
+  &--green .stat-card__value { color: #2E7D32; }
+  &--red .stat-card__value { color: #C62828; }
+  &--amber .stat-card__value { color: #FF8F00; }
+}
+
+:host-context(html.dark-theme) .stat-card__label {
+  color: rgba(255, 255, 255, 0.7);
+}

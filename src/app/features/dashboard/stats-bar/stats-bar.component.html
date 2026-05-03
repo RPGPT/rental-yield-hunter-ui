@@ -1,0 +1,50 @@
+@if (loading()) {
+  <div class="stats-bar stats-bar--loading">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+} @else if (stats(); as s) {
+  <div class="stats-bar">
+    <mat-card class="stat-card stat-card--primary">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.total_active | number }}</span>
+        <span class="stat-card__label">Total Active</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-card--green">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.rented }}</span>
+        <span class="stat-card__label">Rented</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-card--red">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.lifetime_rent }}</span>
+        <span class="stat-card__label">Lifetime Rent</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-card--primary">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.avg_price | eur }}</span>
+        <span class="stat-card__label">Avg. Price</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-card--primary">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.avg_price_per_m2 | eur }}</span>
+        <span class="stat-card__label">Avg. €/m²</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card stat-card--amber">
+      <mat-card-content>
+        <span class="stat-card__value">{{ s.price_drops }}</span>
+        <span class="stat-card__label">Price Drops</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}
+

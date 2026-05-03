@@ -1,0 +1,140 @@
+<mat-expansion-panel [expanded]="true">
+  <mat-expansion-panel-header>
+    <mat-panel-title>
+      <mat-icon>filter_list</mat-icon>
+      Filters
+    </mat-panel-title>
+  </mat-expansion-panel-header>
+
+  <div class="filters-grid">
+    <!-- Left half: Price + Area -->
+    <div class="filter-group-pair">
+      <div class="filter-group">
+        <label class="filter-label">Price Range</label>
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>€ Min</mat-label>
+            <input matInput type="number" (input)="onPriceMinInput($any($event.target).value)">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>€ Max</mat-label>
+            <input matInput type="number" (input)="onPriceMaxInput($any($event.target).value)">
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Area Range</label>
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>m² Min</mat-label>
+            <input matInput type="number" (input)="onAreaMinInput($any($event.target).value)">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>m² Max</mat-label>
+            <input matInput type="number" (input)="onAreaMaxInput($any($event.target).value)">
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right half: Typology + City -->
+    @if (filterOptions(); as opts) {
+      <div class="filter-group-pair">
+        <div class="filter-group">
+          <label class="filter-label">Typology</label>
+          <mat-chip-listbox
+            [multiple]="true"
+            [value]="selectedTypologies"
+            (change)="onTypologyChange($event.value)">
+            @for (t of opts.typologies; track t) {
+              <mat-chip-option [value]="t">{{ t }}</mat-chip-option>
+            }
+          </mat-chip-listbox>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">City</label>
+          <mat-form-field appearance="outline" class="filter-field--full">
+            <mat-label>Select cities</mat-label>
+            <mat-select
+              [multiple]="true"
+              [value]="selectedCities"
+              (selectionChange)="onCityChange($event.value)">
+              @for (c of opts.cities; track c) {
+                <mat-option [value]="c">{{ c }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Boolean toggles row -->
+  <div class="filters-grid filters-grid--toggles">
+    @if (filterOptions(); as opts) {
+      <div class="filter-group">
+        <label class="filter-label">Property Type</label>
+        <mat-chip-listbox
+          [multiple]="true"
+          [value]="selectedPropertyTypes"
+          (change)="onPropertyTypeChange($event.value)">
+          @for (pt of opts.property_types; track pt) {
+            <mat-chip-option [value]="pt">{{ pt | titlecase }}</mat-chip-option>
+          }
+        </mat-chip-listbox>
+      </div>
+    }
+
+    <div class="filter-group">
+      <label class="filter-label">Has Garage</label>
+      <mat-button-toggle-group multiple [value]="hasGarageSelection" (change)="onBoolToggle(filterState.hasGarage, $event.value)">
+        <mat-button-toggle value="true">Yes</mat-button-toggle>
+        <mat-button-toggle value="false">No</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Is Rented</label>
+      <mat-button-toggle-group multiple [value]="isRentedSelection" (change)="onBoolToggle(filterState.isRented, $event.value)">
+        <mat-button-toggle value="true">Yes</mat-button-toggle>
+        <mat-button-toggle value="false">No</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Lifetime Rent</label>
+      <mat-button-toggle-group multiple [value]="lifetimeRentSelection" (change)="onBoolToggle(filterState.lifetimeRent, $event.value)">
+        <mat-button-toggle value="true">Yes</mat-button-toggle>
+        <mat-button-toggle value="false">No</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">Status</label>
+      <mat-button-toggle-group multiple [value]="activeSelection" (change)="onBoolToggle(filterState.active, $event.value)">
+        <mat-button-toggle value="true">Active</mat-button-toggle>
+        <mat-button-toggle value="false">Inactive</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Favorite filter: toggle heart (white = all, red = favorites only) -->
+    <div class="filter-group filter-group--heart">
+      <button mat-icon-button class="heart-filter-btn"
+              [class.heart-filter-btn--fav]="filterState.isFavorite() === true"
+              (click)="cycleFavorite()"
+              [matTooltip]="favoriteTooltip()">
+        <mat-icon>{{ favoriteIcon() }}</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="filters-actions">
+    <button mat-stroked-button (click)="resetFilters()">
+      <mat-icon>restart_alt</mat-icon>
+      Reset Filters
+    </button>
+  </div>
+</mat-expansion-panel>
+

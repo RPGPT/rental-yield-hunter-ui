@@ -1,0 +1,146 @@
+@if (loading()) {
+  <div class="detail-loading">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+} @else if (listing(); as l) {
+  <div class="detail-page">
+    <div class="detail-header">
+      <a mat-icon-button routerLink="/" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <h1>{{ l.title }}</h1>
+      @if (snapshotExists()) {
+        <button mat-stroked-button (click)="openSnapshot()" matTooltip="Open locally saved snapshot">
+          <mat-icon>snippet_folder</mat-icon>
+          Open Saved Page
+        </button>
+      }
+      <a mat-raised-button [href]="l.url" target="_blank" rel="noopener" color="primary">
+        <mat-icon>open_in_new</mat-icon>
+        View Original
+      </a>
+    </div>
+
+    <div class="detail-grid">
+      <!-- Left Column: Metadata -->
+      <div class="detail-meta">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Details</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-list>
+              <mat-list-item>
+                <span matListItemTitle>Price</span>
+                <span matListItemLine>{{ l.price | eur }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Area</span>
+                <span matListItemLine>{{ l.area ? l.area + ' m²' : '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>€/m²</span>
+                <span matListItemLine>{{ l.price_per_m2 | eur }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Property Type</span>
+                <span matListItemLine>{{ l.property_type || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Typology</span>
+                <span matListItemLine>{{ l.typology || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>City</span>
+                <span matListItemLine>{{ l.city || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Location</span>
+                <span matListItemLine>{{ l.location || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Floor</span>
+                <span matListItemLine>{{ l.floor || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Garage</span>
+                <span matListItemLine [class]="l.has_garage ? 'icon-yes' : 'icon-no'">
+                  {{ l.has_garage ? '✓ Yes' : '✗ No' }}
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Rented</span>
+                <span matListItemLine>
+                  @if (l.is_rented) {
+                    <app-badge label="Rented" color="green" />
+                  } @else {
+                    No
+                  }
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Lifetime Rent</span>
+                <span matListItemLine>
+                  @if (l.lifetime_rent) {
+                    <app-badge label="Lifetime" color="red" />
+                  } @else {
+                    No
+                  }
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Status</span>
+                <span matListItemLine>
+                  <app-badge
+                    [label]="l.active ? 'Active' : 'Inactive'"
+                    [color]="l.active ? 'green' : 'grey'" />
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Favorite</span>
+                <span matListItemLine>
+                  @if (l.is_favorite) {
+                    <app-badge label="★ Favorite" color="amber" />
+                  } @else {
+                    No
+                  }
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>First Seen</span>
+                <span matListItemLine>{{ l.first_seen | date:'medium' }} ({{ l.first_seen | relativeDate }})</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Last Seen</span>
+                <span matListItemLine>{{ l.last_seen | date:'medium' }} ({{ l.last_seen | relativeDate }})</span>
+              </mat-list-item>
+            </mat-list>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Right Column: Chart + Description -->
+      <div class="detail-content">
+        <mat-card class="chart-card">
+          <mat-card-content>
+            <app-price-chart
+              [priceHistory]="l.price_history"
+              [currentPrice]="l.price" />
+          </mat-card-content>
+        </mat-card>
+
+        @if (l.description) {
+          <mat-card class="description-card">
+            <mat-card-header>
+              <mat-card-title>Description</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="description-text">{{ l.description }}</p>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </div>
+  </div>
+}
+

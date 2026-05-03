@@ -1,0 +1,63 @@
+@use './styles/theme';
+@use './styles/variables' as vars;
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: vars.$background;
+}
+
+.dark-theme body {
+  background-color: #121212;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 4px;
+}
+
+.mat-mdc-table {
+  .mat-mdc-header-cell {
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .mat-mdc-cell {
+    font-size: 14px;
+  }
+}
+
+.dark-theme .loading-overlay {
+  background: rgba(18, 18, 18, 0.7) !important;
+}
+
+.dark-theme {
+  .mat-mdc-card-title {
+    color: #ffffff;
+  }
+
+  .mat-mdc-list-item-title,
+  .mat-mdc-list-item-line,
+  [matListItemTitle],
+  [matListItemLine] {
+    color: rgba(255, 255, 255, 0.87) !important;
+  }
+
+  .description-text {
+    color: rgba(255, 255, 255, 0.87);
+  }
+}

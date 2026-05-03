@@ -1,0 +1,82 @@
+.filter-group--heart {
+  justify-content: end;
+  align-items: center;
+}
+
+.heart-filter-btn {
+  color: inherit;
+  width: 40px;
+  height: 40px;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  &--fav {
+    color: #e53935;
+  }
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 8px 0;
+
+  &--toggles {
+    grid-template-columns: repeat(6, 1fr);
+    padding-top: 0;
+  }
+}
+
+.filter-group-pair {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mat-sys-on-surface-variant, #666);
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-field--full {
+  width: 100%;
+}
+
+.filters-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+  margin-top: 16px;
+}
+
+mat-button-toggle-group {
+  font-size: 13px;
+  width: fit-content;
+}
