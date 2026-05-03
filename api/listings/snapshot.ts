@@ -46,8 +46,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (useBlob) {
       const { list } = await import('@vercel/blob');
       const { blobs } = await list({ prefix: blobKey });
-      if (blobs.length > 0) {
-        return res.status(200).json({ exists: true, url: blobs[0].url });
+      if (blobs.length > 0 && blobs[0].size > 0) {
+        return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       }
       return res.status(200).json({ exists: false });
     } else {
@@ -70,14 +70,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (isVercel || useBlob) {
         const mhtml = await capturePageMHTML(url);
+        if (!mhtml || mhtml.length < 100) {
+          return res.status(500).json({ error: 'Snapshot captured empty content' });
+        }
+        const buffer = Buffer.from(mhtml, 'utf-8');
+        console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
         const { put } = await import('@vercel/blob');
-        const blob = await put(blobKey, mhtml, {
+        const blob = await put(blobKey, buffer, {
           access: 'public',
           addRandomSuffix: false,
-          contentType: 'multipart/related',
+          contentType: 'multipart/related; type="text/html"',
         });
-        console.log(`[snapshot] ${blob.url}`);
-        return res.status(200).json({ exists: true, url: blob.url });
+        console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
+        // Return a proxy URL so the file can be force-downloaded
+        const downloadUrl = `/api/listings/snapshot-download?id=${id}`;
+        return res.status(200).json({ exists: true, url: downloadUrl });
       } else {
         if (!existsSync(SNAPSHOTS_DIR)) mkdirSync(SNAPSHOTS_DIR, { recursive: true });
         const snapshotPath = path.join(SNAPSHOTS_DIR, `${id}.html`);

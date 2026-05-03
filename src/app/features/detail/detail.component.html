@@ -10,9 +10,9 @@
       </a>
       <h1>{{ l.title }}</h1>
       @if (snapshotExists()) {
-        <button mat-stroked-button (click)="openSnapshot()" matTooltip="Open locally saved snapshot">
-          <mat-icon>snippet_folder</mat-icon>
-          Open Saved Page
+        <button mat-stroked-button (click)="openSnapshot()" matTooltip="Download saved MHTML snapshot — open it locally in Chrome">
+          <mat-icon>download</mat-icon>
+          Download Snapshot
         </button>
       }
       <a mat-raised-button [href]="l.url" target="_blank" rel="noopener" color="primary">

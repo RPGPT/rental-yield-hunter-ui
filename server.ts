@@ -26,7 +26,11 @@ function wrapResponse(res: http.ServerResponse) {
     return wrapped;
   };
   wrapped.send = (body: unknown) => {
-    res.end(typeof body === 'string' ? body : JSON.stringify(body));
+    if (Buffer.isBuffer(body)) {
+      res.end(body);
+    } else {
+      res.end(typeof body === 'string' ? body : JSON.stringify(body));
+    }
     return wrapped;
   };
   return wrapped;
@@ -35,6 +39,7 @@ function wrapResponse(res: http.ServerResponse) {
 import listingsHandler from './api/listings/index';
 import listingByIdHandler from './api/listings/[id]';
 import snapshotHandler from './api/listings/snapshot';
+import snapshotDownloadHandler from './api/listings/snapshot-download';
 import statsHandler from './api/stats';
 import filtersHandler from './api/filters';
 
@@ -56,6 +61,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/listings' && req.method === 'GET') {
       await listingsHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/listings/snapshot-download') {
+      await snapshotDownloadHandler(fakeReq, fakeRes);
     } else if (pathname.match(/^\/api\/listings\/([^/]+)\/snapshot$/)) {
       const id = pathname.replace('/api/listings/', '').replace('/snapshot', '');
       fakeReq.query = { ...query, id };

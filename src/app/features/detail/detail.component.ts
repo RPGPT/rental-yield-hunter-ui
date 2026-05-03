@@ -67,7 +67,12 @@ export class DetailComponent implements OnInit {
 
   openSnapshot(): void {
     const url = this.snapshotUrl();
-    if (url) window.open(url, '_blank');
+    if (!url) return;
+    // Force download — MHTML can't be rendered from a remote URL in modern browsers
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    a.click();
   }
 }
 
