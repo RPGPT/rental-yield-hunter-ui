@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, effect, OnInit, Injector } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, effect, OnInit } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { FilterStateService } from '../../core/services/filter-state.service';
 import { Stats } from '../../core/models/stats.model';
@@ -19,7 +19,6 @@ import { ListingsTableComponent } from './listings-table/listings-table.componen
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly filterState = inject(FilterStateService);
-  private readonly injector = inject(Injector);
 
   stats = signal<Stats | null>(null);
   statsLoading = signal(true);
@@ -28,17 +27,7 @@ export class DashboardComponent implements OnInit {
   total = signal(0);
   listingsLoading = signal(true);
 
-  ngOnInit(): void {
-    this.api.getStats().subscribe({
-      next: (data) => { this.stats.set(data); this.statsLoading.set(false); },
-      error: () => this.statsLoading.set(false),
-    });
-
-    this.api.getFilterOptions().subscribe({
-      next: (data) => this.filterOptions.set(data),
-    });
-
-    // Re-fetch listings whenever filter state changes
+  constructor() {
     effect(() => {
       const state = this.filterState.state();
       this.listingsLoading.set(true);
@@ -50,7 +39,19 @@ export class DashboardComponent implements OnInit {
         },
         error: () => this.listingsLoading.set(false),
       });
-    }, { injector: this.injector });
+    });
+  }
+
+  ngOnInit(): void {
+    this.api.getStats().subscribe({
+      next: (data) => { this.stats.set(data); this.statsLoading.set(false); },
+      error: () => this.statsLoading.set(false),
+    });
+
+    this.api.getFilterOptions().subscribe({
+      next: (data) => this.filterOptions.set(data),
+    });
   }
 }
+
 

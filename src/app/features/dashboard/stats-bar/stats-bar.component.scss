@@ -42,6 +42,6 @@
   &--amber .stat-card__value { color: #FF8F00; }
 }
 
-:host-context(html.dark-theme) .stat-card__label {
+:host-context(.dark-theme) .stat-card__label {
   color: rgba(255, 255, 255, 0.7);
 }

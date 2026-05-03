@@ -37,7 +37,7 @@ export class PriceChartComponent {
 
   chartData = computed<ChartConfiguration<'line'>['data']>(() => {
     const history = this.priceHistory();
-    if (!history || history.length === 0) {
+    if (history.length === 0) {
       return { labels: [], datasets: [] };
     }
 
