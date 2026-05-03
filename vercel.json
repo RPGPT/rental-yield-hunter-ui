@@ -3,7 +3,7 @@
   "outputDirectory": "dist/rental-yield-hunter-ui/browser",
   "functions": {
     "api/listings/snapshot.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "rewrites": [

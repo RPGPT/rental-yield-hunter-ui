@@ -24,49 +24,43 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
   });
 
   try {
-    const page = await browser.newPage();
-    await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 45_000 });
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-    // Make the page self-contained: inline CSS, base64 images, strip scripts.
-    // Runs inside the browser context so the listing site sees a real browser
-    // (no CloudFront / anti-bot blocking when resources are fetched).
-    const html = await page.evaluate(async () => {
-      // 1. Inline <link rel="stylesheet"> as <style>
-      const links = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]')];
-      await Promise.all(links.map(async link => {
-        try {
-          const r = await fetch(link.href);
-          const css = await r.text();
-          const style = document.createElement('style');
-          style.textContent = css;
-          link.replaceWith(style);
-        } catch { link.remove(); }
-      }));
-
-      // 2. Convert <img src> to data URLs
-      const imgs = [...document.querySelectorAll<HTMLImageElement>('img[src]')];
-      await Promise.all(imgs.map(async img => {
-        if (img.src.startsWith('data:')) return;
-        try {
-          const r = await fetch(img.src);
-          const blob = await r.blob();
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          img.src = dataUrl;
-        } catch { img.removeAttribute('src'); }
-      }));
-
-      // 3. Strip scripts and noscript (no JS needed in static snapshot)
-      document.querySelectorAll('script, noscript').forEach(el => el.remove());
-
-      return `<!DOCTYPE html>\n${document.documentElement.outerHTML}`;
+    // Intercept every response and cache the raw bytes + content-type
+    const resourceCache = new Map<string, { body: Buffer; type: string }>();
+    await page.route('**/*', async (route) => {
+      try {
+        const response = await route.fetch();
+        const body = await response.body();
+        const type = response.headers()['content-type'] ?? 'application/octet-stream';
+        resourceCache.set(route.request().url(), { body, type });
+        await route.fulfill({ response });
+      } catch {
+        await route.abort();
+      }
     });
 
-    return html;
+    await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 45_000 });
+
+    // Strip scripts & noscript before serialising
+    await page.evaluate(() => {
+      document.querySelectorAll('script, noscript').forEach(el => el.remove());
+    });
+
+    let html = await page.content();
+
+    // Replace every resource URL (src, href, url(...)) with a data URI
+    // using the bytes captured during the real page load
+    for (const [url, { body, type }] of resourceCache) {
+      if (!type.startsWith('image/') && !type.startsWith('text/css') && !type.startsWith('font/')) continue;
+      const dataUri = `data:${type.split(';')[0]};base64,${body.toString('base64')}`;
+      // Escape the URL for use in regex
+      const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      html = html.replace(new RegExp(escaped, 'g'), dataUri);
+    }
+
+    return `<!DOCTYPE html>\n${html}`;
   } finally {
     await browser.close();
   }
@@ -111,13 +105,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { url } = result[0] as { url: string };
 
       if (isVercel || useBlob) {
+        // Delete any existing snapshot (old .mhtml or previous .html) before re-capturing
+        const { list, del, put } = await import('@vercel/blob');
+        const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
+        if (existing.length > 0) {
+          await del(existing.map(b => b.url));
+          console.log(`[snapshot] deleted ${existing.length} existing blob(s) for ${id}`);
+        }
+
         const html = await capturePageHTML(url);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
         const buffer = Buffer.from(html, 'utf-8');
         console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
-        const { put } = await import('@vercel/blob');
         const blob = await put(blobKey, buffer, {
           access: 'private',
           addRandomSuffix: false,

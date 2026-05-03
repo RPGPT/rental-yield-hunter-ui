@@ -90,6 +90,12 @@ export class DetailComponent implements OnInit {
     a.click();
   }
 
+  recaptureSnapshot(): void {
+    this.snapshotExists.set(false);
+    this.snapshotUrl.set(null);
+    this.triggerSnapshot();
+  }
+
   private loadSnapshotStatus(): void {
     this.api.getSnapshotStatus(this.listingId).subscribe({
       next: ({ exists, url }) => {

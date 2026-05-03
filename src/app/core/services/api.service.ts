@@ -40,6 +40,11 @@ export class ApiService {
     );
   }
 
+  retriggerSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
+    // POST always deletes existing blob first then re-captures
+    return this.triggerSnapshot(id);
+  }
+
   getSnapshotStatus(id: string): Observable<{ exists: boolean; url?: string }> {
     return this.http.get<{ exists: boolean; url?: string }>(`${this.baseUrl}/listings/snapshot?id=${id}`);
   }
