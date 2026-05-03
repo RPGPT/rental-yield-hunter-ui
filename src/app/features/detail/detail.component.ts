@@ -55,9 +55,8 @@ export class DetailComponent implements OnInit {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
         this.loading.set(false);
-        if (data.is_favorite) {
-          this.loadSnapshotStatus();
-        }
+        // Always check snapshot status for all listings
+        this.loadSnapshotStatus();
       },
       error: () => this.loading.set(false),
     });
@@ -70,30 +69,24 @@ export class DetailComponent implements OnInit {
       next: () => {
         this.isFavorite.set(newValue);
         this.favLoading.set(false);
-        if (newValue) {
-          this.triggerSnapshot();
-        } else {
-          this.snapshotExists.set(false);
-          this.snapshotUrl.set(null);
-        }
       },
       error: () => this.favLoading.set(false),
     });
   }
 
-  downloadSnapshot(): void {
-    const url = this.snapshotUrl();
-    if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '';
-    a.click();
-  }
-
-  recaptureSnapshot(): void {
-    this.snapshotExists.set(false);
-    this.snapshotUrl.set(null);
-    this.triggerSnapshot();
+  // Single save action: download if exists, create if not
+  saveSnapshot(): void {
+    if (this.snapshotLoading()) return;
+    if (this.snapshotExists()) {
+      const url = this.snapshotUrl();
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      a.click();
+    } else {
+      this.triggerSnapshot();
+    }
   }
 
   private loadSnapshotStatus(): void {
