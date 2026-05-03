@@ -44,9 +44,8 @@ export class DetailComponent implements OnInit {
   loading = signal(true);
   isFavorite = signal(false);
   favLoading = signal(false);
-  snapshotExists = signal(false);
   snapshotLoading = signal(false);
-  private snapshotUrl = signal<string | null>(null);
+  snapshotSaved = signal(false); // true after a successful save this session
 
   ngOnInit(): void {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
@@ -55,8 +54,6 @@ export class DetailComponent implements OnInit {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
         this.loading.set(false);
-        // Always check snapshot status for all listings
-        this.loadSnapshotStatus();
       },
       error: () => this.loading.set(false),
     });
@@ -66,46 +63,19 @@ export class DetailComponent implements OnInit {
     const newValue = !this.isFavorite();
     this.favLoading.set(true);
     this.api.setFavorite(this.listingId, newValue).subscribe({
-      next: () => {
-        this.isFavorite.set(newValue);
-        this.favLoading.set(false);
-      },
+      next: () => { this.isFavorite.set(newValue); this.favLoading.set(false); },
       error: () => this.favLoading.set(false),
     });
   }
 
-  // Single save action: download if exists, create if not
+  // One click: POST → server returns existing or creates new → auto-download
   saveSnapshot(): void {
     if (this.snapshotLoading()) return;
-    if (this.snapshotExists()) {
-      const url = this.snapshotUrl();
-      if (!url) return;
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '';
-      a.click();
-    } else {
-      this.triggerSnapshot();
-    }
-  }
-
-  private loadSnapshotStatus(): void {
-    this.api.getSnapshotStatus(this.listingId).subscribe({
-      next: ({ exists, url }) => {
-        this.snapshotExists.set(exists);
-        if (url) this.snapshotUrl.set(url);
-      },
-    });
-  }
-
-  private triggerSnapshot(): void {
     this.snapshotLoading.set(true);
     this.api.triggerSnapshot(this.listingId).subscribe({
-      next: ({ exists, url }) => {
-        this.snapshotExists.set(exists);
-        if (url) this.snapshotUrl.set(url);
+      next: ({ url }) => {
         this.snapshotLoading.set(false);
-        // Auto-download as soon as the snapshot is ready
+        this.snapshotSaved.set(true);
         if (url) {
           const a = document.createElement('a');
           a.href = url;

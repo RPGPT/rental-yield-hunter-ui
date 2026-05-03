@@ -212,23 +212,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { url } = result[0] as { url: string };
 
       if (isVercel || useBlob) {
-        // Capture FIRST — only delete old blob if new one succeeds
         const { list, del, put } = await import('@vercel/blob');
 
+        // Return existing snapshot immediately if one exists
+        const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
+        const found = existing.find(b => b.size > 0);
+        if (found) {
+          console.log(`[snapshot] existing snapshot found for ${id}, returning`);
+          return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+        }
+
+        // No existing snapshot — capture a new one
         const html = await capturePageHTML(url);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
         const buffer = Buffer.from(html, 'utf-8');
         console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
-
-        // Delete old blobs only after successful capture
-        const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
-        if (existing.length > 0) {
-          await del(existing.map(b => b.url));
-          console.log(`[snapshot] deleted ${existing.length} old blob(s) for ${id}`);
-        }
-
         const blob = await put(blobKey, buffer, {
           access: 'private',
           addRandomSuffix: false,
@@ -237,15 +237,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
         return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       } else {
+        const htmlPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
+        // Return existing local snapshot if present
+        if (existsSync(htmlPath)) {
+          return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });
+        }
         if (!existsSync(SNAPSHOTS_DIR)) mkdirSync(SNAPSHOTS_DIR, { recursive: true });
-        const snapshotPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
         const singleFileBin = path.join(process.cwd(), 'node_modules', '.bin', 'single-file');
         await execFileAsync(
           singleFileBin,
-          [url, snapshotPath, '--browser-wait-until=networkidle0'],
+          [url, htmlPath, '--browser-wait-until=networkidle0'],
           { timeout: 90_000 }
         );
-        console.log(`[snapshot] ${snapshotPath}`);
+        console.log(`[snapshot] ${htmlPath}`);
         return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });
       }
     } catch (err) {
