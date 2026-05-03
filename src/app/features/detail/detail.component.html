@@ -4,25 +4,48 @@
   </div>
 } @else if (listing(); as l) {
   <div class="detail-page">
+
     <div class="detail-header">
-      <a mat-icon-button routerLink="/" class="back-btn">
+      <a mat-icon-button routerLink="/" class="back-btn" matTooltip="Back to listings">
         <mat-icon>arrow_back</mat-icon>
       </a>
-      <h1>{{ l.title }}</h1>
-      @if (snapshotExists()) {
-        <button mat-stroked-button (click)="openSnapshot()" matTooltip="Download saved MHTML snapshot — open it locally in Chrome">
-          <mat-icon>download</mat-icon>
-          Download Snapshot
+      <h1 class="detail-title">{{ l.title }}</h1>
+
+      <div class="header-actions">
+        <!-- Favorite toggle -->
+        <button mat-icon-button
+          [class.fav-active]="isFavorite()"
+          [disabled]="favLoading()"
+          (click)="toggleFavorite()"
+          [matTooltip]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'">
+          @if (favLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>{{ isFavorite() ? 'favorite' : 'favorite_border' }}</mat-icon>
+          }
         </button>
-      }
-      <a mat-raised-button [href]="l.url" target="_blank" rel="noopener" color="primary">
-        <mat-icon>open_in_new</mat-icon>
-        View Original
-      </a>
+
+        <!-- Download snapshot -->
+        @if (snapshotLoading()) {
+          <button mat-icon-button disabled matTooltip="Saving snapshot…">
+            <mat-spinner diameter="20"></mat-spinner>
+          </button>
+        } @else if (snapshotExists()) {
+          <button mat-icon-button (click)="downloadSnapshot()" matTooltip="Download saved page snapshot">
+            <mat-icon>save</mat-icon>
+          </button>
+        }
+
+        <!-- View original -->
+        <a mat-raised-button [href]="l.url" target="_blank" rel="noopener" color="primary" matTooltip="Open original listing">
+          <mat-icon>open_in_new</mat-icon>
+          <span class="btn-label">View Original</span>
+        </a>
+      </div>
     </div>
 
     <div class="detail-grid">
-      <!-- Left Column: Metadata -->
+      <!-- Left: Metadata -->
       <div class="detail-meta">
         <mat-card>
           <mat-card-header>
@@ -73,9 +96,7 @@
                 <span matListItemLine>
                   @if (l.is_rented) {
                     <app-badge label="Rented" color="green" />
-                  } @else {
-                    No
-                  }
+                  } @else { No }
                 </span>
               </mat-list-item>
               <mat-list-item>
@@ -83,54 +104,38 @@
                 <span matListItemLine>
                   @if (l.lifetime_rent) {
                     <app-badge label="Lifetime" color="red" />
-                  } @else {
-                    No
-                  }
+                  } @else { No }
                 </span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Status</span>
                 <span matListItemLine>
-                  <app-badge
-                    [label]="l.active ? 'Active' : 'Inactive'"
-                    [color]="l.active ? 'green' : 'grey'" />
-                </span>
-              </mat-list-item>
-              <mat-list-item>
-                <span matListItemTitle>Favorite</span>
-                <span matListItemLine>
-                  @if (l.is_favorite) {
-                    <app-badge label="★ Favorite" color="amber" />
-                  } @else {
-                    No
-                  }
+                  <app-badge [label]="l.active ? 'Active' : 'Inactive'" [color]="l.active ? 'green' : 'grey'" />
                 </span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>First Seen</span>
-                <span matListItemLine>{{ l.first_seen | date:'medium' }} ({{ l.first_seen | relativeDate }})</span>
+                <span matListItemLine>{{ l.first_seen | date:'mediumDate' }} ({{ l.first_seen | relativeDate }})</span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Last Seen</span>
-                <span matListItemLine>{{ l.last_seen | date:'medium' }} ({{ l.last_seen | relativeDate }})</span>
+                <span matListItemLine>{{ l.last_seen | date:'mediumDate' }} ({{ l.last_seen | relativeDate }})</span>
               </mat-list-item>
             </mat-list>
           </mat-card-content>
         </mat-card>
       </div>
 
-      <!-- Right Column: Chart + Description -->
+      <!-- Right: Chart + Description -->
       <div class="detail-content">
-        <mat-card class="chart-card">
+        <mat-card>
           <mat-card-content>
-            <app-price-chart
-              [priceHistory]="l.price_history"
-              [currentPrice]="l.price" />
+            <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />
           </mat-card-content>
         </mat-card>
 
         @if (l.description) {
-          <mat-card class="description-card">
+          <mat-card>
             <mat-card-header>
               <mat-card-title>Description</mat-card-title>
             </mat-card-header>
@@ -141,6 +146,6 @@
         }
       </div>
     </div>
+
   </div>
 }
-

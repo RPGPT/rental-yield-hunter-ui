@@ -1,62 +1,98 @@
 @use 'colors' as *;
 @use 'sizes' as *;
 
-.detail-container {
-  max-width: $size-1400;
-  margin: 0 auto;
-  padding: $size-24;
-}
-
-.loading-container {
+.detail-loading {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: $size-64;
 }
 
-.detail-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.detail-page {
+  max-width: $size-1400;
+  margin: 0 auto;
+  padding: $size-24;
+  display: flex;
+  flex-direction: column;
   gap: $size-24;
 }
 
-.detail-list {
-  .icon-yes { color: $color-success; }
-  .icon-no  { color: $color-grey; }
+// ── Header ──────────────────────────────────────────
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: $size-12;
 }
 
-.detail-list-item {
-  min-height: $size-48;
-}
-
-.section-title {
-  font-size: $size-16;
+.detail-title {
+  flex: 1;
+  margin: 0;
+  font-size: $size-20;
   font-weight: 600;
-  margin-bottom: $size-16;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: $size-8;
+  flex-shrink: 0;
+
+  .fav-active {
+    color: $color-danger;
+  }
+
+  .btn-label {
+    display: inline;
+  }
+}
+
+// ── Two-column grid ──────────────────────────────────
+.detail-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: $size-24;
+  align-items: start;
+}
+
+.detail-meta mat-card,
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: $size-16;
+}
+
+// ── List items ───────────────────────────────────────
+.icon-yes { color: $color-success; }
+.icon-no  { color: $color-grey; }
 
 .description-text {
   font-size: $size-14;
   line-height: 1.6;
+  margin: 0;
 }
 
-.action-bar {
-  display: flex;
-  gap: $size-16;
-  margin-bottom: $size-24;
-  align-items: center;
+// ── Responsive ──────────────────────────────────────
+@media (max-width: 63.9375rem) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 47.9375rem) {
-  .detail-container {
+  .detail-page {
     padding: $size-16;
-  }
-
-  .detail-layout {
-    grid-template-columns: 1fr;
     gap: $size-16;
   }
 
-  h1.mat-headline-4 {
-    font-size: $size-18 !important;
+  .detail-title {
+    font-size: $size-16;
+  }
+
+  .header-actions .btn-label {
+    display: none;
   }
 }

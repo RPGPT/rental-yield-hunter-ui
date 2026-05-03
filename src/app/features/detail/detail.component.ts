@@ -38,41 +38,76 @@ import { PriceChartComponent } from './price-chart/price-chart.component';
 export class DetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(ApiService);
+  private listingId = '';
 
   listing = signal<ListingDetail | null>(null);
   loading = signal(true);
+  isFavorite = signal(false);
+  favLoading = signal(false);
   snapshotExists = signal(false);
+  snapshotLoading = signal(false);
   private snapshotUrl = signal<string | null>(null);
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
-    this.api.getListing(id).subscribe({
+    this.listingId = this.route.snapshot.paramMap.get('id')!;
+    this.api.getListing(this.listingId).subscribe({
       next: (data) => {
         this.listing.set(data);
+        this.isFavorite.set(data.is_favorite);
         this.loading.set(false);
         if (data.is_favorite) {
-          this.api.getSnapshotStatus(id).subscribe({
-            next: ({ exists, url }) => {
-              this.snapshotExists.set(exists);
-              if (url) this.snapshotUrl.set(url);
-            },
-          });
+          this.loadSnapshotStatus();
         }
       },
-      error: () => {
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
-  openSnapshot(): void {
+  toggleFavorite(): void {
+    const newValue = !this.isFavorite();
+    this.favLoading.set(true);
+    this.api.setFavorite(this.listingId, newValue).subscribe({
+      next: () => {
+        this.isFavorite.set(newValue);
+        this.favLoading.set(false);
+        if (newValue) {
+          this.triggerSnapshot();
+        } else {
+          this.snapshotExists.set(false);
+          this.snapshotUrl.set(null);
+        }
+      },
+      error: () => this.favLoading.set(false),
+    });
+  }
+
+  downloadSnapshot(): void {
     const url = this.snapshotUrl();
     if (!url) return;
-    // Force download — MHTML can't be rendered from a remote URL in modern browsers
     const a = document.createElement('a');
     a.href = url;
     a.download = '';
     a.click();
   }
-}
 
+  private loadSnapshotStatus(): void {
+    this.api.getSnapshotStatus(this.listingId).subscribe({
+      next: ({ exists, url }) => {
+        this.snapshotExists.set(exists);
+        if (url) this.snapshotUrl.set(url);
+      },
+    });
+  }
+
+  private triggerSnapshot(): void {
+    this.snapshotLoading.set(true);
+    this.api.triggerSnapshot(this.listingId).subscribe({
+      next: ({ exists, url }) => {
+        this.snapshotExists.set(exists);
+        if (url) this.snapshotUrl.set(url);
+        this.snapshotLoading.set(false);
+      },
+      error: () => this.snapshotLoading.set(false),
+    });
+  }
+}
