@@ -15,7 +15,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const response = await fetch(blobs[0].url);
+    const response = await fetch(blobs[0].url, {
+      headers: {
+        Authorization: `Bearer ${process.env['BLOB_READ_WRITE_TOKEN']}`,
+      },
+    });
     if (!response.ok) {
       return res.status(502).json({ error: 'Failed to fetch snapshot from storage' });
     }

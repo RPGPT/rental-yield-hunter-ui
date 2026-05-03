@@ -79,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
         const { put } = await import('@vercel/blob');
         const blob = await put(blobKey, buffer, {
-          access: 'public',
+          access: 'private',
           addRandomSuffix: false,
           contentType: 'multipart/related; type="text/html"',
         });
