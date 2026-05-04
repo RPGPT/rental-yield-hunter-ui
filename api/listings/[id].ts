@@ -41,9 +41,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ORDER BY captured_at ASC
     `;
 
+    // Fetch images from raw_data table
+    const rawDataResult = await sql`
+      SELECT raw_json->'images' AS images
+       FROM raw_data
+       WHERE listing_id = ${id}
+       LIMIT 1
+    `;
+
+    const images: Array<{ large: string; medium: string }> =
+      rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
+        ? rawDataResult[0]['images']
+        : [];
+
     res.status(200).json({
       ...listingResult[0],
       price_history: priceHistory,
+      images,
     });
 
     return;

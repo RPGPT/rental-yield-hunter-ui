@@ -129,6 +129,29 @@
 
       <!-- Right: Chart + Description -->
       <div class="detail-content">
+
+        <!-- Image gallery -->
+        @if (l.images?.length) {
+          <mat-card class="gallery-card">
+            <mat-card-content>
+              <div class="gallery-main">
+                <img [src]="selectedImage()" alt="Listing image" class="gallery-main-img" />
+              </div>
+              @if (l.images.length > 1) {
+                <div class="gallery-thumbs">
+                  @for (img of l.images; track img.large) {
+                    <button class="thumb-btn"
+                      [class.thumb-active]="selectedImage() === img.large"
+                      (click)="selectImage(img.large)">
+                      <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
+                    </button>
+                  }
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
+
         <mat-card>
           <mat-card-content>
             <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />

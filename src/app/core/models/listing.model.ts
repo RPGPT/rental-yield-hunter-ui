@@ -22,8 +22,14 @@ export interface Listing {
   last_seen: string;
 }
 
+export interface ListingImage {
+  large: string;
+  medium: string;
+}
+
 export interface ListingDetail extends Listing {
   price_history: PricePoint[];
+  images: ListingImage[];
 }
 
 export interface PricePoint {

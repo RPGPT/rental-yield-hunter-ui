@@ -46,6 +46,7 @@ export class DetailComponent implements OnInit {
   favLoading = signal(false);
   snapshotLoading = signal(false);
   snapshotSaved = signal(false); // true after a successful save this session
+  selectedImage = signal<string>('');
 
   ngOnInit(): void {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
@@ -53,10 +54,17 @@ export class DetailComponent implements OnInit {
       next: (data) => {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
+        if (data.images?.length) {
+          this.selectedImage.set(data.images[0].large);
+        }
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  selectImage(url: string): void {
+    this.selectedImage.set(url);
   }
 
   toggleFavorite(): void {
