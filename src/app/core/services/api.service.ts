@@ -19,7 +19,7 @@ export class ApiService {
 
   getListings(filters: FilterState): Observable<PaginatedResponse<Listing>> {
     const params = buildQueryParams(filters);
-    return this.http.get<PaginatedResponse<Listing>>(`${this.baseUrl}/listings`, { params });
+    return this.http.get<PaginatedResponse<Listing>>(`${this.baseUrl}/listings`, { params: params as unknown as Record<string, string> });
   }
 
   getListing(id: string): Observable<ListingDetail> {

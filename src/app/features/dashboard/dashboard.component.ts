@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, effect, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { FilterStateService } from '../../core/services/filter-state.service';
 import { Stats } from '../../core/models/stats.model';
@@ -19,6 +20,8 @@ import { ListingsTableComponent } from './listings-table/listings-table.componen
 export class DashboardComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly filterState = inject(FilterStateService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   stats = signal<Stats | null>(null);
   statsLoading = signal(true);
@@ -28,6 +31,13 @@ export class DashboardComponent implements OnInit {
   listingsLoading = signal(true);
 
   constructor() {
+    this.filterState.initFromParams(this.route.snapshot.queryParams);
+
+    effect(() => {
+      const queryParams = this.filterState.toQueryParams();
+      this.router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' });
+    });
+
     effect(() => {
       const state = this.filterState.state();
       this.listingsLoading.set(true);

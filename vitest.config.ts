@@ -9,6 +9,7 @@ export default defineConfig({
         plugins: [angular()],
         test: {
           name: 'angular',
+          globals: true,
           environment: 'jsdom',
           setupFiles: ['src/test-setup.ts'],
           include: ['src/**/*.spec.ts'],
@@ -17,6 +18,7 @@ export default defineConfig({
       {
         test: {
           name: 'api',
+          globals: true,
           environment: 'node',
           include: ['api/**/*.spec.ts'],
         },

@@ -14,11 +14,11 @@
         <div class="filter-row">
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>€ Min</mat-label>
-            <input matInput type="number" (input)="onPriceMinInput($any($event.target).value)">
+            <input matInput type="number" [value]="filterState.priceMin() ?? ''" (input)="onPriceMinInput($any($event.target).value)">
           </mat-form-field>
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>€ Max</mat-label>
-            <input matInput type="number" (input)="onPriceMaxInput($any($event.target).value)">
+            <input matInput type="number" [value]="filterState.priceMax() ?? ''" (input)="onPriceMaxInput($any($event.target).value)">
           </mat-form-field>
         </div>
       </div>
@@ -28,11 +28,11 @@
         <div class="filter-row">
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>m² Min</mat-label>
-            <input matInput type="number" (input)="onAreaMinInput($any($event.target).value)">
+            <input matInput type="number" [value]="filterState.areaMin() ?? ''" (input)="onAreaMinInput($any($event.target).value)">
           </mat-form-field>
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>m² Max</mat-label>
-            <input matInput type="number" (input)="onAreaMaxInput($any($event.target).value)">
+            <input matInput type="number" [value]="filterState.areaMax() ?? ''" (input)="onAreaMaxInput($any($event.target).value)">
           </mat-form-field>
         </div>
       </div>

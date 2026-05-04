@@ -5,11 +5,11 @@
     </div>
   }
 
-  @if (!loading() && listings().length === 0) {
+  @if (!loading() && visibleListings().length === 0) {
     <app-empty-state />
   } @else {
     <div class="table-scroll">
-      <table mat-table [dataSource]="listings()" [trackBy]="trackById"
+      <table mat-table [dataSource]="visibleListings()" [trackBy]="trackById"
              matSort (matSortChange)="onSortChange($event)">
 
         <ng-container matColumnDef="is_favorite">

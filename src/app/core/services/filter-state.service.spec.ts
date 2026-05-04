@@ -198,4 +198,237 @@ describe('FilterStateService', () => {
     expect(svc.limit()).toBe(50);
     expect(svc.offset()).toBe(0);
   });
+
+  describe('initFromParams', () => {
+    it('sets priceMin from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ price_min: '300' });
+      expect(svc.priceMin()).toBe(300);
+    });
+
+    it('sets priceMax from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ price_max: '1500' });
+      expect(svc.priceMax()).toBe(1500);
+    });
+
+    it('sets areaMin from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ area_min: '60' });
+      expect(svc.areaMin()).toBe(60);
+    });
+
+    it('sets areaMax from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ area_max: '150' });
+      expect(svc.areaMax()).toBe(150);
+    });
+
+    it('splits typology from comma-separated param', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ typology: 'T2,T3' });
+      expect(svc.typology()).toEqual(['T2', 'T3']);
+    });
+
+    it('splits city from comma-separated param', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ city: 'Porto,Lisboa' });
+      expect(svc.city()).toEqual(['Porto', 'Lisboa']);
+    });
+
+    it('splits property_type from comma-separated param', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ property_type: 'Apartment' });
+      expect(svc.propertyType()).toEqual(['Apartment']);
+    });
+
+    it('sets hasGarage true from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ has_garage: 'true' });
+      expect(svc.hasGarage()).toBe(true);
+    });
+
+    it('sets hasGarage false from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ has_garage: 'false' });
+      expect(svc.hasGarage()).toBe(false);
+    });
+
+    it('sets isRented true from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_rented: 'true' });
+      expect(svc.isRented()).toBe(true);
+    });
+
+    it('sets lifetimeRent false from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ lifetime_rent: 'false' });
+      expect(svc.lifetimeRent()).toBe(false);
+    });
+
+    it('sets isFavorite true from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_favorite: 'true' });
+      expect(svc.isFavorite()).toBe(true);
+    });
+
+    it('sets active to null when param is all', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ active: 'all' });
+      expect(svc.active()).toBeNull();
+    });
+
+    it('sets active to false when param is false', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ active: 'false' });
+      expect(svc.active()).toBe(false);
+    });
+
+    it('sets sort from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ sort: 'area' });
+      expect(svc.sort()).toBe('area');
+    });
+
+    it('sets order desc from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ order: 'desc' });
+      expect(svc.order()).toBe('desc');
+    });
+
+    it('sets limit from params clamped to max 100', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ limit: '200' });
+      expect(svc.limit()).toBe(100);
+    });
+
+    it('sets limit from params clamped to min 1', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ limit: '0' });
+      expect(svc.limit()).toBe(1);
+    });
+
+    it('ignores missing params and keeps defaults', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({});
+      expect(svc.priceMin()).toBeNull();
+      expect(svc.active()).toBe(true);
+    });
+  });
+
+  describe('toQueryParams', () => {
+    it('returns empty object for all-default state', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams()).toEqual({});
+    });
+
+    it('includes price_min when set', () => {
+      const svc = new FilterStateService();
+      svc.priceMin.set(500);
+      expect(svc.toQueryParams().price_min).toBe('500');
+    });
+
+    it('includes price_max when set', () => {
+      const svc = new FilterStateService();
+      svc.priceMax.set(2000);
+      expect(svc.toQueryParams().price_max).toBe('2000');
+    });
+
+    it('includes area_min when set', () => {
+      const svc = new FilterStateService();
+      svc.areaMin.set(60);
+      expect(svc.toQueryParams().area_min).toBe('60');
+    });
+
+    it('includes area_max when set', () => {
+      const svc = new FilterStateService();
+      svc.areaMax.set(120);
+      expect(svc.toQueryParams().area_max).toBe('120');
+    });
+
+    it('joins typology as comma-separated string', () => {
+      const svc = new FilterStateService();
+      svc.typology.set(['T2', 'T3']);
+      expect(svc.toQueryParams().typology).toBe('T2,T3');
+    });
+
+    it('joins city as comma-separated string', () => {
+      const svc = new FilterStateService();
+      svc.city.set(['Porto', 'Lisboa']);
+      expect(svc.toQueryParams().city).toBe('Porto,Lisboa');
+    });
+
+    it('includes has_garage when set', () => {
+      const svc = new FilterStateService();
+      svc.hasGarage.set(true);
+      expect(svc.toQueryParams().has_garage).toBe('true');
+    });
+
+    it('includes is_rented when set', () => {
+      const svc = new FilterStateService();
+      svc.isRented.set(false);
+      expect(svc.toQueryParams().is_rented).toBe('false');
+    });
+
+    it('includes is_favorite when set to true', () => {
+      const svc = new FilterStateService();
+      svc.isFavorite.set(true);
+      expect(svc.toQueryParams().is_favorite).toBe('true');
+    });
+
+    it('omits is_favorite when null', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().is_favorite).toBeUndefined();
+    });
+
+    it('includes active=all when null', () => {
+      const svc = new FilterStateService();
+      svc.active.set(null);
+      expect(svc.toQueryParams().active).toBe('all');
+    });
+
+    it('includes active=false when false', () => {
+      const svc = new FilterStateService();
+      svc.active.set(false);
+      expect(svc.toQueryParams().active).toBe('false');
+    });
+
+    it('omits active when true (default)', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().active).toBeUndefined();
+    });
+
+    it('includes sort when non-default', () => {
+      const svc = new FilterStateService();
+      svc.sort.set('area');
+      expect(svc.toQueryParams().sort).toBe('area');
+    });
+
+    it('omits sort when default price', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().sort).toBeUndefined();
+    });
+
+    it('includes order when desc', () => {
+      const svc = new FilterStateService();
+      svc.order.set('desc');
+      expect(svc.toQueryParams().order).toBe('desc');
+    });
+
+    it('omits order when asc (default)', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().order).toBeUndefined();
+    });
+
+    it('includes limit when non-default', () => {
+      const svc = new FilterStateService();
+      svc.limit.set(25);
+      expect(svc.toQueryParams().limit).toBe('25');
+    });
+
+    it('omits limit when 50 (default)', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().limit).toBeUndefined();
+    });
+  });
 });
