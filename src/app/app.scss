@@ -31,6 +31,30 @@
   flex: 1;
 }
 
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0 8px;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.user-name {
+  font-size: $size-14;
+  margin-right: $size-8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.hide-mobile {
+  @media (max-width: 600px) {
+    display: none;
+  }
+}
+
 .app-content {
   min-height: calc(100vh - #{$size-64});
 }

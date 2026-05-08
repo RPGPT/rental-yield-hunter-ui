@@ -4,6 +4,8 @@
     <span class="toolbar-title">Rental Yield Hunter</span>
   </a>
   <span class="toolbar-spacer"></span>
+
+  <!-- Theme toggle -->
   <button
     mat-icon-button
     (click)="toggleTheme()"
@@ -11,6 +13,27 @@
   >
     <mat-icon>{{ isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
+
+  <!-- Auth area -->
+  @if (auth.currentUser(); as user) {
+    @if (user.picture) {
+      <img
+        class="user-avatar"
+        [src]="user.picture"
+        [alt]="user.name ?? user.email"
+        referrerpolicy="no-referrer"
+      />
+    }
+    <span class="user-name hide-mobile">{{ user.name ?? user.email }}</span>
+    <button mat-icon-button (click)="logout()" matTooltip="Sign out">
+      <mat-icon>logout</mat-icon>
+    </button>
+  } @else {
+    <button mat-button routerLink="/login" aria-label="Sign in">
+      <mat-icon>login</mat-icon>
+      <span class="hide-mobile">Sign In</span>
+    </button>
+  }
 </mat-toolbar>
 
 <main class="app-content">

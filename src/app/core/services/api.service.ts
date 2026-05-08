@@ -29,7 +29,11 @@ export class ApiService {
   }
 
   setFavorite(id: string, value: boolean): Observable<void> {
-    return this.http.patch<void>(`${this.baseUrl}/listings/${id}?is_favorite=${value}`, null);
+    if (value) {
+      return this.http.post<void>(`${this.baseUrl}/favorites?id=${id}`, null);
+    } else {
+      return this.http.delete<void>(`${this.baseUrl}/favorites?id=${id}`);
+    }
   }
 
   triggerSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {

@@ -8,5 +8,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/detail/detail.component').then((m) => m.DetailComponent),
   },
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/login/login.component').then((m) => m.LoginComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

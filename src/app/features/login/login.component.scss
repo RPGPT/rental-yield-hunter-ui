@@ -1,0 +1,83 @@
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+
+  mat-card-header {
+    margin-bottom: 20px;
+  }
+
+  mat-card-title {
+    font-size: 1.4rem;
+  }
+}
+
+.google-btn {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.divider {
+  margin: 20px 0;
+  position: relative;
+}
+
+.divider-text {
+  padding: 0 12px;
+  font-size: 0.8rem;
+  color: var(--mat-app-on-surface-variant, #888);
+  background: var(--mat-app-surface, #fff);
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.error-message {
+  color: var(--mat-app-error, #d32f2f);
+  font-size: 0.85rem;
+  margin: 4px 0 8px;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  font-size: 0.95rem;
+
+  mat-spinner {
+    display: inline-block;
+  }
+}
+
+.toggle-mode {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.875rem;
+  color: var(--mat-app-on-surface-variant, #666);
+
+  button {
+    font-size: 0.875rem;
+    padding: 0 4px;
+  }
+}
+

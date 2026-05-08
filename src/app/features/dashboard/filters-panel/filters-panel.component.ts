@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -22,6 +23,7 @@ import { Subject, debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FilterOptions } from '../../../core/models/filter.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-filters-panel',
@@ -46,6 +48,8 @@ import { FilterStateService } from '../../../core/services/filter-state.service'
 export class FiltersPanelComponent implements OnInit {
   readonly filterState = inject(FilterStateService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   filterOptions = input<FilterOptions | null>(null);
 
@@ -141,6 +145,10 @@ export class FiltersPanelComponent implements OnInit {
   }
 
   cycleFavorite(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     const current = this.filterState.isFavorite();
     this.filterState.isFavorite.set(current === null ? true : null);
     this.resetOffset();

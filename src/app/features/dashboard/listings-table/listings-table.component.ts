@@ -15,10 +15,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { TitleCasePipe } from '@angular/common';
 import { Listing } from '../../../core/models/listing.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
 import { ApiService } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { EurPipe } from '../../../shared/pipes/eur.pipe';
 import { RelativeDatePipe } from '../../../shared/pipes/relative-date.pipe';
 import { BadgeComponent } from '../../../shared/components/badge.component';
@@ -70,6 +72,8 @@ export class ListingsTableComponent {
   private readonly router = inject(Router);
   private readonly filterState = inject(FilterStateService);
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+  private readonly snackBar = inject(MatSnackBar);
 
   listings = input<Listing[]>([]);
   total = input<number>(0);
@@ -107,6 +111,14 @@ export class ListingsTableComponent {
 
   onFavoriteClick(event: Event, row: Listing): void {
     event.stopPropagation();
+
+    if (!this.auth.isAuthenticated()) {
+      this.snackBar.open('Sign in to save favourites', 'Sign In', { duration: 4000 }).onAction().subscribe(() => {
+        this.router.navigate(['/login']);
+      });
+      return;
+    }
+
     const newValue = !this.isFavorite(row);
     this.favoriteOverrides.update((o) => ({ ...o, [row.id]: newValue }));
     this.api.setFavorite(row.id, newValue).subscribe({

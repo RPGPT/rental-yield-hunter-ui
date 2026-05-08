@@ -47,6 +47,7 @@ import snapshotHandler from './api/listings/snapshot';
 import snapshotDownloadHandler from './api/listings/snapshot-download';
 import statsHandler from './api/stats';
 import filtersHandler from './api/filters';
+import favoritesHandler from './api/favorites/index';
 
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
 
@@ -82,6 +83,8 @@ const server = http.createServer(async (req, res) => {
       await statsHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/filters') {
       await filtersHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/favorites') {
+      await favoritesHandler(fakeReq, fakeRes);
     } else if (pathname.match(/^\/api\/snapshots\/([^/]+)$/)) {
       const id = pathname.replace('/api/snapshots/', '');
       const htmlPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
@@ -113,5 +116,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`✅ API dev server running at http://localhost:${PORT}`);
-  console.log(`   DATABASE_URL: ${process.env['DATABASE_URL'] ? '✓ loaded' : '✗ MISSING'}`);
+  console.log(`   DATABASE_URL:   ${process.env['DATABASE_URL'] ? '✓ loaded' : '✗ MISSING'}`);
+  console.log(`   NEON_AUTH_URL:  ${process.env['NEON_AUTH_URL'] ? '✓ loaded' : '✗ MISSING (session validation will fail)'}`);
 });
