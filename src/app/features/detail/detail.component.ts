@@ -1,14 +1,16 @@
 import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { ListingDetail } from '../../core/models/listing.model';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { EurPipe } from '../../shared/pipes/eur.pipe';
 import { RelativeDatePipe } from '../../shared/pipes/relative-date.pipe';
 import { BadgeComponent } from '../../shared/components/badge.component';
@@ -37,7 +39,10 @@ import { PriceChartComponent } from './price-chart/price-chart.component';
 })
 export class DetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+  private readonly snackBar = inject(MatSnackBar);
   private listingId = '';
 
   listing = signal<ListingDetail | null>(null);
@@ -68,12 +73,26 @@ export class DetailComponent implements OnInit {
   }
 
   toggleFavorite(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.snackBar
+        .open('Sign in to save favourites', 'Sign In', { duration: 4000 })
+        .onAction()
+        .subscribe(() => this.router.navigate(['/login']));
+      return;
+    }
+
     const newValue = !this.isFavorite();
     this.favLoading.set(true);
     this.api.setFavorite(this.listingId, newValue).subscribe({
       next: () => {
         this.isFavorite.set(newValue);
         this.favLoading.set(false);
+        if (newValue) {
+          this.api.triggerSnapshot(this.listingId).subscribe({
+            next: (r) => console.log(`[snapshot] ${this.listingId}`, r.url),
+            error: (e) => console.warn(`[snapshot] failed ${this.listingId}:`, e),
+          });
+        }
       },
       error: () => this.favLoading.set(false),
     });

@@ -28,6 +28,10 @@ export class ApiService {
     return this.http.get<ListingDetail>(`${this.baseUrl}/listings/${id}`);
   }
 
+  getFavorites(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/favorites`);
+  }
+
   setFavorite(id: string, value: boolean): Observable<void> {
     if (value) {
       return this.http.post<void>(`${this.baseUrl}/favorites?id=${id}`, null);

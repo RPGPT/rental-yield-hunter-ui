@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { provideRouter, ActivatedRoute } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { MockComponent } from 'ng-mocks';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { DetailComponent } from './detail.component';
 import { PriceChartComponent } from './price-chart/price-chart.component';
 import { BadgeComponent } from '../../shared/components/badge.component';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import type { ListingDetail } from '../../core/models/listing.model';
 
 const MOCK_LISTING: ListingDetail = {
@@ -51,14 +54,32 @@ class FakeApiService {
   }
 }
 
+class FakeAuthService {
+  readonly currentUser = signal<{ id: string } | null>({ id: 'dev-user' });
+  isAuthenticated(): boolean {
+    return this.currentUser() !== null;
+  }
+  getToken(): string | null {
+    return 'dev-token';
+  }
+}
+
 describe('DetailComponent', () => {
+  let fakeAuth: FakeAuthService;
+
   beforeEach(() => {
+    fakeAuth = new FakeAuthService();
     TestBed.configureTestingModule({
-      imports: [MockComponent(PriceChartComponent), MockComponent(BadgeComponent)],
+      imports: [
+        MockComponent(PriceChartComponent),
+        MockComponent(BadgeComponent),
+        NoopAnimationsModule,
+      ],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
         { provide: ApiService, useClass: FakeApiService },
+        { provide: AuthService, useValue: fakeAuth },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '123' } } } },
       ],
     });
@@ -155,6 +176,68 @@ describe('DetailComponent', () => {
     expect(component.isFavorite()).toBe(true);
     component.toggleFavorite();
     expect(component.isFavorite()).toBe(true);
+  });
+
+  it('toggleFavorite() calls triggerSnapshot when favoriting a listing', () => {
+    const svc = TestBed.inject(ApiService);
+    vi.spyOn(svc, 'setFavorite').mockReturnValue(of(undefined));
+    const snapshotSpy = vi.spyOn(svc, 'triggerSnapshot');
+    const component = TestBed.runInInjectionContext(() => new DetailComponent());
+    component.ngOnInit();
+    component.isFavorite.set(false); // start unfavorited
+    component.toggleFavorite();
+    expect(snapshotSpy).toHaveBeenCalledWith('123');
+  });
+
+  it('toggleFavorite() does not call triggerSnapshot when un-favoriting', () => {
+    const svc = TestBed.inject(ApiService);
+    vi.spyOn(svc, 'setFavorite').mockReturnValue(of(undefined));
+    const snapshotSpy = vi.spyOn(svc, 'triggerSnapshot');
+    const component = TestBed.runInInjectionContext(() => new DetailComponent());
+    component.ngOnInit();
+    component.isFavorite.set(true); // start favorited
+    component.toggleFavorite();
+    expect(snapshotSpy).not.toHaveBeenCalled();
+  });
+
+  describe('toggleFavorite() — unauthenticated', () => {
+    beforeEach(() => {
+      fakeAuth.currentUser.set(null); // simulate logged-out
+    });
+
+    it('does not call setFavorite when user is not authenticated', () => {
+      const svc = TestBed.inject(ApiService);
+      const spy = vi.spyOn(svc, 'setFavorite');
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.toggleFavorite();
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('does not change isFavorite when user is not authenticated', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const before = component.isFavorite();
+      component.toggleFavorite();
+      expect(component.isFavorite()).toBe(before);
+    });
+
+    it('shows a snackbar prompting sign-in when user is not authenticated', () => {
+      const snackBar = TestBed.inject(MatSnackBar);
+      const spy = vi.spyOn(snackBar, 'open').mockReturnValue({
+        onAction: () => of(undefined),
+        dismiss: () => {},
+        afterDismissed: () => of({ dismissedByAction: false }),
+        afterOpened: () => of(undefined),
+        _open: false,
+        instance: {} as never,
+        containerInstance: {} as never,
+      } as never);
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.toggleFavorite();
+      expect(spy).toHaveBeenCalledWith('Sign in to save favourites', 'Sign In', { duration: 4000 });
+    });
   });
 
   it('saveSnapshot() calls triggerSnapshot with the listing id', () => {

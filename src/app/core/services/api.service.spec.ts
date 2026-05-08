@@ -18,6 +18,7 @@ const DEFAULT_FILTER: FilterState = {
   is_rented: null,
   lifetime_rent: null,
   is_favorite: null,
+  is_new: null,
   active: null,
   sort: 'price',
   order: 'asc',
@@ -82,18 +83,33 @@ describe('ApiService', () => {
     req.flush({ id: '42' });
   });
 
-  it('setFavorite(id, true) sends PATCH with is_favorite=true', () => {
+  it('getFavorites() sends GET to /api/favorites', () => {
+    service.getFavorites().subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/favorites'));
+    expect(req.request.method).toBe('GET');
+    req.flush(['1', '2', '3']);
+  });
+
+  it('getFavorites() returns the list of listing IDs', () => {
+    let result: string[] = [];
+    service.getFavorites().subscribe((ids) => (result = ids));
+    httpMock.expectOne((r) => r.url.includes('/api/favorites')).flush(['10', '20']);
+    expect(result).toEqual(['10', '20']);
+  });
+
+  it('setFavorite(id, true) sends POST to /api/favorites with id', () => {
     service.setFavorite('10', true).subscribe();
-    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/10'));
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.urlWithParams).toContain('is_favorite=true');
+    const req = httpMock.expectOne((r) => r.url.includes('/api/favorites'));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.urlWithParams).toContain('id=10');
     req.flush(null);
   });
 
-  it('setFavorite(id, false) sends PATCH with is_favorite=false', () => {
+  it('setFavorite(id, false) sends DELETE to /api/favorites with id', () => {
     service.setFavorite('10', false).subscribe();
-    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/10'));
-    expect(req.request.urlWithParams).toContain('is_favorite=false');
+    const req = httpMock.expectOne((r) => r.url.includes('/api/favorites'));
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.urlWithParams).toContain('id=10');
     req.flush(null);
   });
 
