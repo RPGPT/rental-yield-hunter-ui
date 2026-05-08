@@ -113,9 +113,12 @@ export class ListingsTableComponent {
     event.stopPropagation();
 
     if (!this.auth.isAuthenticated()) {
-      this.snackBar.open('Sign in to save favourites', 'Sign In', { duration: 4000 }).onAction().subscribe(() => {
-        this.router.navigate(['/login']);
-      });
+      this.snackBar
+        .open('Sign in to save favourites', 'Sign In', { duration: 4000 })
+        .onAction()
+        .subscribe(() => {
+          this.router.navigate(['/login']);
+        });
       return;
     }
 

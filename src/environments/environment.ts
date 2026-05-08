@@ -5,4 +5,3 @@ export const environment = {
   /** Set to true to skip Neon Auth and auto-login with a local dev user. */
   devBypassAuth: true,
 };
-

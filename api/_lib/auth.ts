@@ -52,4 +52,3 @@ export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUs
 
   return verifyNeonAuthSession(token);
 }
-

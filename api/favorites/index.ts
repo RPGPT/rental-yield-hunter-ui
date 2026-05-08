@@ -24,9 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const rows = await sql`
         SELECT listing_id FROM user_favorites WHERE user_id = ${user.id}
       `;
-      return res
-        .status(200)
-        .json(rows.map((r: Record<string, unknown>) => r['listing_id']));
+      return res.status(200).json(rows.map((r: Record<string, unknown>) => r['listing_id']));
     } catch (error) {
       console.error('[favorites GET]', error);
       return res.status(500).json({ error: 'Internal server error' });
@@ -66,4 +64,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
-

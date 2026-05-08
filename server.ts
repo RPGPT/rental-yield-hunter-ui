@@ -117,5 +117,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ API dev server running at http://localhost:${PORT}`);
   console.log(`   DATABASE_URL:   ${process.env['DATABASE_URL'] ? '✓ loaded' : '✗ MISSING'}`);
-  console.log(`   NEON_AUTH_URL:  ${process.env['NEON_AUTH_URL'] ? '✓ loaded' : '✗ MISSING (session validation will fail)'}`);
+  console.log(
+    `   NEON_AUTH_URL:  ${process.env['NEON_AUTH_URL'] ? '✓ loaded' : '✗ MISSING (session validation will fail)'}`,
+  );
 });

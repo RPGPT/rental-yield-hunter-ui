@@ -4,4 +4,3 @@ export interface AuthUser {
   name: string | null;
   picture: string | null;
 }
-

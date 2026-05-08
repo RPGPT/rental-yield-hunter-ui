@@ -85,7 +85,10 @@ export class AuthService {
     }
   }
 
-  private storeSession(user: { id: string; email: string; name?: string | null; image?: string | null }, token: string): void {
+  private storeSession(
+    user: { id: string; email: string; name?: string | null; image?: string | null },
+    token: string,
+  ): void {
     const authUser: AuthUser = {
       id: user.id,
       email: user.email,
@@ -97,4 +100,3 @@ export class AuthService {
     this.currentUser.set(authUser);
   }
 }
-

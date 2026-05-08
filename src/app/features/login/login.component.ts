@@ -42,7 +42,11 @@ export class LoginComponent {
     this.loading.set(true);
     try {
       if (this.isSignUp()) {
-        await this.auth.signUpWithEmail(this.email, this.password, this.name || this.email.split('@')[0]);
+        await this.auth.signUpWithEmail(
+          this.email,
+          this.password,
+          this.name || this.email.split('@')[0],
+        );
       } else {
         await this.auth.signInWithEmail(this.email, this.password);
       }
@@ -69,4 +73,3 @@ export class LoginComponent {
     this.errorMessage.set(null);
   }
 }
-

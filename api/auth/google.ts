@@ -8,4 +8,3 @@ import type { VercelRequest, VercelResponse } from '../_types';
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   return res.status(410).json({ error: 'This endpoint has been removed. Use Neon Auth.' });
 }
-
