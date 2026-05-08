@@ -8,7 +8,11 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,html,scss,css,json,md}": "prettier --write"
   },
   "private": true,
   "packageManager": "pnpm@10.11.0",
@@ -48,7 +52,9 @@
     "@vitest/coverage-v8": "^4.1.5",
     "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
+    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.3",
     "ng-mocks": "^14.15.2",
     "prettier": "^3.8.1",
     "single-file-cli": "^2.0.83",
