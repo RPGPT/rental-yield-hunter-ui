@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const {
       price_min, price_max, area_min, area_max,
       typology, city, property_type,
-      has_garage, is_rented, lifetime_rent, is_favorite, active,
+      has_garage, is_rented, lifetime_rent, is_favorite, is_new, active,
       sort = 'price', order = 'asc',
       limit = '50', offset = '0',
     } = req.query as Record<string, string | undefined>;
@@ -47,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (is_rented !== undefined) { conditions.push(`is_rented = $${paramIndex++}`); params.push(is_rented === 'true'); }
     if (lifetime_rent !== undefined) { conditions.push(`lifetime_rent = $${paramIndex++}`); params.push(lifetime_rent === 'true'); }
     if (is_favorite !== undefined) { conditions.push(`is_favorite = $${paramIndex++}`); params.push(is_favorite === 'true'); }
+    if (is_new === 'true') { conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`); }
     if (active !== undefined) { conditions.push(`active = $${paramIndex++}`); params.push(active === 'true'); }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

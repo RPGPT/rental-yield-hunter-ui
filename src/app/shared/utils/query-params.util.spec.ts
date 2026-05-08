@@ -6,7 +6,7 @@ const DEFAULT: FilterState = {
   price_min: null, price_max: null, area_min: null, area_max: null,
   typology: [], city: [], property_type: [],
   has_garage: null, is_rented: null, lifetime_rent: null,
-  is_favorite: null, active: null,
+  is_favorite: null, is_new: null, active: null,
   sort: 'price', order: 'asc', limit: 50, offset: 0,
 };
 
@@ -39,6 +39,8 @@ describe('buildQueryParams', () => {
   it('omits null lifetime_rent', () => { expect(buildQueryParams({ ...DEFAULT }).lifetime_rent).toBeUndefined(); });
   it('includes is_favorite true', () => { expect(buildQueryParams({ ...DEFAULT, is_favorite: true }).is_favorite).toBe('true'); });
   it('omits null is_favorite', () => { expect(buildQueryParams({ ...DEFAULT }).is_favorite).toBeUndefined(); });
+  it('includes is_new true', () => { expect(buildQueryParams({ ...DEFAULT, is_new: true }).is_new).toBe('true'); });
+  it('omits null is_new', () => { expect(buildQueryParams({ ...DEFAULT }).is_new).toBeUndefined(); });
   it('includes active true', () => { expect(buildQueryParams({ ...DEFAULT, active: true }).active).toBe('true'); });
   it('includes active false', () => { expect(buildQueryParams({ ...DEFAULT, active: false }).active).toBe('false'); });
   it('omits null active', () => { expect(buildQueryParams({ ...DEFAULT }).active).toBeUndefined(); });

@@ -46,6 +46,10 @@ describe('FilterStateService', () => {
     expect(new FilterStateService().isFavorite()).toBeNull();
   });
 
+  it('isNew defaults to null', () => {
+    expect(new FilterStateService().isNew()).toBeNull();
+  });
+
   it('active defaults to true', () => {
     expect(new FilterStateService().active()).toBe(true);
   });
@@ -132,6 +136,12 @@ describe('FilterStateService', () => {
     expect(svc.state().is_favorite).toBe(true);
   });
 
+  it('state computed reflects isNew', () => {
+    const svc = new FilterStateService();
+    svc.isNew.set(true);
+    expect(svc.state().is_new).toBe(true);
+  });
+
   it('state computed reflects active', () => {
     const svc = new FilterStateService();
     svc.active.set(false);
@@ -175,6 +185,7 @@ describe('FilterStateService', () => {
     svc.isRented.set(true);
     svc.lifetimeRent.set(true);
     svc.isFavorite.set(true);
+    svc.isNew.set(true);
     svc.active.set(false);
     svc.sort.set('city');
     svc.order.set('desc');
@@ -192,6 +203,7 @@ describe('FilterStateService', () => {
     expect(svc.isRented()).toBeNull();
     expect(svc.lifetimeRent()).toBeNull();
     expect(svc.isFavorite()).toBeNull();
+    expect(svc.isNew()).toBeNull();
     expect(svc.active()).toBe(true);
     expect(svc.sort()).toBe('price');
     expect(svc.order()).toBe('asc');
@@ -270,6 +282,18 @@ describe('FilterStateService', () => {
       const svc = new FilterStateService();
       svc.initFromParams({ is_favorite: 'true' });
       expect(svc.isFavorite()).toBe(true);
+    });
+
+    it('sets isNew true from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_new: 'true' });
+      expect(svc.isNew()).toBe(true);
+    });
+
+    it('keeps isNew null when param is not "true"', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_new: 'false' });
+      expect(svc.isNew()).toBeNull();
     });
 
     it('sets active to null when param is all', () => {
@@ -379,6 +403,17 @@ describe('FilterStateService', () => {
     it('omits is_favorite when null', () => {
       const svc = new FilterStateService();
       expect(svc.toQueryParams().is_favorite).toBeUndefined();
+    });
+
+    it('includes is_new when set to true', () => {
+      const svc = new FilterStateService();
+      svc.isNew.set(true);
+      expect(svc.toQueryParams().is_new).toBe('true');
+    });
+
+    it('omits is_new when null', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().is_new).toBeUndefined();
     });
 
     it('includes active=all when null', () => {

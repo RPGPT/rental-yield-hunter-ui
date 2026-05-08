@@ -160,5 +160,19 @@ describe('api/listings/index handler', () => {
     } as any, res as any);
     expect(res._status).toBe(200);
   });
+
+  it('filters by is_new=true using 2-day interval', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { is_new: 'true' } } as any, res as any);
+    expect(res._status).toBe(200);
+  });
+
+  it('does not add is_new condition when is_new is not "true"', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { is_new: 'false' } } as any, res as any);
+    expect(res._status).toBe(200);
+  });
 });
 

@@ -110,6 +110,18 @@ export class FiltersPanelComponent implements OnInit {
       : 'Show all — click to show favorites only';
   }
 
+  cycleNew(): void {
+    const current = this.filterState.isNew();
+    this.filterState.isNew.set(current === null ? true : null);
+    this.resetOffset();
+  }
+
+  newTooltip(): string {
+    return this.filterState.isNew() === true
+      ? 'Showing new listings (last 2 days) — click to show all'
+      : 'Show all — click to show new listings only (last 2 days)';
+  }
+
   resetFilters(): void {
     this.filterState.reset();
   }

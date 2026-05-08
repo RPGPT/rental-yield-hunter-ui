@@ -14,6 +14,7 @@ export interface FilterQueryParams {
   is_rented?: string;
   lifetime_rent?: string;
   is_favorite?: string;
+  is_new?: string;
   active?: string;
   sort?: string;
   order?: string;
@@ -33,6 +34,7 @@ export class FilterStateService {
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
+  readonly isNew = signal<boolean | null>(null);
   readonly active = signal<boolean | null>(true);
   readonly sort = signal<string>('price');
   readonly order = signal<'asc' | 'desc'>('asc');
@@ -51,6 +53,7 @@ export class FilterStateService {
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
     is_favorite: this.isFavorite(),
+    is_new: this.isNew(),
     active: this.active(),
     sort: this.sort(),
     order: this.order(),
@@ -70,6 +73,7 @@ export class FilterStateService {
     this.isRented.set(null);
     this.lifetimeRent.set(null);
     this.isFavorite.set(null);
+    this.isNew.set(null);
     this.active.set(true);
     this.sort.set('price');
     this.order.set('asc');
@@ -89,6 +93,7 @@ export class FilterStateService {
     if (params['is_rented'] != null) this.isRented.set(params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null);
     if (params['lifetime_rent'] != null) this.lifetimeRent.set(params['lifetime_rent'] === 'true' ? true : params['lifetime_rent'] === 'false' ? false : null);
     if (params['is_favorite'] != null) this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
+    if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
     if (params['active'] != null) this.active.set(params['active'] === 'all' ? null : params['active'] === 'false' ? false : true);
     if (params['sort']) this.sort.set(params['sort']);
     if (params['order'] === 'desc') this.order.set('desc');
@@ -109,6 +114,7 @@ export class FilterStateService {
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
+    if (s.is_new != null) p.is_new = String(s.is_new);
     if (s.active !== true) p.active = s.active === null ? 'all' : 'false';
     if (s.sort !== 'price') p.sort = s.sort;
     if (s.order !== 'asc') p.order = s.order;

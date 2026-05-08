@@ -128,6 +128,15 @@
         <mat-icon>{{ favoriteIcon() }}</mat-icon>
       </button>
     </div>
+
+    <div class="filter-group filter-group--new">
+      <button mat-icon-button class="new-filter-btn"
+              [class.new-filter-btn--active]="filterState.isNew() === true"
+              (click)="cycleNew()"
+              [matTooltip]="newTooltip()">
+        <mat-icon>fiber_new</mat-icon>
+      </button>
+    </div>
   </div>
 
   <div class="filters-actions">

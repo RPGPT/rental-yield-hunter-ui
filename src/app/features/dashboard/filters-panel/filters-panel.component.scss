@@ -1,7 +1,8 @@
 @use 'colors' as *;
 @use 'sizes' as *;
 
-.filter-group--heart {
+.filter-group--heart,
+.filter-group--new {
   justify-content: end;
 }
 
@@ -21,6 +22,22 @@
   }
 }
 
+.new-filter-btn {
+  color: inherit;
+  width: $size-40;
+  height: $size-40;
+
+  mat-icon {
+    font-size: $size-24;
+    width: $size-24;
+    height: $size-24;
+  }
+
+  &--active {
+    color: $color-primary;
+  }
+}
+
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -28,7 +45,7 @@
   padding: $size-8 0;
 
   &--toggles {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     padding-top: 0;
   }
 }
