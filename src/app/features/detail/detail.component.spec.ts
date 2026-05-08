@@ -207,4 +207,3 @@ describe('DetailComponent', () => {
     expect(component.snapshotSaved()).toBe(true);
   });
 });
-

@@ -14,11 +14,21 @@
         <div class="filter-row">
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>€ Min</mat-label>
-            <input matInput type="number" [value]="filterState.priceMin() ?? ''" (input)="onPriceMinInput($any($event.target).value)">
+            <input
+              matInput
+              type="number"
+              [value]="filterState.priceMin() ?? ''"
+              (input)="onPriceMinInput($any($event.target).value)"
+            />
           </mat-form-field>
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>€ Max</mat-label>
-            <input matInput type="number" [value]="filterState.priceMax() ?? ''" (input)="onPriceMaxInput($any($event.target).value)">
+            <input
+              matInput
+              type="number"
+              [value]="filterState.priceMax() ?? ''"
+              (input)="onPriceMaxInput($any($event.target).value)"
+            />
           </mat-form-field>
         </div>
       </div>
@@ -28,11 +38,21 @@
         <div class="filter-row">
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>m² Min</mat-label>
-            <input matInput type="number" [value]="filterState.areaMin() ?? ''" (input)="onAreaMinInput($any($event.target).value)">
+            <input
+              matInput
+              type="number"
+              [value]="filterState.areaMin() ?? ''"
+              (input)="onAreaMinInput($any($event.target).value)"
+            />
           </mat-form-field>
           <mat-form-field appearance="outline" class="filter-field">
             <mat-label>m² Max</mat-label>
-            <input matInput type="number" [value]="filterState.areaMax() ?? ''" (input)="onAreaMaxInput($any($event.target).value)">
+            <input
+              matInput
+              type="number"
+              [value]="filterState.areaMax() ?? ''"
+              (input)="onAreaMaxInput($any($event.target).value)"
+            />
           </mat-form-field>
         </div>
       </div>
@@ -46,7 +66,8 @@
           <mat-chip-listbox
             [multiple]="true"
             [value]="selectedTypologies"
-            (change)="onTypologyChange($event.value)">
+            (change)="onTypologyChange($event.value)"
+          >
             @for (t of opts.typologies; track t) {
               <mat-chip-option [value]="t">{{ t }}</mat-chip-option>
             }
@@ -60,7 +81,8 @@
             <mat-select
               [multiple]="true"
               [value]="selectedCities"
-              (selectionChange)="onCityChange($event.value)">
+              (selectionChange)="onCityChange($event.value)"
+            >
               @for (c of opts.cities; track c) {
                 <mat-option [value]="c">{{ c }}</mat-option>
               }
@@ -79,7 +101,8 @@
         <mat-chip-listbox
           [multiple]="true"
           [value]="selectedPropertyTypes"
-          (change)="onPropertyTypeChange($event.value)">
+          (change)="onPropertyTypeChange($event.value)"
+        >
           @for (pt of opts.property_types; track pt) {
             <mat-chip-option [value]="pt">{{ pt | titlecase }}</mat-chip-option>
           }
@@ -89,7 +112,11 @@
 
     <div class="filter-group">
       <label class="filter-label">Has Garage</label>
-      <mat-button-toggle-group multiple [value]="hasGarageSelection" (change)="onBoolToggle(filterState.hasGarage, $event.value)">
+      <mat-button-toggle-group
+        multiple
+        [value]="hasGarageSelection"
+        (change)="onBoolToggle(filterState.hasGarage, $event.value)"
+      >
         <mat-button-toggle value="true">Yes</mat-button-toggle>
         <mat-button-toggle value="false">No</mat-button-toggle>
       </mat-button-toggle-group>
@@ -97,7 +124,11 @@
 
     <div class="filter-group">
       <label class="filter-label">Is Rented</label>
-      <mat-button-toggle-group multiple [value]="isRentedSelection" (change)="onBoolToggle(filterState.isRented, $event.value)">
+      <mat-button-toggle-group
+        multiple
+        [value]="isRentedSelection"
+        (change)="onBoolToggle(filterState.isRented, $event.value)"
+      >
         <mat-button-toggle value="true">Yes</mat-button-toggle>
         <mat-button-toggle value="false">No</mat-button-toggle>
       </mat-button-toggle-group>
@@ -105,7 +136,11 @@
 
     <div class="filter-group">
       <label class="filter-label">Lifetime Rent</label>
-      <mat-button-toggle-group multiple [value]="lifetimeRentSelection" (change)="onBoolToggle(filterState.lifetimeRent, $event.value)">
+      <mat-button-toggle-group
+        multiple
+        [value]="lifetimeRentSelection"
+        (change)="onBoolToggle(filterState.lifetimeRent, $event.value)"
+      >
         <mat-button-toggle value="true">Yes</mat-button-toggle>
         <mat-button-toggle value="false">No</mat-button-toggle>
       </mat-button-toggle-group>
@@ -113,7 +148,11 @@
 
     <div class="filter-group">
       <label class="filter-label">Status</label>
-      <mat-button-toggle-group multiple [value]="activeSelection" (change)="onBoolToggle(filterState.active, $event.value)">
+      <mat-button-toggle-group
+        multiple
+        [value]="activeSelection"
+        (change)="onBoolToggle(filterState.active, $event.value)"
+      >
         <mat-button-toggle value="true">Active</mat-button-toggle>
         <mat-button-toggle value="false">Inactive</mat-button-toggle>
       </mat-button-toggle-group>
@@ -121,19 +160,25 @@
 
     <!-- Favorite filter: toggle heart (white = all, red = favorites only) -->
     <div class="filter-group filter-group--heart">
-      <button mat-icon-button class="heart-filter-btn"
-              [class.heart-filter-btn--fav]="filterState.isFavorite() === true"
-              (click)="cycleFavorite()"
-              [matTooltip]="favoriteTooltip()">
+      <button
+        mat-icon-button
+        class="heart-filter-btn"
+        [class.heart-filter-btn--fav]="filterState.isFavorite() === true"
+        (click)="cycleFavorite()"
+        [matTooltip]="favoriteTooltip()"
+      >
         <mat-icon>{{ favoriteIcon() }}</mat-icon>
       </button>
     </div>
 
     <div class="filter-group filter-group--new">
-      <button mat-icon-button class="new-filter-btn"
-              [class.new-filter-btn--active]="filterState.isNew() === true"
-              (click)="cycleNew()"
-              [matTooltip]="newTooltip()">
+      <button
+        mat-icon-button
+        class="new-filter-btn"
+        [class.new-filter-btn--active]="filterState.isNew() === true"
+        (click)="cycleNew()"
+        [matTooltip]="newTooltip()"
+      >
         <mat-icon>fiber_new</mat-icon>
       </button>
     </div>
@@ -146,4 +191,3 @@
     </button>
   </div>
 </mat-expansion-panel>
-

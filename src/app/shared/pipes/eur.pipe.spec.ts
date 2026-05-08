@@ -40,4 +40,3 @@ describe('EurPipe', () => {
     expect(result.replace(/[€\s\u00a0,.]/g, '')).toContain('100000');
   });
 });
-

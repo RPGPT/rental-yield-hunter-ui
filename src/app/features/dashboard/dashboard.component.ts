@@ -54,7 +54,10 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.getStats().subscribe({
-      next: (data) => { this.stats.set(data); this.statsLoading.set(false); },
+      next: (data) => {
+        this.stats.set(data);
+        this.statsLoading.set(false);
+      },
       error: () => this.statsLoading.set(false),
     });
 
@@ -63,5 +66,3 @@ export class DashboardComponent implements OnInit {
     });
   }
 }
-
-

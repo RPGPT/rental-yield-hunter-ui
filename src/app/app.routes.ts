@@ -5,7 +5,8 @@ export const routes: Routes = [
   { path: '', component: DashboardComponent },
   {
     path: 'listing/:id',
-    loadComponent: () => import('./features/detail/detail.component').then(m => m.DetailComponent),
+    loadComponent: () =>
+      import('./features/detail/detail.component').then((m) => m.DetailComponent),
   },
   { path: '**', redirectTo: '' },
 ];

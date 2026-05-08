@@ -28,4 +28,3 @@ export class RelativeDatePipe implements PipeTransform {
     return `${diffYear} year${diffYear > 1 ? 's' : ''} ago`;
   }
 }
-

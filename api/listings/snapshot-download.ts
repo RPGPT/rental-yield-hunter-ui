@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Find the blob — support both new .html and legacy .mhtml
     const { blobs } = await list({ prefix: `snapshots/${id}` });
-    const blob = blobs.find(b => b.size > 0);
+    const blob = blobs.find((b) => b.size > 0);
     if (!blob) {
       return res.status(404).json({ error: 'Snapshot not found or empty' });
     }
@@ -33,7 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const total = chunks.reduce((sum, c) => sum + c.byteLength, 0);
     const out = new Uint8Array(total);
     let offset = 0;
-    for (const c of chunks) { out.set(c, offset); offset += c.byteLength; }
+    for (const c of chunks) {
+      out.set(c, offset);
+      offset += c.byteLength;
+    }
     const buffer = Buffer.from(out);
 
     const isHtml = blob.pathname.endsWith('.html');

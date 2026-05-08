@@ -1,4 +1,12 @@
-import { Component, ChangeDetectionStrategy, inject, input, signal, computed, effect } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  input,
+  signal,
+  computed,
+  effect,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -22,9 +30,19 @@ const TITLE_MAX_LENGTH = 50;
 
 export const LISTING_COLUMNS = [
   'is_favorite',
-  'title', 'price', 'area', 'price_per_m2', 'property_type', 'typology',
-  'city', 'has_garage', 'is_rented', 'lifetime_rent', 'active',
-  'first_seen', 'last_seen',
+  'title',
+  'price',
+  'area',
+  'price_per_m2',
+  'property_type',
+  'typology',
+  'city',
+  'has_garage',
+  'is_rented',
+  'lifetime_rent',
+  'active',
+  'first_seen',
+  'last_seen',
 ] as const satisfies readonly ListingColumn[];
 
 @Component({
@@ -62,7 +80,7 @@ export class ListingsTableComponent {
 
   visibleListings = computed(() => {
     const hidden = this.hiddenFromFilter();
-    return hidden.size === 0 ? this.listings() : this.listings().filter(l => !hidden.has(l.id));
+    return hidden.size === 0 ? this.listings() : this.listings().filter((l) => !hidden.has(l.id));
   });
 
   constructor() {
@@ -75,8 +93,12 @@ export class ListingsTableComponent {
 
   displayedColumns: readonly ListingColumn[] = LISTING_COLUMNS;
 
-  get pageSize(): number { return this.filterState.limit(); }
-  get pageIndex(): number { return this.filterState.offset() / this.filterState.limit(); }
+  get pageSize(): number {
+    return this.filterState.limit();
+  }
+  get pageIndex(): number {
+    return this.filterState.offset() / this.filterState.limit();
+  }
 
   isFavorite(row: Listing): boolean {
     const overrides = this.favoriteOverrides();
@@ -86,11 +108,11 @@ export class ListingsTableComponent {
   onFavoriteClick(event: Event, row: Listing): void {
     event.stopPropagation();
     const newValue = !this.isFavorite(row);
-    this.favoriteOverrides.update(o => ({ ...o, [row.id]: newValue }));
+    this.favoriteOverrides.update((o) => ({ ...o, [row.id]: newValue }));
     this.api.setFavorite(row.id, newValue).subscribe({
       next: () => {
         if (!newValue && this.filterState.isFavorite() === true) {
-          this.hiddenFromFilter.update(s => new Set([...s, row.id]));
+          this.hiddenFromFilter.update((s) => new Set([...s, row.id]));
         }
         if (newValue) {
           this.api.triggerSnapshot(row.id).subscribe({
@@ -100,7 +122,7 @@ export class ListingsTableComponent {
         }
       },
       error: () => {
-        this.favoriteOverrides.update(o => ({ ...o, [row.id]: !newValue }));
+        this.favoriteOverrides.update((o) => ({ ...o, [row.id]: !newValue }));
       },
     });
   }

@@ -17,9 +17,15 @@ import { PricePoint } from '../../../core/models/listing.model';
 import { CHART_COLORS } from '../../../../styles/chart-colors';
 
 Chart.register(
-  LineController, LineElement, PointElement,
-  LinearScale, TimeScale, CategoryScale,
-  Tooltip, Legend, Filler,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  TimeScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+  Filler,
 );
 
 @Component({
@@ -49,11 +55,11 @@ export class PriceChartComponent {
     }
 
     return {
-      labels: points.map(p => new Date(p.captured_at).toLocaleDateString('pt-PT')),
+      labels: points.map((p) => new Date(p.captured_at).toLocaleDateString('pt-PT')),
       datasets: [
         {
           label: 'Price',
-          data: points.map(p => p.price),
+          data: points.map((p) => p.price),
           borderColor: CHART_COLORS.primary,
           backgroundColor: CHART_COLORS.primaryAlpha,
           fill: true,
@@ -72,14 +78,16 @@ export class PriceChartComponent {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx) => '€' + (ctx.parsed.y ?? 0).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
+          label: (ctx) =>
+            '€' + (ctx.parsed.y ?? 0).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
         },
       },
     },
     scales: {
       y: {
         ticks: {
-          callback: (value) => '€' + Number(value).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
+          callback: (value) =>
+            '€' + Number(value).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
         },
       },
     },

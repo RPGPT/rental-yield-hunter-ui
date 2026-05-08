@@ -32,11 +32,13 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 
   try {
     const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
       viewport: { width: 1920, height: 1080 },
       locale: 'pt-PT',
       extraHTTPHeaders: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'pt-PT,pt;q=0.9,en;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
         'Upgrade-Insecure-Requests': '1',
@@ -85,11 +87,12 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
         title.toLowerCase().includes('403')
       );
     });
-    if (blocked) throw new Error('Bot-wall detected: the listing site blocked the headless browser');
+    if (blocked)
+      throw new Error('Bot-wall detected: the listing site blocked the headless browser');
 
     // Strip ALL scripts and noscript — we inject our own gallery below
     await page.evaluate(() => {
-      document.querySelectorAll('script, noscript').forEach(el => el.remove());
+      document.querySelectorAll('script, noscript').forEach((el) => el.remove());
     });
 
     let html = await page.content();
@@ -97,7 +100,12 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
     // Inline images, CSS and fonts only (no JS — avoids 100MB bloat and mangling)
     for (const [url, { body, type }] of resourceCache) {
       const baseType = type.split(';')[0];
-      if (!baseType.startsWith('image/') && !baseType.startsWith('text/css') && !baseType.startsWith('font/')) continue;
+      if (
+        !baseType.startsWith('image/') &&
+        !baseType.startsWith('text/css') &&
+        !baseType.startsWith('font/')
+      )
+        continue;
       const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
       const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       html = html.replace(new RegExp(escaped, 'g'), dataUri);
@@ -188,9 +196,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { list } = await import('@vercel/blob');
       // check both new .html and old .mhtml keys
       const { blobs } = await list({ prefix: `snapshots/${id}` });
-      const found = blobs.find(b => b.size > 0);
+      const found = blobs.find((b) => b.size > 0);
       if (found) {
-        return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+        return res
+          .status(200)
+          .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       }
       return res.status(200).json({ exists: false });
     } else {
@@ -216,10 +226,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Return existing snapshot immediately if one exists
         const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
-        const found = existing.find(b => b.size > 0);
+        const found = existing.find((b) => b.size > 0);
         if (found) {
           console.log(`[snapshot] existing snapshot found for ${id}, returning`);
-          return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+          return res
+            .status(200)
+            .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
         }
 
         // No existing snapshot — capture a new one
@@ -235,7 +247,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contentType: 'text/html; charset=utf-8',
         });
         console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
-        return res.status(200).json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+        return res
+          .status(200)
+          .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       } else {
         const htmlPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
         // Return existing local snapshot if present
@@ -244,11 +258,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         if (!existsSync(SNAPSHOTS_DIR)) mkdirSync(SNAPSHOTS_DIR, { recursive: true });
         const singleFileBin = path.join(process.cwd(), 'node_modules', '.bin', 'single-file');
-        await execFileAsync(
-          singleFileBin,
-          [url, htmlPath, '--browser-wait-until=networkidle0'],
-          { timeout: 90_000 }
-        );
+        await execFileAsync(singleFileBin, [url, htmlPath, '--browser-wait-until=networkidle0'], {
+          timeout: 90_000,
+        });
         console.log(`[snapshot] ${htmlPath}`);
         return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });
       }

@@ -24,6 +24,6 @@ export class App {
   }
 
   toggleTheme(): void {
-    this.isDark.update(v => !v);
+    this.isDark.update((v) => !v);
   }
 }

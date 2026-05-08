@@ -13,16 +13,16 @@ A personal tool for tracking and analysing real estate listings for rental yield
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Angular 21 (standalone components, signals, OnPush) |
-| UI | Angular Material 21 |
-| Charts | Chart.js + ng2-charts |
-| API | Vercel Serverless Functions (TypeScript) |
-| Database | Neon (serverless Postgres) |
-| Snapshot storage | Vercel Blob (production) / local filesystem (dev) |
+| Layer            | Technology                                                                |
+| ---------------- | ------------------------------------------------------------------------- |
+| Frontend         | Angular 21 (standalone components, signals, OnPush)                       |
+| UI               | Angular Material 21                                                       |
+| Charts           | Chart.js + ng2-charts                                                     |
+| API              | Vercel Serverless Functions (TypeScript)                                  |
+| Database         | Neon (serverless Postgres)                                                |
+| Snapshot storage | Vercel Blob (production) / local filesystem (dev)                         |
 | Snapshot capture | Playwright + @sparticuz/chromium-min (production) / single-file-cli (dev) |
-| Hosting | Vercel |
+| Hosting          | Vercel                                                                    |
 
 ## Architecture
 
@@ -87,11 +87,11 @@ This starts both the Angular dev server (`localhost:4200`) and the API dev serve
 
 ## Environment variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | ✅ | Neon Postgres connection string |
-| `BLOB_READ_WRITE_TOKEN` | ✅ (production) | Vercel Blob token for snapshot storage |
-| `CHROMIUM_DOWNLOAD_URL` | ❌ | Override Chromium binary URL for `@sparticuz/chromium-min` |
+| Variable                | Required        | Description                                                |
+| ----------------------- | --------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`          | ✅              | Neon Postgres connection string                            |
+| `BLOB_READ_WRITE_TOKEN` | ✅ (production) | Vercel Blob token for snapshot storage                     |
+| `CHROMIUM_DOWNLOAD_URL` | ❌              | Override Chromium binary URL for `@sparticuz/chromium-min` |
 
 ## Deployment
 

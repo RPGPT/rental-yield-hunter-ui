@@ -22,12 +22,22 @@ vi.mock('@neondatabase/serverless', () => ({
 class MockRes {
   _status = 200;
   _body: unknown = null;
-  status(code: number) { this._status = code; return this; }
-  json(body: unknown) { this._body = body; return this; }
-  send(body: unknown) { this._body = body; return this; }
-  setHeader() { return this; }
+  status(code: number) {
+    this._status = code;
+    return this;
+  }
+  json(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  send(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  setHeader() {
+    return this;
+  }
 }
-
 
 describe('api/listings/index handler', () => {
   beforeEach(() => {
@@ -119,7 +129,10 @@ describe('api/listings/index handler', () => {
   it('filters by price_min and price_max', async () => {
     queryResults = [[], [{ total: 0 }]];
     const res = new MockRes();
-    await handler({ method: 'GET', query: { price_min: '500', price_max: '1500' } } as any, res as any);
+    await handler(
+      { method: 'GET', query: { price_min: '500', price_max: '1500' } } as any,
+      res as any,
+    );
     expect(res._status).toBe(200);
   });
 
@@ -154,10 +167,19 @@ describe('api/listings/index handler', () => {
   it('filters by all boolean flags', async () => {
     queryResults = [[], [{ total: 0 }]];
     const res = new MockRes();
-    await handler({
-      method: 'GET',
-      query: { has_garage: 'true', is_rented: 'false', lifetime_rent: 'true', is_favorite: 'true', active: 'true' },
-    } as any, res as any);
+    await handler(
+      {
+        method: 'GET',
+        query: {
+          has_garage: 'true',
+          is_rented: 'false',
+          lifetime_rent: 'true',
+          is_favorite: 'true',
+          active: 'true',
+        },
+      } as any,
+      res as any,
+    );
     expect(res._status).toBe(200);
   });
 
@@ -175,4 +197,3 @@ describe('api/listings/index handler', () => {
     expect(res._status).toBe(200);
   });
 });
-

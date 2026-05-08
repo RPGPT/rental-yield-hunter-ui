@@ -7,7 +7,8 @@ let existingBlobs: { size: number; url: string; pathname: string }[] = [];
 let blobPutResult = { url: 'blob://new' };
 
 let pw_isBlocked = false;
-let pw_capturedHtml = '<!DOCTYPE html><html><head></head><body>Valid listing page content here!!</body></html>';
+let pw_capturedHtml =
+  '<!DOCTYPE html><html><head></head><body>Valid listing page content here!!</body></html>';
 let pw_launchThrows = false;
 let pw_callRouteCallback = false;
 
@@ -17,10 +18,12 @@ let fsSnapDirExists = true;
 let execFileFails = false;
 
 vi.mock('@neondatabase/serverless', () => ({
-  neon: () => async (..._: unknown[]) => {
-    if (dbThrows) throw new Error('DB error');
-    return dbListingRow ? [dbListingRow] : [];
-  },
+  neon:
+    () =>
+    async (..._: unknown[]) => {
+      if (dbThrows) throw new Error('DB error');
+      return dbListingRow ? [dbListingRow] : [];
+    },
 }));
 
 vi.mock('@vercel/blob', () => ({
@@ -62,7 +65,9 @@ vi.mock('playwright-core', () => ({
                   abort: async () => undefined,
                 });
                 await cb({
-                  fetch: async () => { throw new Error('network error'); },
+                  fetch: async () => {
+                    throw new Error('network error');
+                  },
                   request: () => ({ url: () => 'https://fail.example.com/img.jpg' }),
                   fulfill: async () => undefined,
                   abort: async () => undefined,
@@ -105,10 +110,21 @@ import snapshotHandler from './snapshot';
 class MockRes {
   _status = 200;
   _body: unknown = null;
-  status(code: number) { this._status = code; return this; }
-  json(body: unknown) { this._body = body; return this; }
-  send(body: unknown) { this._body = body; return this; }
-  setHeader() { return this; }
+  status(code: number) {
+    this._status = code;
+    return this;
+  }
+  json(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  send(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  setHeader() {
+    return this;
+  }
 }
 
 describe('api/listings/snapshot handler', () => {
@@ -118,7 +134,8 @@ describe('api/listings/snapshot handler', () => {
     existingBlobs = [];
     blobPutResult = { url: 'blob://new' };
     pw_isBlocked = false;
-    pw_capturedHtml = '<!DOCTYPE html><html><head></head><body>Valid listing page content here!!</body></html>';
+    pw_capturedHtml =
+      '<!DOCTYPE html><html><head></head><body>Valid listing page content here!!</body></html>';
     pw_launchThrows = false;
     pw_callRouteCallback = false;
     fsExistsResult = false;

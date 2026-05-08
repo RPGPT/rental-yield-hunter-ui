@@ -17,12 +17,22 @@ class MockRes {
   _status = 200;
   _body: unknown = null;
   _headers: Record<string, string | number> = {};
-  status(code: number) { this._status = code; return this; }
-  json(body: unknown) { this._body = body; return this; }
-  send(body: unknown) { this._body = body; return this; }
-  setHeader(key: string, val: string | number) { this._headers[key] = val; }
+  status(code: number) {
+    this._status = code;
+    return this;
+  }
+  json(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  send(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  setHeader(key: string, val: string | number) {
+    this._headers[key] = val;
+  }
 }
-
 
 describe('api/listings/snapshot-download handler', () => {
   beforeEach(() => {
@@ -152,4 +162,3 @@ describe('api/listings/snapshot-download handler', () => {
     expect((res._body as any)?.error).toBe('Download failed');
   });
 });
-

@@ -71,7 +71,10 @@ export class DetailComponent implements OnInit {
     const newValue = !this.isFavorite();
     this.favLoading.set(true);
     this.api.setFavorite(this.listingId, newValue).subscribe({
-      next: () => { this.isFavorite.set(newValue); this.favLoading.set(false); },
+      next: () => {
+        this.isFavorite.set(newValue);
+        this.favLoading.set(false);
+      },
       error: () => this.favLoading.set(false),
     });
   }

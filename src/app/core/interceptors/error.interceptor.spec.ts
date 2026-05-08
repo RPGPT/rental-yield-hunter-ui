@@ -36,7 +36,7 @@ describe('errorInterceptor', () => {
 
   it('passes through successful responses', () => {
     let result: unknown;
-    http.get('/test').subscribe({ next: v => (result = v) });
+    http.get('/test').subscribe({ next: (v) => (result = v) });
     httpMock.expectOne('/test').flush({ ok: true });
     expect(result).toEqual({ ok: true });
   });
@@ -48,7 +48,7 @@ describe('errorInterceptor', () => {
     expect(openSpy).toHaveBeenCalledWith(
       'Connection error. Please try again.',
       'Close',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -68,7 +68,7 @@ describe('errorInterceptor', () => {
     expect(openSpy).toHaveBeenCalledWith(
       'Server error. Please try again later.',
       'Close',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -79,7 +79,7 @@ describe('errorInterceptor', () => {
     expect(openSpy).toHaveBeenCalledWith(
       'Server error. Please try again later.',
       'Close',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
@@ -90,13 +90,13 @@ describe('errorInterceptor', () => {
     expect(openSpy).toHaveBeenCalledWith(
       'An unexpected error occurred.',
       'Close',
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
   it('re-throws the error so subscribers can handle it', () => {
     let caughtError: unknown;
-    http.get('/test').subscribe({ error: e => (caughtError = e) });
+    http.get('/test').subscribe({ error: (e) => (caughtError = e) });
     httpMock.expectOne('/test').flush(null, { status: 400, statusText: 'Bad Request' });
     expect(caughtError).toBeTruthy();
   });

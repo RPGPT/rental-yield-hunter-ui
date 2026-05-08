@@ -97,4 +97,3 @@ describe('RelativeDatePipe', () => {
     expect(pipe.transform(date)).toBe('2 years ago');
   });
 });
-

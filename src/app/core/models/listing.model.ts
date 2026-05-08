@@ -36,4 +36,3 @@ export interface PricePoint {
   price: number;
   captured_at: string;
 }
-

@@ -6,4 +6,3 @@ export interface Stats {
   avg_price_per_m2: number;
   price_drops: number;
 }
-

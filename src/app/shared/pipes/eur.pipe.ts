@@ -10,4 +10,3 @@ export class EurPipe implements PipeTransform {
     return '€' + value.toLocaleString('pt-PT', { maximumFractionDigits: 0 });
   }
 }
-

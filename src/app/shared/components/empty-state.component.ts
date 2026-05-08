@@ -17,6 +17,5 @@ import { MatIconModule } from '@angular/material/icon';
 })
 export class EmptyStateComponent {
   title = input<string>('No results found');
-  message = input<string>('Try adjusting your filters to find what you\'re looking for.');
+  message = input<string>("Try adjusting your filters to find what you're looking for.");
 }
-

@@ -19,7 +19,9 @@ export class ApiService {
 
   getListings(filters: FilterState): Observable<PaginatedResponse<Listing>> {
     const params = buildQueryParams(filters);
-    return this.http.get<PaginatedResponse<Listing>>(`${this.baseUrl}/listings`, { params: params as unknown as Record<string, string> });
+    return this.http.get<PaginatedResponse<Listing>>(`${this.baseUrl}/listings`, {
+      params: params as unknown as Record<string, string>,
+    });
   }
 
   getListing(id: string): Observable<ListingDetail> {
@@ -27,38 +29,33 @@ export class ApiService {
   }
 
   setFavorite(id: string, value: boolean): Observable<void> {
-    return this.http.patch<void>(
-      `${this.baseUrl}/listings/${id}?is_favorite=${value}`,
-      null
-    );
+    return this.http.patch<void>(`${this.baseUrl}/listings/${id}?is_favorite=${value}`, null);
   }
 
   triggerSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
     return this.http.post<{ exists: boolean; url?: string }>(
       `${this.baseUrl}/listings/snapshot?id=${id}`,
-      null
+      null,
     );
   }
-
 
   getStats(): Observable<Stats> {
     const now = Date.now();
     if (!this.statsCache$ || now - this.cacheTimestamp > this.CACHE_DURATION) {
       this.cacheTimestamp = now;
-      this.statsCache$ = this.http.get<Stats>(`${this.baseUrl}/stats`).pipe(
-        shareReplay({ bufferSize: 1, refCount: true })
-      );
+      this.statsCache$ = this.http
+        .get<Stats>(`${this.baseUrl}/stats`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.statsCache$;
   }
 
   getFilterOptions(): Observable<FilterOptions> {
     if (!this.filterOptionsCache$) {
-      this.filterOptionsCache$ = this.http.get<FilterOptions>(`${this.baseUrl}/filters`).pipe(
-        shareReplay({ bufferSize: 1, refCount: true })
-      );
+      this.filterOptionsCache$ = this.http
+        .get<FilterOptions>(`${this.baseUrl}/filters`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.filterOptionsCache$;
   }
 }
-

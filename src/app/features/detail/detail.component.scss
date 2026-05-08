@@ -67,8 +67,12 @@
 }
 
 // ── List items ───────────────────────────────────────
-.icon-yes { color: $color-success; }
-.icon-no  { color: $color-grey; }
+.icon-yes {
+  color: $color-success;
+}
+.icon-no {
+  color: $color-grey;
+}
 
 .description-text {
   font-size: $size-14;

@@ -89,12 +89,29 @@ export class FilterStateService {
     if (params['typology']) this.typology.set(String(params['typology']).split(','));
     if (params['city']) this.city.set(String(params['city']).split(','));
     if (params['property_type']) this.propertyType.set(String(params['property_type']).split(','));
-    if (params['has_garage'] != null) this.hasGarage.set(params['has_garage'] === 'true' ? true : params['has_garage'] === 'false' ? false : null);
-    if (params['is_rented'] != null) this.isRented.set(params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null);
-    if (params['lifetime_rent'] != null) this.lifetimeRent.set(params['lifetime_rent'] === 'true' ? true : params['lifetime_rent'] === 'false' ? false : null);
-    if (params['is_favorite'] != null) this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
+    if (params['has_garage'] != null)
+      this.hasGarage.set(
+        params['has_garage'] === 'true' ? true : params['has_garage'] === 'false' ? false : null,
+      );
+    if (params['is_rented'] != null)
+      this.isRented.set(
+        params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null,
+      );
+    if (params['lifetime_rent'] != null)
+      this.lifetimeRent.set(
+        params['lifetime_rent'] === 'true'
+          ? true
+          : params['lifetime_rent'] === 'false'
+            ? false
+            : null,
+      );
+    if (params['is_favorite'] != null)
+      this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
     if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
-    if (params['active'] != null) this.active.set(params['active'] === 'all' ? null : params['active'] === 'false' ? false : true);
+    if (params['active'] != null)
+      this.active.set(
+        params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
+      );
     if (params['sort']) this.sort.set(params['sort']);
     if (params['order'] === 'desc') this.order.set('desc');
     if (params['limit']) this.limit.set(Math.min(100, Math.max(1, Number(params['limit']))));
@@ -122,4 +139,3 @@ export class FilterStateService {
     return p;
   }
 }
-

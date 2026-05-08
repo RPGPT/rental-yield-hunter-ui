@@ -17,5 +17,3 @@ export class StatsBarComponent {
   stats = input<Stats | null>(null);
   loading = input<boolean>(false);
 }
-
-

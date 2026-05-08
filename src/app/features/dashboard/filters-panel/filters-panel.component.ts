@@ -1,4 +1,12 @@
-import { Component, ChangeDetectionStrategy, inject, input, OnInit, DestroyRef, WritableSignal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  input,
+  OnInit,
+  DestroyRef,
+  WritableSignal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TitleCasePipe } from '@angular/common';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -46,33 +54,71 @@ export class FiltersPanelComponent implements OnInit {
   private areaMinSubject = new Subject<string>();
   private areaMaxSubject = new Subject<string>();
 
-  get selectedTypologies(): string[] { return this.filterState.typology(); }
-  get selectedCities(): string[] { return this.filterState.city(); }
-  get selectedPropertyTypes(): string[] { return this.filterState.propertyType(); }
-
-  get hasGarageSelection(): string[] { return this.boolToSelection(this.filterState.hasGarage()); }
-  get isRentedSelection(): string[] { return this.boolToSelection(this.filterState.isRented()); }
-  get lifetimeRentSelection(): string[] { return this.boolToSelection(this.filterState.lifetimeRent()); }
-  get activeSelection(): string[] { return this.boolToSelection(this.filterState.active()); }
-
-  ngOnInit(): void {
-    this.priceMinSubject.pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => { this.filterState.priceMin.set(v ? Number(v) : null); this.resetOffset(); });
-
-    this.priceMaxSubject.pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => { this.filterState.priceMax.set(v ? Number(v) : null); this.resetOffset(); });
-
-    this.areaMinSubject.pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => { this.filterState.areaMin.set(v ? Number(v) : null); this.resetOffset(); });
-
-    this.areaMaxSubject.pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => { this.filterState.areaMax.set(v ? Number(v) : null); this.resetOffset(); });
+  get selectedTypologies(): string[] {
+    return this.filterState.typology();
+  }
+  get selectedCities(): string[] {
+    return this.filterState.city();
+  }
+  get selectedPropertyTypes(): string[] {
+    return this.filterState.propertyType();
   }
 
-  onPriceMinInput(value: string): void { this.priceMinSubject.next(value); }
-  onPriceMaxInput(value: string): void { this.priceMaxSubject.next(value); }
-  onAreaMinInput(value: string): void { this.areaMinSubject.next(value); }
-  onAreaMaxInput(value: string): void { this.areaMaxSubject.next(value); }
+  get hasGarageSelection(): string[] {
+    return this.boolToSelection(this.filterState.hasGarage());
+  }
+  get isRentedSelection(): string[] {
+    return this.boolToSelection(this.filterState.isRented());
+  }
+  get lifetimeRentSelection(): string[] {
+    return this.boolToSelection(this.filterState.lifetimeRent());
+  }
+  get activeSelection(): string[] {
+    return this.boolToSelection(this.filterState.active());
+  }
+
+  ngOnInit(): void {
+    this.priceMinSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.filterState.priceMin.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+
+    this.priceMaxSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.filterState.priceMax.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+
+    this.areaMinSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.filterState.areaMin.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+
+    this.areaMaxSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.filterState.areaMax.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+  }
+
+  onPriceMinInput(value: string): void {
+    this.priceMinSubject.next(value);
+  }
+  onPriceMaxInput(value: string): void {
+    this.priceMaxSubject.next(value);
+  }
+  onAreaMinInput(value: string): void {
+    this.areaMinSubject.next(value);
+  }
+  onAreaMaxInput(value: string): void {
+    this.areaMaxSubject.next(value);
+  }
 
   onTypologyChange(values: string[]): void {
     this.filterState.typology.set(values);

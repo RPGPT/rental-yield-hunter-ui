@@ -4,8 +4,11 @@
     <span class="toolbar-title">Rental Yield Hunter</span>
   </a>
   <span class="toolbar-spacer"></span>
-  <button mat-icon-button (click)="toggleTheme()"
-    [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+  <button
+    mat-icon-button
+    (click)="toggleTheme()"
+    [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+  >
     <mat-icon>{{ isDark() ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
 </mat-toolbar>

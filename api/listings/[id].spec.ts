@@ -22,10 +22,21 @@ vi.mock('@neondatabase/serverless', () => ({
 class MockRes {
   _status = 200;
   _body: unknown = null;
-  status(code: number) { this._status = code; return this; }
-  json(body: unknown) { this._body = body; return this; }
-  send(body: unknown) { this._body = body; return this; }
-  setHeader() { return this; }
+  status(code: number) {
+    this._status = code;
+    return this;
+  }
+  json(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  send(body: unknown) {
+    this._body = body;
+    return this;
+  }
+  setHeader() {
+    return this;
+  }
 }
 
 describe('api/listings/[id] handler', () => {
@@ -63,7 +74,10 @@ describe('api/listings/[id] handler', () => {
   it('PATCH sets is_favorite=false and returns 200', async () => {
     queryResults = [[]];
     const res = new MockRes();
-    await handler({ method: 'PATCH', query: { id: '42', is_favorite: 'false' } } as any, res as any);
+    await handler(
+      { method: 'PATCH', query: { id: '42', is_favorite: 'false' } } as any,
+      res as any,
+    );
     expect(res._status).toBe(200);
     expect((res._body as any)?.is_favorite).toBe(false);
   });
@@ -87,26 +101,20 @@ describe('api/listings/[id] handler', () => {
     expect(res._status).toBe(200);
     expect((res._body as any)?.title).toBe('Test');
     expect((res._body as any)?.price_history).toEqual([{ price: 1000, captured_at: '2024-01-01' }]);
-    expect((res._body as any)?.images).toEqual([{ large: 'http://img/1.jpg', medium: 'http://img/1m.jpg' }]);
+    expect((res._body as any)?.images).toEqual([
+      { large: 'http://img/1.jpg', medium: 'http://img/1m.jpg' },
+    ]);
   });
 
   it('GET returns empty images when raw_data has no rows', async () => {
-    queryResults = [
-      [{ id: '42', title: 'T', price: 100 }],
-      [],
-      [],
-    ];
+    queryResults = [[{ id: '42', title: 'T', price: 100 }], [], []];
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect((res._body as any)?.images).toEqual([]);
   });
 
   it('GET returns empty images when raw_data images is not an array', async () => {
-    queryResults = [
-      [{ id: '42', title: 'T', price: 100 }],
-      [],
-      [{ images: null }],
-    ];
+    queryResults = [[{ id: '42', title: 'T', price: 100 }], [], [{ images: null }]];
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect((res._body as any)?.images).toEqual([]);
@@ -120,4 +128,3 @@ describe('api/listings/[id] handler', () => {
     expect((res._body as any)?.error).toBe('Internal server error');
   });
 });
-

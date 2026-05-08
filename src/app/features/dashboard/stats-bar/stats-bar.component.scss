@@ -39,10 +39,18 @@
     color: $color-label;
   }
 
-  &--primary .stat-card__value { color: $color-primary; }
-  &--green .stat-card__value   { color: $color-success; }
-  &--red .stat-card__value     { color: $color-error; }
-  &--amber .stat-card__value   { color: $color-amber; }
+  &--primary .stat-card__value {
+    color: $color-primary;
+  }
+  &--green .stat-card__value {
+    color: $color-success;
+  }
+  &--red .stat-card__value {
+    color: $color-error;
+  }
+  &--amber .stat-card__value {
+    color: $color-amber;
+  }
 }
 
 :host-context(.dark-theme) .stat-card__label {

@@ -9,7 +9,9 @@ const PORT = 3000;
 function parseQuery(url: string): Record<string, string | undefined> {
   const parsed = new URL(url, 'http://localhost');
   const query: Record<string, string | undefined> = {};
-  parsed.searchParams.forEach((value, key) => { query[key] = value; });
+  parsed.searchParams.forEach((value, key) => {
+    query[key] = value;
+  });
   return query;
 }
 
@@ -19,7 +21,10 @@ function wrapResponse(res: http.ServerResponse) {
     json: (body: unknown) => typeof wrapped;
     send: (body: unknown) => typeof wrapped;
   };
-  wrapped.status = (code: number) => { res.statusCode = code; return wrapped; };
+  wrapped.status = (code: number) => {
+    res.statusCode = code;
+    return wrapped;
+  };
   wrapped.json = (body: unknown) => {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(body));
@@ -49,7 +54,11 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.end();
+    return;
+  }
 
   const url = req.url ?? '/';
   const query = parseQuery(url);

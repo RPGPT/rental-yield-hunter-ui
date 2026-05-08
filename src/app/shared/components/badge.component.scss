@@ -11,8 +11,18 @@
   white-space: nowrap;
 }
 
-.badge--green  { background-color: $color-success; }
-.badge--red    { background-color: $color-error; }
-.badge--amber  { background-color: $color-amber; }
-.badge--grey   { background-color: $color-grey; }
-.badge--blue   { background-color: $color-primary; }
+.badge--green {
+  background-color: $color-success;
+}
+.badge--red {
+  background-color: $color-error;
+}
+.badge--amber {
+  background-color: $color-amber;
+}
+.badge--grey {
+  background-color: $color-grey;
+}
+.badge--blue {
+  background-color: $color-primary;
+}
