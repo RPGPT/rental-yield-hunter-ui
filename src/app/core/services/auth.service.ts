@@ -28,8 +28,22 @@ export class AuthService {
     return this.currentUser() !== null;
   }
 
+  private sessionInitialized = false;
+  private sessionPromise: Promise<void> | null = null;
+
   /** Called on app init to restore the session from the Neon Auth server. */
-  async initSession(): Promise<void> {
+  initSession(): Promise<void> {
+    if (this.sessionInitialized) return Promise.resolve();
+    if (this.sessionPromise) return this.sessionPromise;
+
+    this.sessionPromise = this._doInitSession().finally(() => {
+      this.sessionInitialized = true;
+      this.sessionPromise = null;
+    });
+    return this.sessionPromise;
+  }
+
+  private async _doInitSession(): Promise<void> {
     if (environment.devBypassAuth) {
       this.storeSession(
         { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null },
@@ -38,7 +52,10 @@ export class AuthService {
       return;
     }
     try {
-      const { data } = await this.authClient.getSession();
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+      const session = await Promise.race([this.authClient.getSession(), timeout]);
+      const data =
+        session && typeof session === 'object' && 'data' in session ? session.data : null;
       if (data?.user && data?.session) {
         this.storeSession(data.user, (data.session as { token: string }).token);
       } else {
