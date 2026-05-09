@@ -3,7 +3,6 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from './auth.service';
-import { RouteStubComponent } from '../../../testing/stubs/route-stub.component';
 
 // Mock the authClient returned by createAuthClient
 const mockAuthClient = {
@@ -32,13 +31,7 @@ const MOCK_TOKEN = 'tok-123';
 
 function setup() {
   TestBed.configureTestingModule({
-    providers: [
-      provideZonelessChangeDetection(),
-      provideRouter([
-        { path: '', component: RouteStubComponent },
-        { path: 'login', component: RouteStubComponent },
-      ]),
-    ],
+    providers: [provideZonelessChangeDetection(), provideRouter([])],
   });
   return TestBed.inject(AuthService);
 }

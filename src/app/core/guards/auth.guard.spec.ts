@@ -4,7 +4,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { authGuard } from './auth.guard';
-import { RouteStubComponent } from '../../../testing/stubs/route-stub.component';
 
 function makeAuthService(authenticated: boolean) {
   return { isAuthenticated: () => authenticated };
@@ -17,10 +16,7 @@ describe('authGuard', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        provideRouter([
-          { path: '', component: RouteStubComponent, canMatch: [authGuard] },
-          { path: 'login', component: RouteStubComponent },
-        ]),
+        provideRouter([]),
         { provide: AuthService, useValue: makeAuthService(authenticated) },
       ],
     });
