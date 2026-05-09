@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
+import { getUserFromRequest } from '../_lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -15,13 +16,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const listingResult = await sql`
-      SELECT id, source, url, title, description, price, area, price_per_m2,
-              location, city, typology, floor,
-              is_rented, lifetime_rent, false AS is_favorite, active,
-              inactive_since, first_seen, last_seen
-       FROM listings WHERE id = ${id}
-    `;
+    const user = await getUserFromRequest(req);
+    const userId = user?.id ?? null;
+
+    const isFavoriteSelect = userId
+      ? `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`
+      : `false AS is_favorite`;
+    const joinClause = userId
+      ? `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $2`
+      : '';
+    const listingParams: unknown[] = userId ? [id, userId] : [id];
+
+    const listingResult = await sql.query(
+      `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
+              l.location, l.city, l.typology, l.floor,
+              l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
+              l.inactive_since, l.first_seen, l.last_seen
+       FROM listings l
+       ${joinClause}
+       WHERE l.id = $1`,
+      listingParams,
+    );
 
     if (listingResult.length === 0) {
       return res.status(404).json({ error: 'Listing not found' });
