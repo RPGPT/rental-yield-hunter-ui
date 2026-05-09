@@ -2,12 +2,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router, UrlTree } from '@angular/router';
-import { Component } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { authGuard } from './auth.guard';
-
-@Component({ standalone: true, template: '' })
-class StubComponent {}
+import { RouteStubComponent } from '../../../testing/stubs/route-stub.component';
 
 function makeAuthService(authenticated: boolean) {
   return { isAuthenticated: () => authenticated };
@@ -21,8 +18,8 @@ describe('authGuard', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([
-          { path: '', component: StubComponent, canMatch: [authGuard] },
-          { path: 'login', component: StubComponent },
+          { path: '', component: RouteStubComponent, canMatch: [authGuard] },
+          { path: 'login', component: RouteStubComponent },
         ]),
         { provide: AuthService, useValue: makeAuthService(authenticated) },
       ],

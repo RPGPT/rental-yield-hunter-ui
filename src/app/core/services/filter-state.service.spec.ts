@@ -46,6 +46,10 @@ describe('FilterStateService', () => {
     expect(new FilterStateService().isNew()).toBeNull();
   });
 
+  it('priceChange defaults to null', () => {
+    expect(new FilterStateService().priceChange()).toBeNull();
+  });
+
   it('active defaults to true', () => {
     expect(new FilterStateService().active()).toBe(true);
   });
@@ -132,6 +136,12 @@ describe('FilterStateService', () => {
     expect(svc.state().is_new).toBe(true);
   });
 
+  it('state computed reflects priceChange', () => {
+    const svc = new FilterStateService();
+    svc.priceChange.set('reduced');
+    expect(svc.state().price_change).toBe('reduced');
+  });
+
   it('state computed reflects active', () => {
     const svc = new FilterStateService();
     svc.active.set(false);
@@ -175,6 +185,7 @@ describe('FilterStateService', () => {
     svc.lifetimeRent.set(true);
     svc.isFavorite.set(true);
     svc.isNew.set(true);
+    svc.priceChange.set('increased');
     svc.active.set(false);
     svc.sort.set('city');
     svc.order.set('desc');
@@ -192,6 +203,7 @@ describe('FilterStateService', () => {
     expect(svc.lifetimeRent()).toBeNull();
     expect(svc.isFavorite()).toBeNull();
     expect(svc.isNew()).toBeNull();
+    expect(svc.priceChange()).toBeNull();
     expect(svc.active()).toBe(true);
     expect(svc.sort()).toBe('price');
     expect(svc.order()).toBe('asc');
@@ -264,6 +276,12 @@ describe('FilterStateService', () => {
       const svc = new FilterStateService();
       svc.initFromParams({ is_new: 'true' });
       expect(svc.isNew()).toBe(true);
+    });
+
+    it('sets priceChange from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ price_change: 'reduced' });
+      expect(svc.priceChange()).toBe('reduced');
     });
 
     it('keeps isNew null when param is not "true"', () => {
@@ -440,6 +458,17 @@ describe('FilterStateService', () => {
     it('omits limit when 50 (default)', () => {
       const svc = new FilterStateService();
       expect(svc.toQueryParams().limit).toBeUndefined();
+    });
+
+    it('includes price_change when set', () => {
+      const svc = new FilterStateService();
+      svc.priceChange.set('increased');
+      expect(svc.toQueryParams().price_change).toBe('increased');
+    });
+
+    it('omits price_change when null', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().price_change).toBeUndefined();
     });
   });
 });

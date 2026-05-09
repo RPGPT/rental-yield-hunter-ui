@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import { provideZonelessChangeDetection, signal, WritableSignal } from '@angular/core';
 import { provideRouter, ActivatedRoute } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
-import { MockComponent } from 'ng-mocks';
+import { of, throwError } from 'rxjs';
+import { MockComponent, MockProvider } from 'ng-mocks';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DetailComponent } from './detail.component';
@@ -42,33 +42,20 @@ const MOCK_LISTING: ListingDetail = {
   ],
 };
 
-class FakeApiService {
-  getListing(_id: string): Observable<ListingDetail> {
-    return of({ ...MOCK_LISTING });
-  }
-  setFavorite(_id: string, _value: boolean): Observable<void> {
-    return of(undefined as void);
-  }
-  triggerSnapshot(_id: string): Observable<{ exists: boolean; url?: string }> {
-    return of({ exists: true, url: '/api/listings/snapshot-download?id=123' });
-  }
-}
-
-class FakeAuthService {
-  readonly currentUser = signal<{ id: string } | null>({ id: 'dev-user' });
-  isAuthenticated(): boolean {
-    return this.currentUser() !== null;
-  }
-  getToken(): string | null {
-    return 'dev-token';
-  }
-}
-
 describe('DetailComponent', () => {
-  let fakeAuth: FakeAuthService;
+  let getListing: ReturnType<typeof vi.fn>;
+  let setFavorite: ReturnType<typeof vi.fn>;
+  let triggerSnapshot: ReturnType<typeof vi.fn>;
+  let currentUserSignal: WritableSignal<{ id: string } | null>;
 
   beforeEach(() => {
-    fakeAuth = new FakeAuthService();
+    getListing = vi.fn().mockReturnValue(of({ ...MOCK_LISTING }));
+    setFavorite = vi.fn().mockReturnValue(of(undefined));
+    triggerSnapshot = vi
+      .fn()
+      .mockReturnValue(of({ exists: true, url: '/api/listings/snapshot-download?id=123' }));
+    currentUserSignal = signal<{ id: string } | null>({ id: 'dev-user' });
+
     TestBed.configureTestingModule({
       imports: [
         MockComponent(PriceChartComponent),
@@ -78,8 +65,15 @@ describe('DetailComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        { provide: ApiService, useClass: FakeApiService },
-        { provide: AuthService, useValue: fakeAuth },
+        MockProvider(ApiService, { getListing, setFavorite, triggerSnapshot }),
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: currentUserSignal,
+            isAuthenticated: vi.fn(() => currentUserSignal() !== null),
+            getToken: vi.fn(() => 'dev-token'),
+          },
+        },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '123' } } } },
       ],
     });
@@ -88,11 +82,9 @@ describe('DetailComponent', () => {
   afterEach(() => TestBed.resetTestingModule());
 
   it('calls getListing with route param id and sets listing signal', () => {
-    const svc = TestBed.inject(ApiService);
-    const spy = vi.spyOn(svc, 'getListing');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
-    expect(spy).toHaveBeenCalledWith('123');
+    expect(getListing).toHaveBeenCalledWith('123');
     expect(component.listing()).toEqual(MOCK_LISTING);
   });
 
@@ -108,41 +100,37 @@ describe('DetailComponent', () => {
     expect(component.isFavorite()).toBe(true);
   });
 
-  it('sets selectedImage to first image large URL', () => {
+  it('sets currentImage to first image large URL', () => {
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
-    expect(component.selectedImage()).toBe('https://img.example.com/1-large.jpg');
+    expect(component.currentImage()).toBe('https://img.example.com/1-large.jpg');
   });
 
-  it('sets selectedImage to empty string when listing has no images', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'getListing').mockReturnValue(of({ ...MOCK_LISTING, images: [] }));
+  it('sets currentImage to empty string when listing has no images', () => {
+    getListing.mockReturnValue(of({ ...MOCK_LISTING, images: [] }));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
-    expect(component.selectedImage()).toBe('');
+    expect(component.currentImage()).toBe('');
   });
 
   it('sets loading to false on API error', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'getListing').mockReturnValue(throwError(() => new Error('fail')));
+    getListing.mockReturnValue(throwError(() => new Error('fail')));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     expect(component.loading()).toBe(false);
   });
 
-  it('selectImage() updates selectedImage signal', () => {
+  it('selectImage() updates currentImage signal', () => {
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.selectImage('https://img.example.com/2-large.jpg');
-    expect(component.selectedImage()).toBe('https://img.example.com/2-large.jpg');
+    expect(component.currentImage()).toBe('https://img.example.com/2-large.jpg');
   });
 
   it('toggleFavorite() calls setFavorite with the negated current value', () => {
-    const svc = TestBed.inject(ApiService);
-    const spy = vi.spyOn(svc, 'setFavorite');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit(); // isFavorite now true
     component.toggleFavorite();
-    expect(spy).toHaveBeenCalledWith('123', false);
+    expect(setFavorite).toHaveBeenCalledWith('123', false);
   });
 
   it('toggleFavorite() flips isFavorite to false on success', () => {
@@ -160,8 +148,7 @@ describe('DetailComponent', () => {
   });
 
   it('toggleFavorite() resets favLoading on error', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'setFavorite').mockReturnValue(throwError(() => new Error('fail')));
+    setFavorite.mockReturnValue(throwError(() => new Error('fail')));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     component.toggleFavorite();
@@ -169,8 +156,7 @@ describe('DetailComponent', () => {
   });
 
   it('toggleFavorite() does not flip isFavorite on error', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'setFavorite').mockReturnValue(throwError(() => new Error('fail')));
+    setFavorite.mockReturnValue(throwError(() => new Error('fail')));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     expect(component.isFavorite()).toBe(true);
@@ -179,39 +165,33 @@ describe('DetailComponent', () => {
   });
 
   it('toggleFavorite() calls triggerSnapshot when favoriting a listing', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'setFavorite').mockReturnValue(of(undefined));
-    const snapshotSpy = vi.spyOn(svc, 'triggerSnapshot');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     component.isFavorite.set(false); // start unfavorited
+    triggerSnapshot.mockClear();
     component.toggleFavorite();
-    expect(snapshotSpy).toHaveBeenCalledWith('123');
+    expect(triggerSnapshot).toHaveBeenCalledWith('123');
   });
 
   it('toggleFavorite() does not call triggerSnapshot when un-favoriting', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'setFavorite').mockReturnValue(of(undefined));
-    const snapshotSpy = vi.spyOn(svc, 'triggerSnapshot');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     component.isFavorite.set(true); // start favorited
+    triggerSnapshot.mockClear();
     component.toggleFavorite();
-    expect(snapshotSpy).not.toHaveBeenCalled();
+    expect(triggerSnapshot).not.toHaveBeenCalled();
   });
 
   describe('toggleFavorite() — unauthenticated', () => {
     beforeEach(() => {
-      fakeAuth.currentUser.set(null); // simulate logged-out
+      currentUserSignal.set(null); // simulate logged-out
     });
 
     it('does not call setFavorite when user is not authenticated', () => {
-      const svc = TestBed.inject(ApiService);
-      const spy = vi.spyOn(svc, 'setFavorite');
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
       component.toggleFavorite();
-      expect(spy).not.toHaveBeenCalled();
+      expect(setFavorite).not.toHaveBeenCalled();
     });
 
     it('does not change isFavorite when user is not authenticated', () => {
@@ -241,12 +221,11 @@ describe('DetailComponent', () => {
   });
 
   it('saveSnapshot() calls triggerSnapshot with the listing id', () => {
-    const svc = TestBed.inject(ApiService);
-    const spy = vi.spyOn(svc, 'triggerSnapshot');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
+    triggerSnapshot.mockClear();
     component.saveSnapshot();
-    expect(spy).toHaveBeenCalledWith('123');
+    expect(triggerSnapshot).toHaveBeenCalledWith('123');
   });
 
   it('saveSnapshot() sets snapshotSaved to true after success', () => {
@@ -264,17 +243,14 @@ describe('DetailComponent', () => {
   });
 
   it('saveSnapshot() does nothing when snapshotLoading is already true', () => {
-    const svc = TestBed.inject(ApiService);
-    const spy = vi.spyOn(svc, 'triggerSnapshot');
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.snapshotLoading.set(true);
     component.saveSnapshot();
-    expect(spy).not.toHaveBeenCalled();
+    expect(triggerSnapshot).not.toHaveBeenCalled();
   });
 
   it('saveSnapshot() resets snapshotLoading to false on error', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'triggerSnapshot').mockReturnValue(throwError(() => new Error('fail')));
+    triggerSnapshot.mockReturnValue(throwError(() => new Error('fail')));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     component.saveSnapshot();
@@ -282,8 +258,7 @@ describe('DetailComponent', () => {
   });
 
   it('saveSnapshot() does not throw when url is absent in response', () => {
-    const svc = TestBed.inject(ApiService);
-    vi.spyOn(svc, 'triggerSnapshot').mockReturnValue(of({ exists: true }));
+    triggerSnapshot.mockReturnValue(of({ exists: true }));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     expect(() => component.saveSnapshot()).not.toThrow();

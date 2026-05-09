@@ -167,7 +167,7 @@ export class ListingsTableComponent {
   }
 
   typologyColor(typology: string): 'red' | 'amber' | 'green' | 'grey' {
-    if (typology === 'T1') return 'red';
+    if (typology === 'T1') return 'grey';
     if (typology === 'T2') return 'amber';
     if (typology === 'T3' || typology === 'T4') return 'green';
     return 'grey';

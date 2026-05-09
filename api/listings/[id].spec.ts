@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import handler from './[id]';
+import { MockRes } from '../test/mock-res';
 
 let queryIndex = 0;
 let queryResults: unknown[][] = [];
@@ -19,26 +20,6 @@ vi.mock('@neondatabase/serverless', () => ({
   },
 }));
 
-class MockRes {
-  _status = 200;
-  _body: unknown = null;
-  status(code: number) {
-    this._status = code;
-    return this;
-  }
-  json(body: unknown) {
-    this._body = body;
-    return this;
-  }
-  send(body: unknown) {
-    this._body = body;
-    return this;
-  }
-  setHeader() {
-    return this;
-  }
-}
-
 describe('api/listings/[id] handler', () => {
   beforeEach(() => {
     queryIndex = 0;
@@ -49,43 +30,28 @@ describe('api/listings/[id] handler', () => {
 
   it('returns 400 when id is missing', async () => {
     const res = new MockRes();
-    await handler({ method: 'GET', query: {} } as any, res as any);
+    await handler({ method: 'GET', query: {}, headers: {} } as any, res as any);
     expect(res._status).toBe(400);
     expect((res._body as any)?.error).toBe('Missing listing ID');
   });
 
-  it('PATCH returns 400 when is_favorite param is not provided', async () => {
-    queryResults = [[]];
+  it('returns 405 for non-GET methods', async () => {
     const res = new MockRes();
-    await handler({ method: 'PATCH', query: { id: '42' } } as any, res as any);
-    expect(res._status).toBe(400);
-    expect((res._body as any)?.error).toBe('Missing is_favorite param');
+    await handler({ method: 'PATCH', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(405);
+    expect((res._body as any)?.error).toBe('Method not allowed');
   });
 
-  it('PATCH sets is_favorite=true and returns 200', async () => {
-    queryResults = [[]];
+  it('returns 405 for POST method', async () => {
     const res = new MockRes();
-    await handler({ method: 'PATCH', query: { id: '42', is_favorite: 'true' } } as any, res as any);
-    expect(res._status).toBe(200);
-    expect((res._body as any)?.is_favorite).toBe(true);
-    expect((res._body as any)?.id).toBe('42');
-  });
-
-  it('PATCH sets is_favorite=false and returns 200', async () => {
-    queryResults = [[]];
-    const res = new MockRes();
-    await handler(
-      { method: 'PATCH', query: { id: '42', is_favorite: 'false' } } as any,
-      res as any,
-    );
-    expect(res._status).toBe(200);
-    expect((res._body as any)?.is_favorite).toBe(false);
+    await handler({ method: 'POST', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(405);
   });
 
   it('GET returns 404 when listing does not exist', async () => {
     queryResults = [[]];
     const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '999' } } as any, res as any);
+    await handler({ method: 'GET', query: { id: '999' }, headers: {} } as any, res as any);
     expect(res._status).toBe(404);
     expect((res._body as any)?.error).toBe('Listing not found');
   });
@@ -97,7 +63,7 @@ describe('api/listings/[id] handler', () => {
       [{ images: [{ large: 'http://img/1.jpg', medium: 'http://img/1m.jpg' }] }],
     ];
     const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
     expect(res._status).toBe(200);
     expect((res._body as any)?.title).toBe('Test');
     expect((res._body as any)?.price_history).toEqual([{ price: 1000, captured_at: '2024-01-01' }]);
@@ -109,22 +75,22 @@ describe('api/listings/[id] handler', () => {
   it('GET returns empty images when raw_data has no rows', async () => {
     queryResults = [[{ id: '42', title: 'T', price: 100 }], [], []];
     const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
     expect((res._body as any)?.images).toEqual([]);
   });
 
   it('GET returns empty images when raw_data images is not an array', async () => {
     queryResults = [[{ id: '42', title: 'T', price: 100 }], [], [{ images: null }]];
     const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
     expect((res._body as any)?.images).toEqual([]);
   });
 
   it('GET returns 500 on database error', async () => {
     dbThrows = true;
     const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
     expect(res._status).toBe(500);
-    expect((res._body as any)?.error).toBe('Internal server error');
+    expect((res._body as any)?.error?.message).toBe('DB error');
   });
 });

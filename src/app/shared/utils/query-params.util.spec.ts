@@ -14,6 +14,7 @@ const DEFAULT: FilterState = {
   lifetime_rent: null,
   is_favorite: null,
   is_new: null,
+  price_change: null,
   active: null,
   sort: 'price',
   order: 'asc',
@@ -117,5 +118,16 @@ describe('buildQueryParams', () => {
   });
   it('custom offset', () => {
     expect(buildQueryParams({ ...DEFAULT, offset: 40 }).offset).toBe('40');
+  });
+  it('omits null price_change', () => {
+    expect(buildQueryParams({ ...DEFAULT }).price_change).toBeUndefined();
+  });
+  it('includes price_change reduced', () => {
+    expect(buildQueryParams({ ...DEFAULT, price_change: 'reduced' }).price_change).toBe('reduced');
+  });
+  it('includes price_change increased', () => {
+    expect(buildQueryParams({ ...DEFAULT, price_change: 'increased' }).price_change).toBe(
+      'increased',
+    );
   });
 });

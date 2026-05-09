@@ -2,12 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
-import { Component } from '@angular/core';
 import { AuthService } from './auth.service';
-
-// Stub route target
-@Component({ standalone: true, template: '' })
-class StubComponent {}
+import { RouteStubComponent } from '../../../testing/stubs/route-stub.component';
 
 // Mock the authClient returned by createAuthClient
 const mockAuthClient = {
@@ -39,8 +35,8 @@ function setup() {
     providers: [
       provideZonelessChangeDetection(),
       provideRouter([
-        { path: '', component: StubComponent },
-        { path: 'login', component: StubComponent },
+        { path: '', component: RouteStubComponent },
+        { path: 'login', component: RouteStubComponent },
       ]),
     ],
   });

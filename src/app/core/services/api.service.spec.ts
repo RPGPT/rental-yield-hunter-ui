@@ -18,6 +18,7 @@ const DEFAULT_FILTER: FilterState = {
   lifetime_rent: null,
   is_favorite: null,
   is_new: null,
+  price_change: null,
   active: null,
   sort: 'price',
   order: 'asc',
