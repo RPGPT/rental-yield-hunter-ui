@@ -1,6 +1,37 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { getUserFromRequest } from '../lib/auth';
+
+interface NeonAuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUser | null> {
+  const auth = req.headers['authorization'] as string | undefined;
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.substring(7);
+  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
+    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
+  }
+  const authUrl = process.env['NEON_AUTH_URL'];
+  if (!authUrl) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const r = await fetch(`${authUrl}/get-session`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!r.ok) return null;
+    const data = (await r.json()) as { user?: NeonAuthUser } | null;
+    return data?.user ?? null;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -71,13 +102,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   } catch (error) {
     console.error('Error fetching listing:', error);
-    return res
-      .status(500)
-      .json({
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-          code: (error as { code?: string }).code,
-        },
-      });
+    return res.status(500).json({
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string }).code,
+      },
+    });
   }
 }

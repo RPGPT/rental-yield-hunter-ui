@@ -1,6 +1,37 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { getUserFromRequest } from '../lib/auth';
+
+interface NeonAuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUser | null> {
+  const auth = req.headers['authorization'] as string | undefined;
+  if (!auth?.startsWith('Bearer ')) return null;
+  const token = auth.substring(7);
+  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
+    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
+  }
+  const authUrl = process.env['NEON_AUTH_URL'];
+  if (!authUrl) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${authUrl}/get-session`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user?: NeonAuthUser } | null;
+    return data?.user ?? null;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -16,6 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 async function listingsHandler(req: VercelRequest, res: VercelResponse) {
+  console.log('[listings] handler start, hasAuth:', !!req.headers['authorization']);
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {

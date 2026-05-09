@@ -19,15 +19,24 @@ async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null
     console.error('[auth] NEON_AUTH_URL is not set');
     return null;
   }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
   try {
     const response = await fetch(`${authUrl}/get-session`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
     });
-    if (!response.ok) return null;
+    clearTimeout(timeout);
+    if (!response.ok) {
+      console.error('[auth] session verification failed:', response.status);
+      return null;
+    }
     const data = (await response.json()) as { user?: NeonAuthUser } | null;
+    console.log('[auth] session verified, user:', data?.user?.id ?? 'none');
     return data?.user ?? null;
   } catch (err) {
-    console.error('[auth] session verification error', err);
+    clearTimeout(timeout);
+    console.error('[auth] session verification error:', err instanceof Error ? err.message : err);
     return null;
   }
 }
