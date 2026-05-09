@@ -2,4 +2,5 @@ snapshots/
 server.ts
 tsconfig.api.json
 .env
+api/**/*.spec.ts
 
