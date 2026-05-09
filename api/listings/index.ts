@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
 import { getUserFromRequest } from '../_lib/auth';
+import { sendError } from '../_lib/errors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -140,8 +141,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const dataQuery = `
       SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
-             l.location, l.city, l.property_type, l.typology, l.floor,
-             l.has_garage, l.is_rented, l.lifetime_rent,
+             l.location, l.city, l.neighborhood, l.typology, l.floor,
+             l.is_rented, l.lifetime_rent,
              l.active, l.inactive_since, l.first_seen, l.last_seen,
              ${isFavoriteSelect}
       FROM listings l
@@ -171,6 +172,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (error) {
     console.error('Error fetching listings:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendError(res, error);
   }
 }

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from './_types';
 import { neon } from '@neondatabase/serverless';
+import { sendError } from './_lib/errors';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -19,6 +20,6 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     res.status(200).json(result[0]);
   } catch (error) {
     console.error('Error fetching stats:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return sendError(res, error);
   }
 }

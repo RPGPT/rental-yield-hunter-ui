@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
 import { getUserFromRequest } from '../_lib/auth';
+import { sendError } from '../_lib/errors';
 
 /**
  * GET    /api/favorites          → list of listing IDs the user has favorited
@@ -27,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json(rows.map((r: Record<string, unknown>) => r['listing_id']));
     } catch (error) {
       console.error('[favorites GET]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return sendError(res, error);
     }
   }
 
@@ -43,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ listing_id: id, is_favorite: true });
     } catch (error) {
       console.error('[favorites POST]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return sendError(res, error);
     }
   }
 
@@ -58,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ listing_id: id, is_favorite: false });
     } catch (error) {
       console.error('[favorites DELETE]', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return sendError(res, error);
     }
   }
 
