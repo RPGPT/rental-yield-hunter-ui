@@ -163,8 +163,15 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       allParams.push(userId); // $1 = userId
       joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1`;
       isFavoriteSelect = `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`;
-      // Renumber existing params starting from $2
-      const shifted = whereClause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + 1}`);
+      // Filter to only favorites if requested (no extra param — references the JOIN)
+      if (is_favorite === 'true') {
+        conditions.push(`uf.listing_id IS NOT NULL`);
+      }
+      // Renumber all $N params by +1 (because $1 is now userId)
+      const rebuiltWhere =
+        conditions.length > 0
+          ? `WHERE ${conditions.map((c) => c.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + 1}`)).join(' AND ')}`
+          : '';
       allParams.push(...params);
       const tableRef = 'listings l';
       const dataQuery = `
@@ -175,11 +182,11 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
                l.inactive_since, l.first_seen, l.last_seen
         FROM ${tableRef}
         ${joinClause}
-        ${shifted}
+        ${rebuiltWhere}
         ORDER BY l.${sortCol} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
-      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} ${shifted}`;
+      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} ${rebuiltWhere}`;
       const [data, countResult] = await Promise.all([
         sql.query(dataQuery, allParams),
         sql.query(countQuery, allParams),
