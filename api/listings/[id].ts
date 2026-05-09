@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { getUserFromRequest } from '../_lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -10,37 +9,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing listing ID' });
   }
 
-  // Only GET is supported — favorites are managed via /api/favorites
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  // PATCH — update is_favorite
+  if (req.method === 'PATCH') {
+    const { is_favorite } = req.query;
+    if (is_favorite === undefined) {
+      return res.status(400).json({ error: 'Missing is_favorite param' });
+    }
+    const value = is_favorite === 'true';
+    await sql`UPDATE listings SET is_favorite = ${value} WHERE id = ${id}`;
+    return res.status(200).json({ id, is_favorite: value });
   }
 
+  // GET
   try {
-    const user = await getUserFromRequest(req);
-    const userId = user?.id ?? null;
-
-    // Build the is_favorite expression based on auth state
-    const isFavoriteSelect = userId
-      ? `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`
-      : `false AS is_favorite`;
-    const joinClause = userId
-      ? `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $2`
-      : '';
-
-    const listingParams: unknown[] = [id];
-    if (userId) listingParams.push(userId);
-
-    const listingResult = await sql.query(
-      `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
-              l.location, l.city, l.property_type, l.typology, l.floor,
-              l.has_garage, l.is_rented, l.lifetime_rent,
-              l.active, l.inactive_since, l.first_seen, l.last_seen,
-              ${isFavoriteSelect}
-       FROM listings l
-       ${joinClause}
-       WHERE l.id = $1`,
-      listingParams,
-    );
+    const listingResult = await sql`
+      SELECT id, source, url, title, description, price, area, price_per_m2,
+              location, city, property_type, typology, floor,
+              has_garage, is_rented, lifetime_rent, is_favorite, active,
+              inactive_since, first_seen, last_seen
+       FROM listings WHERE id = ${id}
+    `;
 
     if (listingResult.length === 0) {
       return res.status(404).json({ error: 'Listing not found' });
@@ -53,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ORDER BY captured_at ASC
     `;
 
+    // Fetch images from raw_data table
     const rawDataResult = await sql`
       SELECT raw_json->'images' AS images
        FROM raw_data
