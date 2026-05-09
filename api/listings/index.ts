@@ -9,9 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!dbUrl)
     return res.status(500).json({ error: { message: 'DATABASE_URL is not set', status: 500 } });
   const sql = neon(dbUrl);
-  const user = await getUserFromRequest(req);
 
   try {
+    const user = await getUserFromRequest(req);
     const {
       price_min,
       price_max,

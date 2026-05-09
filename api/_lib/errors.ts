@@ -17,9 +17,11 @@ function extractMessage(error: unknown): ApiError {
   return { message: String(error) };
 }
 
-/** Send a structured 500 response with the real error details. */
-export function sendError(res: VercelResponse, error: unknown, status = 500): VercelResponse {
+/** Send a structured error response with the real error details.
+ *  Uses 503 by default so the message is visible (not swallowed as a generic 500). */
+export function sendError(res: VercelResponse, error: unknown, status = 503): VercelResponse {
   const { message, code } = extractMessage(error);
+  console.error('[sendError]', { message, code });
   return res.status(status).json({
     error: {
       message,
