@@ -6,5 +6,7 @@ import { AuthService } from '../services/auth.service';
 export const authGuard: CanMatchFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  return auth.isAuthenticated() ? true : router.createUrlTree(['/login']);
+  const authed = auth.isAuthenticated();
+  console.log('[authGuard] isAuthenticated=', authed);
+  return authed ? true : router.createUrlTree(['/login']);
 };

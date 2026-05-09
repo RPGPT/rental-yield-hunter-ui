@@ -44,27 +44,34 @@ export class AuthService {
   }
 
   private async _doInitSession(): Promise<void> {
+    console.log('[auth] initSession start, devBypassAuth=', environment.devBypassAuth);
     if (environment.devBypassAuth) {
       this.storeSession(
         { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null },
         'dev-token',
       );
+      console.log('[auth] dev bypass applied');
       return;
     }
     try {
+      console.log('[auth] calling getSession...');
       const timeout = new Promise<{ data: null }>((resolve) =>
         setTimeout(() => resolve({ data: null }), 3000),
       );
       const { data } = await Promise.race([this.authClient.getSession(), timeout]);
+      console.log('[auth] getSession resolved, data=', JSON.stringify(data));
       if (data?.user && data?.session) {
         this.storeSession(data.user, (data.session as { token: string }).token);
+        console.log('[auth] session stored, user=', data.user.id);
       } else {
+        console.log('[auth] no session, clearing');
         this.clearSession();
       }
     } catch (err) {
       console.error('[auth] initSession failed', err);
       this.clearSession();
     }
+    console.log('[auth] initSession done, isAuthenticated=', this.isAuthenticated());
   }
 
   /** Sign in with email and password. Throws on failure. */
