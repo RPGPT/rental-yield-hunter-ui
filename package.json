@@ -12,7 +12,10 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,html,scss,css,json,md}": "prettier --write"
+    "*.{ts,html,scss,css,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "private": true,
   "packageManager": "pnpm@10.11.0",
