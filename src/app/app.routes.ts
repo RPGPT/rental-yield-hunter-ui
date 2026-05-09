@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard } from './core/guards/auth.guard';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 
 export const routes: Routes = [
@@ -12,8 +12,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    canMatch: [guestGuard],
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'login' },
 ];

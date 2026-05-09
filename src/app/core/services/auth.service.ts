@@ -31,7 +31,7 @@ export class AuthService {
   private sessionInitialized = false;
   private sessionPromise: Promise<void> | null = null;
 
-  /** Called on app init to restore the session from the Neon Auth server. */
+  /** Called once on app init — resolves when auth state is known (max 3s). */
   initSession(): Promise<void> {
     if (this.sessionInitialized) return Promise.resolve();
     if (this.sessionPromise) return this.sessionPromise;
@@ -52,10 +52,10 @@ export class AuthService {
       return;
     }
     try {
-      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-      const session = await Promise.race([this.authClient.getSession(), timeout]);
-      const data =
-        session && typeof session === 'object' && 'data' in session ? session.data : null;
+      const timeout = new Promise<{ data: null }>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 3000),
+      );
+      const { data } = await Promise.race([this.authClient.getSession(), timeout]);
       if (data?.user && data?.session) {
         this.storeSession(data.user, (data.session as { token: string }).token);
       } else {
