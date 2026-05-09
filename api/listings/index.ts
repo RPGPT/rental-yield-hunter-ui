@@ -14,8 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       area_max,
       typology,
       city,
-      property_type,
-      has_garage,
+      neighborhood,
       is_rented,
       lifetime_rent,
       is_favorite,
@@ -75,17 +74,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       params.push(...values);
     }
 
-    if (property_type) {
-      const values = property_type.split(',');
+    if (neighborhood) {
+      const values = neighborhood.split(',');
       const placeholders = values.map(() => `$${paramIndex++}`);
-      conditions.push(`l.property_type IN (${placeholders.join(',')})`);
+      conditions.push(`l.neighborhood IN (${placeholders.join(',')})`);
       params.push(...values);
     }
 
-    if (has_garage !== undefined) {
-      conditions.push(`l.has_garage = $${paramIndex++}`);
-      params.push(has_garage === 'true');
-    }
     if (is_rented !== undefined) {
       conditions.push(`l.is_rented = $${paramIndex++}`);
       params.push(is_rented === 'true');

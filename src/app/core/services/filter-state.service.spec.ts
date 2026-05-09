@@ -26,12 +26,8 @@ describe('FilterStateService', () => {
     expect(new FilterStateService().city()).toEqual([]);
   });
 
-  it('propertyType defaults to empty array', () => {
-    expect(new FilterStateService().propertyType()).toEqual([]);
-  });
-
-  it('hasGarage defaults to null', () => {
-    expect(new FilterStateService().hasGarage()).toBeNull();
+  it('neighborhood defaults to empty array', () => {
+    expect(new FilterStateService().neighborhood()).toEqual([]);
   });
 
   it('isRented defaults to null', () => {
@@ -106,16 +102,10 @@ describe('FilterStateService', () => {
     expect(svc.state().city).toEqual(['Porto']);
   });
 
-  it('state computed reflects propertyType', () => {
+  it('state computed reflects neighborhood', () => {
     const svc = new FilterStateService();
-    svc.propertyType.set(['Apartment']);
-    expect(svc.state().property_type).toEqual(['Apartment']);
-  });
-
-  it('state computed reflects hasGarage', () => {
-    const svc = new FilterStateService();
-    svc.hasGarage.set(true);
-    expect(svc.state().has_garage).toBe(true);
+    svc.neighborhood.set(['Bonfim']);
+    expect(svc.state().neighborhood).toEqual(['Bonfim']);
   });
 
   it('state computed reflects isRented', () => {
@@ -180,8 +170,7 @@ describe('FilterStateService', () => {
     svc.areaMax.set(200);
     svc.typology.set(['T1']);
     svc.city.set(['Lisboa']);
-    svc.propertyType.set(['House']);
-    svc.hasGarage.set(true);
+    svc.neighborhood.set(['Bonfim']);
     svc.isRented.set(true);
     svc.lifetimeRent.set(true);
     svc.isFavorite.set(true);
@@ -198,8 +187,7 @@ describe('FilterStateService', () => {
     expect(svc.areaMax()).toBeNull();
     expect(svc.typology()).toEqual([]);
     expect(svc.city()).toEqual([]);
-    expect(svc.propertyType()).toEqual([]);
-    expect(svc.hasGarage()).toBeNull();
+    expect(svc.neighborhood()).toEqual([]);
     expect(svc.isRented()).toBeNull();
     expect(svc.lifetimeRent()).toBeNull();
     expect(svc.isFavorite()).toBeNull();
@@ -248,22 +236,10 @@ describe('FilterStateService', () => {
       expect(svc.city()).toEqual(['Porto', 'Lisboa']);
     });
 
-    it('splits property_type from comma-separated param', () => {
+    it('splits neighborhood from comma-separated param', () => {
       const svc = new FilterStateService();
-      svc.initFromParams({ property_type: 'Apartment' });
-      expect(svc.propertyType()).toEqual(['Apartment']);
-    });
-
-    it('sets hasGarage true from params', () => {
-      const svc = new FilterStateService();
-      svc.initFromParams({ has_garage: 'true' });
-      expect(svc.hasGarage()).toBe(true);
-    });
-
-    it('sets hasGarage false from params', () => {
-      const svc = new FilterStateService();
-      svc.initFromParams({ has_garage: 'false' });
-      expect(svc.hasGarage()).toBe(false);
+      svc.initFromParams({ neighborhood: 'Bonfim,Paranhos' });
+      expect(svc.neighborhood()).toEqual(['Bonfim', 'Paranhos']);
     });
 
     it('sets isRented true from params', () => {
@@ -382,10 +358,10 @@ describe('FilterStateService', () => {
       expect(svc.toQueryParams().city).toBe('Porto,Lisboa');
     });
 
-    it('includes has_garage when set', () => {
+    it('joins neighborhood as comma-separated string', () => {
       const svc = new FilterStateService();
-      svc.hasGarage.set(true);
-      expect(svc.toQueryParams().has_garage).toBe('true');
+      svc.neighborhood.set(['Bonfim', 'Paranhos']);
+      expect(svc.toQueryParams().neighborhood).toBe('Bonfim,Paranhos');
     });
 
     it('includes is_rented when set', () => {

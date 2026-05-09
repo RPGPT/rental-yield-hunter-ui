@@ -81,8 +81,11 @@ table {
   color: $color-grey;
 }
 
-@media (max-width: 47.9375rem) {
-  .hide-mobile {
-    display: none;
-  }
+.col-sm {
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+

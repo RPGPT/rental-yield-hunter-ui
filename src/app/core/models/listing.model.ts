@@ -8,11 +8,11 @@ export interface Listing {
   area: number | null;
   price_per_m2: number | null;
   location: string | null;
+  neighborhood: string | null;
   city: string | null;
   property_type: string | null;
   typology: string | null;
   floor: string | null;
-  has_garage: boolean;
   is_rented: boolean;
   lifetime_rent: boolean;
   is_favorite: boolean;

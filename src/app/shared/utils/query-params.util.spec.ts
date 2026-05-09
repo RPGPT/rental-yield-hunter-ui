@@ -9,8 +9,7 @@ const DEFAULT: FilterState = {
   area_max: null,
   typology: [],
   city: [],
-  property_type: [],
-  has_garage: null,
+  neighborhood: [],
   is_rented: null,
   lifetime_rent: null,
   is_favorite: null,
@@ -71,22 +70,11 @@ describe('buildQueryParams', () => {
   it('joins city', () => {
     expect(buildQueryParams({ ...DEFAULT, city: ['Porto', 'Lisboa'] }).city).toBe('Porto,Lisboa');
   });
-  it('omits empty property_type', () => {
-    expect(buildQueryParams({ ...DEFAULT }).property_type).toBeUndefined();
+  it('omits empty neighborhood', () => {
+    expect(buildQueryParams({ ...DEFAULT }).neighborhood).toBeUndefined();
   });
-  it('includes property_type', () => {
-    expect(buildQueryParams({ ...DEFAULT, property_type: ['Apartment'] }).property_type).toBe(
-      'Apartment',
-    );
-  });
-  it('omits null has_garage', () => {
-    expect(buildQueryParams({ ...DEFAULT }).has_garage).toBeUndefined();
-  });
-  it('includes has_garage true', () => {
-    expect(buildQueryParams({ ...DEFAULT, has_garage: true }).has_garage).toBe('true');
-  });
-  it('includes has_garage false', () => {
-    expect(buildQueryParams({ ...DEFAULT, has_garage: false }).has_garage).toBe('false');
+  it('includes neighborhood', () => {
+    expect(buildQueryParams({ ...DEFAULT, neighborhood: ['Bonfim'] }).neighborhood).toBe('Bonfim');
   });
   it('omits null is_rented', () => {
     expect(buildQueryParams({ ...DEFAULT }).is_rented).toBeUndefined();

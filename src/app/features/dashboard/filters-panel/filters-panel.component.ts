@@ -8,7 +8,6 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { TitleCasePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -30,7 +29,6 @@ import { AuthService } from '../../../core/services/auth.service';
   standalone: true,
   imports: [
     FormsModule,
-    TitleCasePipe,
     MatExpansionModule,
     MatFormFieldModule,
     MatInputModule,
@@ -64,13 +62,22 @@ export class FiltersPanelComponent implements OnInit {
   get selectedCities(): string[] {
     return this.filterState.city();
   }
-  get selectedPropertyTypes(): string[] {
-    return this.filterState.propertyType();
+  get selectedNeighborhoods(): string[] {
+    return this.filterState.neighborhood();
   }
 
-  get hasGarageSelection(): string[] {
-    return this.boolToSelection(this.filterState.hasGarage());
+  get availableNeighborhoods(): string[] {
+    const opts = this.filterOptions();
+    if (!opts) return [];
+    const cities = this.filterState.city();
+    if (!cities.length) return [];
+    return cities.flatMap((c) => opts.neighborhoods[c] ?? []).sort();
   }
+
+  get isNeighborhoodEnabled(): boolean {
+    return this.filterState.city().length > 0;
+  }
+
   get isRentedSelection(): string[] {
     return this.boolToSelection(this.filterState.isRented());
   }
@@ -131,11 +138,19 @@ export class FiltersPanelComponent implements OnInit {
 
   onCityChange(values: string[]): void {
     this.filterState.city.set(values);
+    // Drop any neighborhoods that no longer belong to the selected cities
+    const opts = this.filterOptions();
+    if (opts) {
+      const valid = new Set(values.flatMap((c) => opts.neighborhoods[c] ?? []));
+      this.filterState.neighborhood.update((n) => n.filter((v) => valid.has(v)));
+    } else {
+      this.filterState.neighborhood.set([]);
+    }
     this.resetOffset();
   }
 
-  onPropertyTypeChange(values: string[]): void {
-    this.filterState.propertyType.set(values);
+  onNeighborhoodChange(values: string[]): void {
+    this.filterState.neighborhood.set(values);
     this.resetOffset();
   }
 

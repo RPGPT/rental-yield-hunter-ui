@@ -95,18 +95,16 @@
                 <span matListItemLine>{{ l.city || '—' }}</span>
               </mat-list-item>
               <mat-list-item>
+                <span matListItemTitle>Neighborhood</span>
+                <span matListItemLine>{{ l.neighborhood || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
                 <span matListItemTitle>Location</span>
                 <span matListItemLine>{{ l.location || '—' }}</span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Floor</span>
                 <span matListItemLine>{{ l.floor || '—' }}</span>
-              </mat-list-item>
-              <mat-list-item>
-                <span matListItemTitle>Garage</span>
-                <span matListItemLine [class]="l.has_garage ? 'icon-yes' : 'icon-no'">
-                  {{ l.has_garage ? '✓ Yes' : '✗ No' }}
-                </span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Rented</span>

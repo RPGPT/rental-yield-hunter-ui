@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Right half: Typology + City -->
+    <!-- Right half: Typology + City + Neighborhood -->
     @if (filterOptions(); as opts) {
       <div class="filter-group-pair">
         <div class="filter-group">
@@ -95,31 +95,21 @@
 
   <!-- Boolean toggles row -->
   <div class="filters-grid filters-grid--toggles">
-    @if (filterOptions(); as opts) {
-      <div class="filter-group">
-        <label class="filter-label">Property Type</label>
-        <mat-chip-listbox
+    <div class="filter-group filter-group--neighborhood">
+      <label class="filter-label">Neighborhood</label>
+      <mat-form-field appearance="outline" class="filter-field--neighborhood">
+        <mat-label>{{ isNeighborhoodEnabled ? 'Neighborhood' : 'Select a city first' }}</mat-label>
+        <mat-select
           [multiple]="true"
-          [value]="selectedPropertyTypes"
-          (change)="onPropertyTypeChange($event.value)"
+          [value]="selectedNeighborhoods"
+          [disabled]="!isNeighborhoodEnabled"
+          (selectionChange)="onNeighborhoodChange($event.value)"
         >
-          @for (pt of opts.property_types; track pt) {
-            <mat-chip-option [value]="pt">{{ pt | titlecase }}</mat-chip-option>
+          @for (n of availableNeighborhoods; track n) {
+            <mat-option [value]="n">{{ n }}</mat-option>
           }
-        </mat-chip-listbox>
-      </div>
-    }
-
-    <div class="filter-group">
-      <label class="filter-label">Has Garage</label>
-      <mat-button-toggle-group
-        multiple
-        [value]="hasGarageSelection"
-        (change)="onBoolToggle(filterState.hasGarage, $event.value)"
-      >
-        <mat-button-toggle value="true">Yes</mat-button-toggle>
-        <mat-button-toggle value="false">No</mat-button-toggle>
-      </mat-button-toggle-group>
+        </mat-select>
+      </mat-form-field>
     </div>
 
     <div class="filter-group">
@@ -158,8 +148,8 @@
       </mat-button-toggle-group>
     </div>
 
-    <!-- Favorite filter: toggle heart (white = all, red = favorites only) -->
-    <div class="filter-group filter-group--heart">
+    <!-- Favorite & New filters -->
+    <div class="filter-group-small">
       <button
         mat-icon-button
         class="heart-filter-btn"
@@ -169,9 +159,6 @@
       >
         <mat-icon>{{ favoriteIcon() }}</mat-icon>
       </button>
-    </div>
-
-    <div class="filter-group filter-group--new">
       <button
         mat-icon-button
         class="new-filter-btn"

@@ -1,7 +1,7 @@
 export interface FilterOptions {
   cities: string[];
   typologies: string[];
-  property_types: string[];
+  neighborhoods: Record<string, string[]>;
 }
 
 export interface FilterState {
@@ -11,8 +11,7 @@ export interface FilterState {
   area_max: number | null;
   typology: string[];
   city: string[];
-  property_type: string[];
-  has_garage: boolean | null;
+  neighborhood: string[];
   is_rented: boolean | null;
   lifetime_rent: boolean | null;
   is_favorite: boolean | null;

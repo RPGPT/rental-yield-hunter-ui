@@ -1,9 +1,13 @@
 @use 'colors' as *;
 @use 'sizes' as *;
 
-.filter-group--heart,
-.filter-group--new {
-  justify-content: end;
+.filter-group-small {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-self: center;
+  gap: $size-4;
+  min-width: 0;
 }
 
 .heart-filter-btn {
@@ -45,7 +49,8 @@
   padding: $size-8 0;
 
   &--toggles {
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(140px, max-content));
+    align-items: start;
     padding-top: 0;
   }
 }
@@ -86,6 +91,14 @@
   width: 100%;
 }
 
+.filter-field--neighborhood {
+  width: 192px;
+}
+
+.filter-group--neighborhood {
+  align-self: end;
+}
+
 .filters-actions {
   display: flex;
   justify-content: flex-end;
@@ -95,6 +108,6 @@
 }
 
 mat-button-toggle-group {
-  font-size: $size-13;
   width: fit-content;
+  font-size: $size-13;
 }

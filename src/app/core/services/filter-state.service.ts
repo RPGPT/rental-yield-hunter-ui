@@ -9,8 +9,7 @@ export interface FilterQueryParams {
   area_max?: string;
   typology?: string;
   city?: string;
-  property_type?: string;
-  has_garage?: string;
+  neighborhood?: string;
   is_rented?: string;
   lifetime_rent?: string;
   is_favorite?: string;
@@ -29,8 +28,7 @@ export class FilterStateService {
   readonly areaMax = signal<number | null>(null);
   readonly typology = signal<string[]>([]);
   readonly city = signal<string[]>([]);
-  readonly propertyType = signal<string[]>([]);
-  readonly hasGarage = signal<boolean | null>(null);
+  readonly neighborhood = signal<string[]>([]);
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
@@ -48,8 +46,7 @@ export class FilterStateService {
     area_max: this.areaMax(),
     typology: this.typology(),
     city: this.city(),
-    property_type: this.propertyType(),
-    has_garage: this.hasGarage(),
+    neighborhood: this.neighborhood(),
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
     is_favorite: this.isFavorite(),
@@ -68,8 +65,7 @@ export class FilterStateService {
     this.areaMax.set(null);
     this.typology.set([]);
     this.city.set([]);
-    this.propertyType.set([]);
-    this.hasGarage.set(null);
+    this.neighborhood.set([]);
     this.isRented.set(null);
     this.lifetimeRent.set(null);
     this.isFavorite.set(null);
@@ -88,11 +84,7 @@ export class FilterStateService {
     if (params['area_max']) this.areaMax.set(Number(params['area_max']));
     if (params['typology']) this.typology.set(String(params['typology']).split(','));
     if (params['city']) this.city.set(String(params['city']).split(','));
-    if (params['property_type']) this.propertyType.set(String(params['property_type']).split(','));
-    if (params['has_garage'] != null)
-      this.hasGarage.set(
-        params['has_garage'] === 'true' ? true : params['has_garage'] === 'false' ? false : null,
-      );
+    if (params['neighborhood']) this.neighborhood.set(String(params['neighborhood']).split(','));
     if (params['is_rented'] != null)
       this.isRented.set(
         params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null,
@@ -126,8 +118,7 @@ export class FilterStateService {
     if (s.area_max != null) p.area_max = String(s.area_max);
     if (s.typology.length) p.typology = s.typology.join(',');
     if (s.city.length) p.city = s.city.join(',');
-    if (s.property_type.length) p.property_type = s.property_type.join(',');
-    if (s.has_garage != null) p.has_garage = String(s.has_garage);
+    if (s.neighborhood.length) p.neighborhood = s.neighborhood.join(',');
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
