@@ -37,10 +37,15 @@ export class AuthService {
       );
       return;
     }
-    const { data } = await this.authClient.getSession();
-    if (data?.user && data?.session) {
-      this.storeSession(data.user, (data.session as { token: string }).token);
-    } else {
+    try {
+      const { data } = await this.authClient.getSession();
+      if (data?.user && data?.session) {
+        this.storeSession(data.user, (data.session as { token: string }).token);
+      } else {
+        this.clearSession();
+      }
+    } catch (err) {
+      console.error('[auth] initSession failed', err);
       this.clearSession();
     }
   }
