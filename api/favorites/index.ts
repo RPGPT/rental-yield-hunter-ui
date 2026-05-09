@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { getUserFromRequest } from '../_lib/auth';
-import { sendError } from '../_lib/errors';
+import { getUserFromRequest } from '../lib/auth';
+import { sendError } from '../lib/errors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = await getUserFromRequest(req);

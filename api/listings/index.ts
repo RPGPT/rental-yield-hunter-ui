@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { getUserFromRequest } from '../_lib/auth';
+import { getUserFromRequest } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
