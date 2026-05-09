@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
+import { getUserFromRequest } from '../_lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
+    const user = await getUserFromRequest(req);
+    const userId = user?.id ?? null;
     const {
       price_min,
       price_max,
@@ -110,6 +113,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
     const offsetNum = Math.max(Number(offset) || 0, 0);
+
+    let joinClause = '';
+    let isFavoriteSelect = 'false AS is_favorite';
+    const allParams: unknown[] = [];
+
+    if (userId) {
+      allParams.push(userId); // $1 = userId
+      joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1`;
+      isFavoriteSelect = `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`;
+      // Renumber existing params starting from $2
+      const shifted = whereClause.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + 1}`);
+      allParams.push(...params);
+      const tableRef = 'listings l';
+      const dataQuery = `
+        SELECT l.id, l.source, l.url, l.title, l.description,
+               l.price, l.area, l.price_per_m2,
+               l.location, l.city, l.property_type, l.typology, l.floor,
+               l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
+               l.inactive_since, l.first_seen, l.last_seen
+        FROM ${tableRef}
+        ${joinClause}
+        ${shifted}
+        ORDER BY l.${sortCol} ${sortOrder} NULLS LAST
+        LIMIT ${limitNum} OFFSET ${offsetNum}
+      `;
+      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} ${shifted}`;
+      const [data, countResult] = await Promise.all([
+        sql.query(dataQuery, allParams),
+        sql.query(countQuery, allParams),
+      ]);
+      return res
+        .status(200)
+        .json({ data, total: countResult[0]['total'], limit: limitNum, offset: offsetNum });
+    }
 
     const dataQuery = `
       SELECT id, source, url, title, description, price, area, price_per_m2,
