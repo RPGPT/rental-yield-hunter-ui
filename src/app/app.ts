@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, effect, OnInit, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, effect, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +21,7 @@ import { AuthService } from './core/services/auth.service';
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
-export class App implements OnInit {
+export class App {
   readonly auth = inject(AuthService);
   isDark = signal(localStorage.getItem('theme') === 'dark');
 
@@ -31,10 +31,6 @@ export class App implements OnInit {
       document.documentElement.classList.toggle('dark-theme', dark);
       localStorage.setItem('theme', dark ? 'dark' : 'light');
     });
-  }
-
-  ngOnInit(): void {
-    this.auth.initSession();
   }
 
   toggleTheme(): void {
