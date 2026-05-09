@@ -3,7 +3,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 
 export const routes: Routes = [
-  { path: '', component: DashboardComponent, canMatch: [authGuard] },
+  { path: '', pathMatch: 'full', component: DashboardComponent, canMatch: [authGuard] },
   {
     path: 'listing/:id',
     canMatch: [authGuard],
