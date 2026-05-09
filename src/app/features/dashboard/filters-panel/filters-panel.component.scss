@@ -111,3 +111,25 @@ mat-button-toggle-group {
   width: fit-content;
   font-size: $size-13;
 }
+
+@media (max-width: 47.9375rem) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-group-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .filters-grid--toggles {
+    grid-template-columns: repeat(auto-fill, minmax(120px, max-content));
+  }
+
+  .filter-field--neighborhood {
+    width: 100%;
+  }
+
+  .filter-group--neighborhood {
+    align-self: auto;
+  }
+}

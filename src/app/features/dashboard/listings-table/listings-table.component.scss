@@ -1,6 +1,12 @@
 @use 'colors' as *;
 @use 'sizes' as *;
 
+@media (max-width: 47.9375rem) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
 .col-fav {
   width: $size-48;
   padding: 0 $size-4 !important;

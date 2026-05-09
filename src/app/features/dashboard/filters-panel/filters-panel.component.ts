@@ -6,6 +6,7 @@ import {
   OnInit,
   DestroyRef,
   WritableSignal,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -48,6 +49,8 @@ export class FiltersPanelComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  filtersExpanded = signal(window.innerWidth > 767);
 
   filterOptions = input<FilterOptions | null>(null);
 

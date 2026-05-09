@@ -151,11 +151,29 @@
     gap: $size-16;
   }
 
-  .detail-title {
-    font-size: $size-16;
+  .detail-header {
+    flex-wrap: wrap;
+    gap: $size-8;
   }
 
-  .header-actions .btn-label {
-    display: none;
+  .detail-title {
+    font-size: $size-16;
+    white-space: normal;
+    order: 1;
+    width: 100%;
+  }
+
+  .back-btn {
+    order: 0;
+  }
+
+  .header-actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+
+    .btn-label {
+      display: none;
+    }
   }
 }

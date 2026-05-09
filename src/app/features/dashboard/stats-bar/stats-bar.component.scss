@@ -56,3 +56,27 @@
 :host-context(.dark-theme) .stat-card__label {
   color: $color-dark-label;
 }
+
+@media (max-width: 47.9375rem) {
+  .stats-bar {
+    gap: $size-8;
+    padding: $size-8 0;
+  }
+
+  .stat-card {
+    flex: 1 1 calc(33.333% - #{$size-8});
+    min-width: 100px;
+
+    mat-card-content {
+      padding: $size-12 $size-8 !important;
+    }
+
+    &__value {
+      font-size: $size-20;
+    }
+
+    &__label {
+      font-size: 10px;
+    }
+  }
+}

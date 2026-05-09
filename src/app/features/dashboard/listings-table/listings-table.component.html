@@ -46,8 +46,10 @@
         </ng-container>
 
         <ng-container matColumnDef="area">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Area</th>
-          <td mat-cell *matCellDef="let row">{{ row.area ? row.area + ' m²' : '—' }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Area</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
+            {{ row.area ? row.area + ' m²' : '—' }}
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="price_per_m2">
@@ -56,18 +58,24 @@
         </ng-container>
 
         <ng-container matColumnDef="property_type">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
-          <td mat-cell *matCellDef="let row">{{ row.property_type | titlecase }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Type</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
+            {{ row.property_type | titlecase }}
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="typology">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Typology</th>
-          <td mat-cell *matCellDef="let row">{{ row.typology || '—' }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Typology</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">{{ row.typology || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="neighborhood">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-sm">Neighborhood</th>
-          <td mat-cell *matCellDef="let row" class="col-sm">{{ row.neighborhood || '—' }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-sm hide-mobile">
+            Neighborhood
+          </th>
+          <td mat-cell *matCellDef="let row" class="col-sm hide-mobile">
+            {{ row.neighborhood || '—' }}
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="city">
@@ -76,8 +84,8 @@
         </ng-container>
 
         <ng-container matColumnDef="is_rented">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rented</th>
-          <td mat-cell *matCellDef="let row">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Rented</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
             @if (row.is_rented) {
               <app-badge label="Rented" color="green" />
             }
@@ -85,8 +93,8 @@
         </ng-container>
 
         <ng-container matColumnDef="lifetime_rent">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Lifetime</th>
-          <td mat-cell *matCellDef="let row">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Lifetime</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
             @if (row.lifetime_rent) {
               <app-badge label="Lifetime" color="red" />
             }
@@ -111,8 +119,10 @@
         </ng-container>
 
         <ng-container matColumnDef="last_seen">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Last Seen</th>
-          <td mat-cell *matCellDef="let row">{{ row.last_seen | relativeDate }}</td>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Last Seen</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
+            {{ row.last_seen | relativeDate }}
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
