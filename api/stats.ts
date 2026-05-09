@@ -3,7 +3,11 @@ import { neon } from '@neondatabase/serverless';
 import { sendError } from './_lib/errors';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
-  const sql = neon(process.env['DATABASE_URL']!);
+  const dbUrl = process.env['DATABASE_URL'];
+  console.log('[stats] DATABASE_URL set:', !!dbUrl);
+  if (!dbUrl)
+    return res.status(500).json({ error: { message: 'DATABASE_URL is not set', status: 500 } });
+  const sql = neon(dbUrl);
 
   try {
     const result = await sql`

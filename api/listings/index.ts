@@ -4,7 +4,11 @@ import { getUserFromRequest } from '../_lib/auth';
 import { sendError } from '../_lib/errors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const sql = neon(process.env['DATABASE_URL']!);
+  const dbUrl = process.env['DATABASE_URL'];
+  console.log('[listings] DATABASE_URL set:', !!dbUrl);
+  if (!dbUrl)
+    return res.status(500).json({ error: { message: 'DATABASE_URL is not set', status: 500 } });
+  const sql = neon(dbUrl);
   const user = await getUserFromRequest(req);
 
   try {
