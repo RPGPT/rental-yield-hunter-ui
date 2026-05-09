@@ -43,6 +43,7 @@ function wrapResponse(res: http.ServerResponse) {
 
 import listingsHandler from './api/listings/index';
 import listingByIdHandler from './api/listings/[id]';
+import listingDescriptionHandler from './api/listings/description';
 import snapshotHandler from './api/listings/snapshot';
 import snapshotDownloadHandler from './api/listings/snapshot-download';
 import statsHandler from './api/stats';
@@ -71,6 +72,8 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/listings' && req.method === 'GET') {
       await listingsHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/listings/description') {
+      await listingDescriptionHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/listings/snapshot') {
       await snapshotHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/listings/snapshot-download') {

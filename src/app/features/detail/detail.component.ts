@@ -8,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ListingDetail } from '../../core/models/listing.model';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -45,13 +46,17 @@ export class DetailComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private listingId = '';
 
+  private readonly sanitizer = inject(DomSanitizer);
+
   listing = signal<ListingDetail | null>(null);
   loading = signal(true);
   isFavorite = signal(false);
   favLoading = signal(false);
   snapshotLoading = signal(false);
-  snapshotSaved = signal(false); // true after a successful save this session
+  snapshotSaved = signal(false);
   selectedImage = signal<string>('');
+  richDescription = signal<SafeHtml | null>(null);
+  descriptionLoading = signal(false);
 
   ngOnInit(): void {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
@@ -63,6 +68,19 @@ export class DetailComponent implements OnInit {
           this.selectedImage.set(data.images[0].large);
         }
         this.loading.set(false);
+        // Fetch rich description from imovirtual
+        if (data.url?.includes('imovirtual.com')) {
+          this.descriptionLoading.set(true);
+          this.api.getListingDescription(data.url).subscribe({
+            next: (res) => {
+              if (res.description) {
+                this.richDescription.set(this.sanitizer.bypassSecurityTrustHtml(res.description));
+              }
+              this.descriptionLoading.set(false);
+            },
+            error: () => this.descriptionLoading.set(false),
+          });
+        }
       },
       error: () => this.loading.set(false),
     });

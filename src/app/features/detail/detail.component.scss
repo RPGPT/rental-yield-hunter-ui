@@ -78,6 +78,24 @@
   font-size: $size-14;
   line-height: 1.6;
   margin: 0;
+
+  // Preserve HTML formatting from imovirtual
+  strong {
+    font-weight: 600;
+  }
+  br {
+    display: block;
+    content: '';
+    margin-top: 0.3em;
+  }
+}
+
+.description-loading {
+  display: flex;
+  align-items: center;
+  gap: $size-12;
+  color: $color-grey;
+  font-size: $size-14;
 }
 
 // ── Image gallery ────────────────────────────────────

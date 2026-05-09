@@ -28,6 +28,20 @@ export class ApiService {
     return this.http.get<ListingDetail>(`${this.baseUrl}/listings/${id}`);
   }
 
+  getListingDescription(url: string): Observable<{
+    description: string | null;
+    characteristics: unknown[];
+    topInformation: unknown[];
+    additionalInformation: unknown[];
+  }> {
+    return this.http.get<{
+      description: string | null;
+      characteristics: unknown[];
+      topInformation: unknown[];
+      additionalInformation: unknown[];
+    }>(`${this.baseUrl}/listings/description?url=${encodeURIComponent(url)}`);
+  }
+
   getFavorites(): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/favorites`);
   }
