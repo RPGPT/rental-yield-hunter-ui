@@ -62,6 +62,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       lifetime_rent,
       is_favorite,
       is_new,
+      price_change,
       active,
       sort = 'price',
       order = 'asc',
@@ -126,6 +127,17 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     // is_favorite filter handled via user_favorites join — skip if no user
     if (is_new === 'true') {
       conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`);
+    }
+    if (price_change === 'reduced') {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM listing_price_history lph
+        WHERE lph.listing_id = l.id AND lph.price > l.price
+      )`);
+    } else if (price_change === 'increased') {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM listing_price_history lph
+        WHERE lph.listing_id = l.id AND lph.price < l.price
+      )`);
     }
     if (active !== undefined) {
       conditions.push(`active = $${paramIndex++}`);
@@ -197,24 +209,24 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     }
 
     const dataQuery = `
-      SELECT id, source, url, title, description, price, area, price_per_m2,
-             location, city, neighborhood, property_type, typology, floor,
-             has_garage, is_rented, lifetime_rent, false AS is_favorite, active,
-             inactive_since, first_seen, last_seen
-      FROM listings
+      SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
+             l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
+             l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, l.active,
+             l.inactive_since, l.first_seen, l.last_seen
+      FROM listings l
       ${whereClause}
-      ORDER BY ${sortCol} ${sortOrder} NULLS LAST
+      ORDER BY l.${sortCol} ${sortOrder} NULLS LAST
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 
-    const countQuery = `SELECT count(*)::int AS total FROM listings ${whereClause}`;
+    const countQuery = `SELECT count(*)::int AS total FROM listings l ${whereClause}`;
 
     const [data, countResult] = await Promise.all([
       sql.query(dataQuery, params),
       sql.query(countQuery, params),
     ]);
 
-    res.status(200).json({
+    return res.status(200).json({
       data,
       total: countResult[0]['total'],
       limit: limitNum,
@@ -224,6 +236,6 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     const msg = error instanceof Error ? error.message : String(error);
     const code = (error as { code?: string }).code;
     console.error('[listings] Error:', msg, code);
-    res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
+    return res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
   }
 }

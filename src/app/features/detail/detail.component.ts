@@ -1,4 +1,13 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  ElementRef,
+  HostListener,
+  inject,
+  signal,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -48,13 +57,17 @@ export class DetailComponent implements OnInit {
 
   private readonly sanitizer = inject(DomSanitizer);
 
+  @ViewChild('priceChartCard', { read: ElementRef }) priceChartCard?: ElementRef;
+
   listing = signal<ListingDetail | null>(null);
   loading = signal(true);
   isFavorite = signal(false);
   favLoading = signal(false);
   snapshotLoading = signal(false);
   snapshotSaved = signal(false);
-  selectedImage = signal<string>('');
+  currentImage = signal<string>('');
+  incomingImage = signal<string>('');
+  imageAnim = signal<'next' | 'prev' | ''>('');
   richDescription = signal<SafeHtml | null>(null);
   descriptionLoading = signal(false);
 
@@ -65,7 +78,8 @@ export class DetailComponent implements OnInit {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
         if (data.images?.length) {
-          this.selectedImage.set(data.images[0].large);
+          this.currentImage.set(data.images[0].large);
+          this.incomingImage.set(data.images[0].large);
         }
         this.loading.set(false);
         // Fetch rich description from imovirtual
@@ -80,7 +94,8 @@ export class DetailComponent implements OnInit {
               if (res.images?.length) {
                 const fullListing = { ...this.listing()!, images: res.images };
                 this.listing.set(fullListing);
-                this.selectedImage.set(res.images[0].large);
+                this.currentImage.set(res.images[0].large);
+                this.incomingImage.set(res.images[0].large);
               }
               this.descriptionLoading.set(false);
             },
@@ -92,8 +107,54 @@ export class DetailComponent implements OnInit {
     });
   }
 
+  priceWentUp(): boolean {
+    const listing = this.listing();
+    if (!listing) return false;
+    return listing.price_history.some((h) => h.price < listing.price);
+  }
+
+  priceWentDown(): boolean {
+    const listing = this.listing();
+    if (!listing) return false;
+    return listing.price_history.some((h) => h.price > listing.price);
+  }
+
+  scrollToPriceChart(): void {
+    this.priceChartCard?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  currentImageIndex(images: { large: string }[]): number {
+    return images.findIndex((img) => img.large === this.currentImage());
+  }
+
   selectImage(url: string): void {
-    this.selectedImage.set(url);
+    this.currentImage.set(url);
+    this.incomingImage.set(url);
+  }
+
+  navigateImage(dir: 1 | -1): void {
+    const images = this.listing()?.images ?? [];
+    if (images.length < 2 || this.imageAnim() !== '') return;
+    const idx = images.findIndex((img) => img.large === this.currentImage());
+    const nextIdx = (idx + dir + images.length) % images.length;
+    const nextUrl = images[nextIdx].large;
+
+    // Pre-set the incoming image so the browser starts loading it immediately
+    this.incomingImage.set(nextUrl);
+    this.imageAnim.set(dir === 1 ? 'next' : 'prev');
+
+    setTimeout(() => {
+      this.currentImage.set(nextUrl);
+      this.imageAnim.set('');
+    }, 180);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    const tag = (event.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (event.key === 'ArrowRight') this.navigateImage(1);
+    else if (event.key === 'ArrowLeft') this.navigateImage(-1);
   }
 
   toggleFavorite(): void {

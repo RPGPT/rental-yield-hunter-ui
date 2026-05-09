@@ -16,6 +16,7 @@ export interface FilterState {
   lifetime_rent: boolean | null;
   is_favorite: boolean | null;
   is_new: boolean | null;
+  price_change: 'reduced' | 'increased' | null;
   active: boolean | null;
   sort: string;
   order: 'asc' | 'desc';

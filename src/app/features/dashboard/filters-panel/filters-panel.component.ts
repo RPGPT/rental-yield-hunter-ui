@@ -74,7 +74,7 @@ export class FiltersPanelComponent implements OnInit {
     if (!opts) return [];
     const cities = this.filterState.city();
     if (!cities.length) return [];
-    return cities.flatMap((c) => opts.neighborhoods[c] ?? []).sort();
+    return cities.flatMap((c) => (opts.neighborhoods ?? {})[c] ?? []).sort();
   }
 
   get isNeighborhoodEnabled(): boolean {
@@ -186,6 +186,28 @@ export class FiltersPanelComponent implements OnInit {
     const current = this.filterState.isNew();
     this.filterState.isNew.set(current === null ? true : null);
     this.resetOffset();
+  }
+
+  cyclePriceChange(): void {
+    const current = this.filterState.priceChange();
+    if (current === null) this.filterState.priceChange.set('reduced');
+    else if (current === 'reduced') this.filterState.priceChange.set('increased');
+    else this.filterState.priceChange.set(null);
+    this.resetOffset();
+  }
+
+  priceChangeIcon(): string {
+    const v = this.filterState.priceChange();
+    if (v === 'reduced') return 'arrow_downward';
+    if (v === 'increased') return 'arrow_upward';
+    return 'swap_vert';
+  }
+
+  priceChangeTooltip(): string {
+    const v = this.filterState.priceChange();
+    if (v === 'reduced') return 'Showing price-reduced listings — click to show price-increased';
+    if (v === 'increased') return 'Showing price-increased listings — click to clear';
+    return 'Filter by price change — click to show reduced';
   }
 
   newTooltip(): string {

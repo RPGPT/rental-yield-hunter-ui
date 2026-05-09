@@ -14,6 +14,7 @@ export interface FilterQueryParams {
   lifetime_rent?: string;
   is_favorite?: string;
   is_new?: string;
+  price_change?: string;
   active?: string;
   sort?: string;
   order?: string;
@@ -33,6 +34,7 @@ export class FilterStateService {
   readonly lifetimeRent = signal<boolean | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
   readonly isNew = signal<boolean | null>(null);
+  readonly priceChange = signal<'reduced' | 'increased' | null>(null);
   readonly active = signal<boolean | null>(true);
   readonly sort = signal<string>('price');
   readonly order = signal<'asc' | 'desc'>('asc');
@@ -51,6 +53,7 @@ export class FilterStateService {
     lifetime_rent: this.lifetimeRent(),
     is_favorite: this.isFavorite(),
     is_new: this.isNew(),
+    price_change: this.priceChange(),
     active: this.active(),
     sort: this.sort(),
     order: this.order(),
@@ -70,6 +73,7 @@ export class FilterStateService {
     this.lifetimeRent.set(null);
     this.isFavorite.set(null);
     this.isNew.set(null);
+    this.priceChange.set(null);
     this.active.set(true);
     this.sort.set('price');
     this.order.set('asc');
@@ -100,6 +104,9 @@ export class FilterStateService {
     if (params['is_favorite'] != null)
       this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
     if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
+    if (params['price_change'] === 'reduced' || params['price_change'] === 'increased') {
+      this.priceChange.set(params['price_change']);
+    }
     if (params['active'] != null)
       this.active.set(
         params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
@@ -123,6 +130,7 @@ export class FilterStateService {
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
     if (s.is_new != null) p.is_new = String(s.is_new);
+    if (s.price_change != null) p.price_change = s.price_change;
     if (s.active !== true) p.active = s.active === null ? 'all' : 'false';
     if (s.sort !== 'price') p.sort = s.sort;
     if (s.order !== 'asc') p.order = s.order;

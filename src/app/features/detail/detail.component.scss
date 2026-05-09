@@ -22,10 +22,19 @@
   display: flex;
   align-items: center;
   gap: $size-12;
+  flex-wrap: wrap;
+}
+
+.title-with-tags {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: $size-8;
+  overflow: hidden;
 }
 
 .detail-title {
-  flex: 1;
   margin: 0;
   font-size: $size-20;
   font-weight: 600;
@@ -51,7 +60,49 @@
   }
 }
 
-// ── Two-column grid ──────────────────────────────────
+.price-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: $size-12;
+  font-weight: 600;
+  padding: 3px $size-8;
+  border-radius: $size-12;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: filter 0.15s;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    filter: brightness(1.12);
+  }
+
+  &.price-tag-down {
+    background: rgba(34, 197, 94, 0.2);
+    color: #000;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+  }
+
+  &.price-tag-up {
+    background: rgba(253, 224, 71, 0.4);
+    color: #000;
+    border: 1px solid rgba(234, 179, 8, 0.5);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    &.price-tag-down,
+    &.price-tag-up {
+      color: #fff;
+    }
+  }
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -64,6 +115,7 @@
   display: flex;
   flex-direction: column;
   gap: $size-16;
+  min-width: 0; // prevent grid column from overflowing
 }
 
 // ── List items ───────────────────────────────────────
@@ -101,26 +153,156 @@
 // ── Image gallery ────────────────────────────────────
 .gallery-card mat-card-content {
   padding: $size-8 !important;
+  overflow: hidden; // ensure thumb strip doesn't escape the card
 }
 
 .gallery-main {
   width: 100%;
-  max-height: 28rem; // cap so large images don't blow up the layout
+  height: 28rem;
+  max-height: 28rem;
   overflow: hidden;
   border-radius: $size-8;
   background: #111;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 
   .gallery-main-img {
+    position: absolute;
     width: 100%;
-    height: 100%;
     max-height: 28rem;
-    object-fit: contain; // fit inside — image controls its own size
+    object-fit: contain;
     display: block;
-    transition: opacity 0.2s ease;
   }
+
+  // Outgoing: current image slides out
+  .gallery-img-current {
+    z-index: 1;
+  }
+  .gallery-img-current.slide-out-next {
+    animation: slide-out-left 0.18s ease forwards;
+  }
+  .gallery-img-current.slide-out-prev {
+    animation: slide-out-right 0.18s ease forwards;
+  }
+
+  // Incoming: new image slides in behind
+  .gallery-img-incoming {
+    z-index: 2;
+  }
+  .gallery-img-incoming.slide-in-next {
+    animation: slide-in-right 0.18s ease forwards;
+  }
+  .gallery-img-incoming.slide-in-prev {
+    animation: slide-in-left 0.18s ease forwards;
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-6%);
+    opacity: 0;
+  }
+}
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(6%);
+    opacity: 0;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    transform: translateX(6%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-6%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  z-index: 2;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.75);
+  }
+
+  mat-icon {
+    font-size: 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  &.gallery-prev {
+    left: $size-8;
+  }
+  &.gallery-next {
+    right: $size-8;
+  }
+}
+
+.gallery-counter {
+  position: absolute;
+  top: $size-8;
+  right: $size-8;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: $size-13;
+  font-weight: 500;
+  padding: $size-4 $size-10;
+  border-radius: $size-12;
+  display: flex;
+  align-items: center;
+  gap: $size-6;
+  z-index: 3;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.gallery-last-tag {
+  background: rgba(220, 60, 60, 0.75);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: $size-4;
 }
 
 .gallery-thumbs {
@@ -130,6 +312,9 @@
   overflow-x: auto;
   padding-bottom: $size-4;
   scrollbar-width: thin;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .thumb-btn {
@@ -163,6 +348,7 @@
 @media (max-width: 47.9375rem) {
   .gallery-main,
   .gallery-main .gallery-main-img {
+    height: 18rem;
     max-height: 18rem;
   }
 }

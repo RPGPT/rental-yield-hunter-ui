@@ -26,6 +26,26 @@
   }
 }
 
+.price-change-filter-btn {
+  color: $color-grey;
+  width: $size-40;
+  height: $size-40;
+
+  mat-icon {
+    font-size: $size-24;
+    width: $size-24;
+    height: $size-24;
+  }
+
+  &--reduced {
+    color: #16a34a;
+  }
+
+  &--increased {
+    color: #b45309;
+  }
+}
+
 .new-filter-btn {
   color: inherit;
   width: $size-40;

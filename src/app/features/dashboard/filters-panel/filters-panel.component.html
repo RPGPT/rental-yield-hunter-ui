@@ -161,6 +161,16 @@
       </button>
       <button
         mat-icon-button
+        class="price-change-filter-btn"
+        [class.price-change-filter-btn--reduced]="filterState.priceChange() === 'reduced'"
+        [class.price-change-filter-btn--increased]="filterState.priceChange() === 'increased'"
+        (click)="cyclePriceChange()"
+        [matTooltip]="priceChangeTooltip()"
+      >
+        <mat-icon>{{ priceChangeIcon() }}</mat-icon>
+      </button>
+      <button
+        mat-icon-button
         class="new-filter-btn"
         [class.new-filter-btn--active]="filterState.isNew() === true"
         (click)="cycleNew()"

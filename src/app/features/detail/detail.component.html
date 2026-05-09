@@ -8,7 +8,29 @@
       <a mat-icon-button routerLink="/" class="back-btn" matTooltip="Back to listings">
         <mat-icon>arrow_back</mat-icon>
       </a>
-      <h1 class="detail-title">{{ l.title }}</h1>
+      <div class="title-with-tags">
+        <h1 class="detail-title">{{ l.title }}</h1>
+        @if (l.price_history.length > 0) {
+          @if (priceWentDown()) {
+            <button
+              class="price-tag price-tag-down"
+              (click)="scrollToPriceChart()"
+              matTooltip="Price was reduced — click to see history"
+            >
+              <mat-icon>arrow_downward</mat-icon> Reduced
+            </button>
+          }
+          @if (priceWentUp()) {
+            <button
+              class="price-tag price-tag-up"
+              (click)="scrollToPriceChart()"
+              matTooltip="Price was increased — click to see history"
+            >
+              <mat-icon>arrow_upward</mat-icon> Increased
+            </button>
+          }
+        }
+      </div>
 
       <div class="header-actions">
         <!-- Favorite toggle -->
@@ -56,7 +78,7 @@
           matTooltip="Open original listing"
         >
           <mat-icon>open_in_new</mat-icon>
-          <span class="btn-label">View Original</span>
+          <span class="btn-label">View Listing</span>
         </a>
       </div>
     </div>
@@ -159,14 +181,54 @@
           <mat-card class="gallery-card">
             <mat-card-content>
               <div class="gallery-main">
-                <img [src]="selectedImage()" alt="Listing image" class="gallery-main-img" />
+                <!-- Outgoing image (current) -->
+                <img
+                  [src]="currentImage()"
+                  alt="Listing image"
+                  class="gallery-main-img gallery-img-current"
+                  [class.slide-out-next]="imageAnim() === 'next'"
+                  [class.slide-out-prev]="imageAnim() === 'prev'"
+                />
+                <!-- Incoming image — slides in underneath/over during animation -->
+                @if (imageAnim() !== '') {
+                  <img
+                    [src]="incomingImage()"
+                    alt="Listing image"
+                    class="gallery-main-img gallery-img-incoming"
+                    [class.slide-in-next]="imageAnim() === 'next'"
+                    [class.slide-in-prev]="imageAnim() === 'prev'"
+                  />
+                }
+                @if (l.images.length > 1) {
+                  <button
+                    class="gallery-nav gallery-prev"
+                    (click)="navigateImage(-1)"
+                    aria-label="Previous image"
+                  >
+                    <mat-icon>chevron_left</mat-icon>
+                  </button>
+                  <button
+                    class="gallery-nav gallery-next"
+                    (click)="navigateImage(1)"
+                    aria-label="Next image"
+                  >
+                    <mat-icon>chevron_right</mat-icon>
+                  </button>
+                  <!-- Image counter -->
+                  <span class="gallery-counter">
+                    {{ currentImageIndex(l.images) + 1 }} / {{ l.images.length }}
+                    @if (currentImageIndex(l.images) === l.images.length - 1) {
+                      <span class="gallery-last-tag">Last</span>
+                    }
+                  </span>
+                }
               </div>
               @if (l.images.length > 1) {
                 <div class="gallery-thumbs">
                   @for (img of l.images; track img.large) {
                     <button
                       class="thumb-btn"
-                      [class.thumb-active]="selectedImage() === img.large"
+                      [class.thumb-active]="currentImage() === img.large"
                       (click)="selectImage(img.large)"
                     >
                       <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
@@ -177,12 +239,6 @@
             </mat-card-content>
           </mat-card>
         }
-
-        <mat-card>
-          <mat-card-content>
-            <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />
-          </mat-card-content>
-        </mat-card>
 
         @if (richDescription(); as html) {
           <mat-card>
@@ -210,6 +266,12 @@
             </mat-card-content>
           </mat-card>
         }
+
+        <mat-card #priceChartCard>
+          <mat-card-content>
+            <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />
+          </mat-card-content>
+        </mat-card>
       </div>
     </div>
   </div>
