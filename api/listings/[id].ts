@@ -71,6 +71,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   } catch (error) {
     console.error('Error fetching listing:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res
+      .status(500)
+      .json({
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          code: (error as { code?: string }).code,
+        },
+      });
   }
 }

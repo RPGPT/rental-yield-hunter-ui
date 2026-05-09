@@ -3,6 +3,19 @@ import { neon } from '@neondatabase/serverless';
 import { getUserFromRequest } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    await listingsHandler(req, res);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const code = (error as { code?: string }).code;
+    console.error('[listings] Unhandled crash:', msg);
+    if (!res.headersSent) {
+      res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
+    }
+  }
+}
+
+async function listingsHandler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
@@ -173,7 +186,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       offset: offsetNum,
     });
   } catch (error) {
-    console.error('Error fetching listings:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    const msg = error instanceof Error ? error.message : String(error);
+    const code = (error as { code?: string }).code;
+    console.error('[listings] Error:', msg, code);
+    res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
   }
 }
