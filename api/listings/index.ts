@@ -174,7 +174,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       const dataQuery = `
         SELECT l.id, l.source, l.url, l.title, l.description,
                l.price, l.area, l.price_per_m2,
-               l.location, l.city, l.property_type, l.typology, l.floor,
+               l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen
         FROM ${tableRef}
@@ -195,7 +195,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
 
     const dataQuery = `
       SELECT id, source, url, title, description, price, area, price_per_m2,
-             location, city, property_type, typology, floor,
+             location, city, neighborhood, property_type, typology, floor,
              has_garage, is_rented, lifetime_rent, false AS is_favorite, active,
              inactive_since, first_seen, last_seen
       FROM listings

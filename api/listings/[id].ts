@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const listingResult = await sql.query(
       `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
-              l.location, l.city, l.typology, l.floor,
+              l.location, l.city, l.neighborhood, l.typology, l.floor,
               l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
               l.inactive_since, l.first_seen, l.last_seen
        FROM listings l
