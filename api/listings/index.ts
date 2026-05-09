@@ -79,10 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       conditions.push(`lifetime_rent = $${paramIndex++}`);
       params.push(lifetime_rent === 'true');
     }
-    if (is_favorite !== undefined) {
-      conditions.push(`is_favorite = $${paramIndex++}`);
-      params.push(is_favorite === 'true');
-    }
+    // is_favorite filter handled via user_favorites join — skip if no user
     if (is_new === 'true') {
       conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`);
     }
@@ -104,7 +101,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'has_garage',
       'is_rented',
       'lifetime_rent',
-      'is_favorite',
       'active',
       'first_seen',
       'last_seen',
@@ -118,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dataQuery = `
       SELECT id, source, url, title, description, price, area, price_per_m2,
              location, city, property_type, typology, floor,
-             has_garage, is_rented, lifetime_rent, is_favorite, active,
+             has_garage, is_rented, lifetime_rent, false AS is_favorite, active,
              inactive_since, first_seen, last_seen
       FROM listings
       ${whereClause}
