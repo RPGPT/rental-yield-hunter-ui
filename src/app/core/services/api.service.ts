@@ -30,12 +30,14 @@ export class ApiService {
 
   getListingDescription(url: string): Observable<{
     description: string | null;
+    images: { medium: string; large: string }[];
     characteristics: unknown[];
     topInformation: unknown[];
     additionalInformation: unknown[];
   }> {
     return this.http.get<{
       description: string | null;
+      images: { medium: string; large: string }[];
       characteristics: unknown[];
       topInformation: unknown[];
       additionalInformation: unknown[];

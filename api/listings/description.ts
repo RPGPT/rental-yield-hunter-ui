@@ -69,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       pageProps?: {
         ad?: {
           description?: string;
+          images?: { thumbnail?: string; small?: string; medium?: string; large?: string }[];
           characteristics?: unknown[];
           topInformation?: unknown[];
           additionalInformation?: unknown[];
@@ -81,6 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       description: ad.description ?? null,
+      images: (ad.images ?? []).map((img) => ({
+        medium: img.medium ?? '',
+        large: img.large ?? '',
+      })),
       characteristics: ad.characteristics ?? [],
       topInformation: ad.topInformation ?? [],
       additionalInformation: ad.additionalInformation ?? [],

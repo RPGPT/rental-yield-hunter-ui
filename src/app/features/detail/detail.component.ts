@@ -76,6 +76,12 @@ export class DetailComponent implements OnInit {
               if (res.description) {
                 this.richDescription.set(this.sanitizer.bypassSecurityTrustHtml(res.description));
               }
+              // Replace images with the full set from imovirtual
+              if (res.images?.length) {
+                const fullListing = { ...this.listing()!, images: res.images };
+                this.listing.set(fullListing);
+                this.selectedImage.set(res.images[0].large);
+              }
               this.descriptionLoading.set(false);
             },
             error: () => this.descriptionLoading.set(false),
