@@ -16,7 +16,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 0) {
         message = 'Connection error. Please try again.';
-      } else if (error.status === 401 && !req.url.includes('/auth/')) {
+      } else if (
+        error.status === 401 &&
+        !req.url.includes('/auth/') &&
+        !req.url.includes('/favorites')
+      ) {
         // Token expired or invalid — clear session and send to login
         auth.clearSession();
         message = 'Session expired. Please sign in again.';

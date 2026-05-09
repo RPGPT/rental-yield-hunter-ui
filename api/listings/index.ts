@@ -7,28 +7,24 @@ interface NeonAuthUser {
   name: string | null;
 }
 
-async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUser | null> {
+function getUserFromRequest(req: VercelRequest): NeonAuthUser | null {
   const auth = req.headers['authorization'] as string | undefined;
   if (!auth?.startsWith('Bearer ')) return null;
   const token = auth.substring(7);
   if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
     return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
   }
-  const authUrl = process.env['NEON_AUTH_URL'];
-  if (!authUrl) return null;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const res = await fetch(`${authUrl}/get-session`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return null;
-    const data = (await res.json()) as { user?: NeonAuthUser } | null;
-    return data?.user ?? null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(
+      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
+    ) as { id?: string; sub?: string; email?: string; name?: string; exp?: number };
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    const id = payload.id ?? payload.sub;
+    if (!id) return null;
+    return { id, email: payload.email ?? '', name: payload.name ?? null };
   } catch {
-    clearTimeout(timeout);
     return null;
   }
 }
@@ -51,7 +47,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
-    const user = await getUserFromRequest(req);
+    const user = getUserFromRequest(req);
     const userId = user?.id ?? null;
     const {
       price_min,
