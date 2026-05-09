@@ -16,7 +16,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { TitleCasePipe } from '@angular/common';
 import { Listing } from '../../../core/models/listing.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
 import { ApiService } from '../../../core/services/api.service';
@@ -36,12 +35,10 @@ export const LISTING_COLUMNS = [
   'price',
   'area',
   'price_per_m2',
-  'property_type',
   'typology',
   'neighborhood',
   'city',
   'is_rented',
-  'lifetime_rent',
   'active',
   'first_seen',
   'last_seen',
@@ -58,7 +55,6 @@ export const LISTING_COLUMNS = [
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,
-    TitleCasePipe,
     EurPipe,
     RelativeDatePipe,
     BadgeComponent,
@@ -168,5 +164,12 @@ export class ListingsTableComponent {
 
   truncate(text: string): string {
     return text.length > TITLE_MAX_LENGTH ? text.substring(0, TITLE_MAX_LENGTH) + '…' : text;
+  }
+
+  typologyColor(typology: string): 'red' | 'amber' | 'green' | 'grey' {
+    if (typology === 'T1') return 'red';
+    if (typology === 'T2') return 'amber';
+    if (typology === 'T3' || typology === 'T4') return 'green';
+    return 'grey';
   }
 }

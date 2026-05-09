@@ -79,7 +79,7 @@ export class PriceChartComponent {
       tooltip: {
         callbacks: {
           label: (ctx) =>
-            '€' + (ctx.parsed.y ?? 0).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
+            (ctx.parsed.y ?? 0).toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + '€',
         },
       },
     },
@@ -87,7 +87,7 @@ export class PriceChartComponent {
       y: {
         ticks: {
           callback: (value) =>
-            '€' + Number(value).toLocaleString('pt-PT', { maximumFractionDigits: 0 }),
+            Number(value).toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + '€',
         },
       },
     },

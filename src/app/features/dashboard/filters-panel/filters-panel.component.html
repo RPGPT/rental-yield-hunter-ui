@@ -13,7 +13,7 @@
         <label class="filter-label">Price Range</label>
         <div class="filter-row">
           <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>€ Min</mat-label>
+            <mat-label>Min €</mat-label>
             <input
               matInput
               type="number"
@@ -22,7 +22,7 @@
             />
           </mat-form-field>
           <mat-form-field appearance="outline" class="filter-field">
-            <mat-label>€ Max</mat-label>
+            <mat-label>Max €</mat-label>
             <input
               matInput
               type="number"
@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Right half: Typology + City + Neighborhood -->
+    <!-- Right half: Typology + City -->
     @if (filterOptions(); as opts) {
       <div class="filter-group-pair">
         <div class="filter-group">
@@ -90,28 +90,31 @@
           </mat-form-field>
         </div>
       </div>
+
+      <!-- Neighborhood — sits directly in the main grid as a single column -->
+      <div class="filter-group">
+        <label class="filter-label">Neighborhood</label>
+        <mat-form-field appearance="outline" class="filter-field--full">
+          <mat-label>{{
+            isNeighborhoodEnabled ? 'Select neighborhoods' : 'Select a city first'
+          }}</mat-label>
+          <mat-select
+            [multiple]="true"
+            [value]="selectedNeighborhoods"
+            [disabled]="!isNeighborhoodEnabled"
+            (selectionChange)="onNeighborhoodChange($event.value)"
+          >
+            @for (n of availableNeighborhoods; track n) {
+              <mat-option [value]="n">{{ n }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
     }
   </div>
 
   <!-- Boolean toggles row -->
   <div class="filters-grid filters-grid--toggles">
-    <div class="filter-group filter-group--neighborhood">
-      <label class="filter-label">Neighborhood</label>
-      <mat-form-field appearance="outline" class="filter-field--neighborhood">
-        <mat-label>{{ isNeighborhoodEnabled ? 'Neighborhood' : 'Select a city first' }}</mat-label>
-        <mat-select
-          [multiple]="true"
-          [value]="selectedNeighborhoods"
-          [disabled]="!isNeighborhoodEnabled"
-          (selectionChange)="onNeighborhoodChange($event.value)"
-        >
-          @for (n of availableNeighborhoods; track n) {
-            <mat-option [value]="n">{{ n }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    </div>
-
     <div class="filter-group">
       <label class="filter-label">Is Rented</label>
       <mat-button-toggle-group
@@ -155,7 +158,7 @@
         class="heart-filter-btn"
         [class.heart-filter-btn--fav]="filterState.isFavorite() === true"
         (click)="cycleFavorite()"
-        [matTooltip]="favoriteTooltip()"
+        [matTooltip]="'Show favorites only'"
       >
         <mat-icon>{{ favoriteIcon() }}</mat-icon>
       </button>
@@ -165,7 +168,7 @@
         [class.price-change-filter-btn--reduced]="filterState.priceChange() === 'reduced'"
         [class.price-change-filter-btn--increased]="filterState.priceChange() === 'increased'"
         (click)="cyclePriceChange()"
-        [matTooltip]="priceChangeTooltip()"
+        [matTooltip]="'Filter by price changes'"
       >
         <mat-icon>{{ priceChangeIcon() }}</mat-icon>
       </button>
@@ -174,7 +177,7 @@
         class="new-filter-btn"
         [class.new-filter-btn--active]="filterState.isNew() === true"
         (click)="cycleNew()"
-        [matTooltip]="newTooltip()"
+        [matTooltip]="'Show new listings only'"
       >
         <mat-icon>fiber_new</mat-icon>
       </button>

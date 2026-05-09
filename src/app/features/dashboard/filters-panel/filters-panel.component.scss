@@ -64,7 +64,7 @@
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr 0.7fr;
   gap: $size-16;
   padding: $size-8 0;
 
@@ -111,12 +111,11 @@
   width: 100%;
 }
 
-.filter-field--neighborhood {
-  width: 192px;
-}
-
-.filter-group--neighborhood {
-  align-self: end;
+::ng-deep .mat-mdc-option .mdc-list-item__primary-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
 }
 
 .filters-actions {
@@ -143,13 +142,5 @@ mat-button-toggle-group {
 
   .filters-grid--toggles {
     grid-template-columns: repeat(auto-fill, minmax(120px, max-content));
-  }
-
-  .filter-field--neighborhood {
-    width: 100%;
-  }
-
-  .filter-group--neighborhood {
-    align-self: auto;
   }
 }

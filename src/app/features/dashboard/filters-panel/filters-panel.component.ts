@@ -141,9 +141,8 @@ export class FiltersPanelComponent implements OnInit {
 
   onCityChange(values: string[]): void {
     this.filterState.city.set(values);
-    // Drop any neighborhoods that no longer belong to the selected cities
     const opts = this.filterOptions();
-    if (opts) {
+    if (opts?.neighborhoods) {
       const valid = new Set(values.flatMap((c) => opts.neighborhoods[c] ?? []));
       this.filterState.neighborhood.update((n) => n.filter((v) => valid.has(v)));
     } else {
@@ -176,12 +175,6 @@ export class FiltersPanelComponent implements OnInit {
     return this.filterState.isFavorite() === true ? 'favorite' : 'favorite_border';
   }
 
-  favoriteTooltip(): string {
-    return this.filterState.isFavorite() === true
-      ? 'Showing favorites only — click to show all'
-      : 'Show all — click to show favorites only';
-  }
-
   cycleNew(): void {
     const current = this.filterState.isNew();
     this.filterState.isNew.set(current === null ? true : null);
@@ -201,19 +194,6 @@ export class FiltersPanelComponent implements OnInit {
     if (v === 'reduced') return 'arrow_downward';
     if (v === 'increased') return 'arrow_upward';
     return 'swap_vert';
-  }
-
-  priceChangeTooltip(): string {
-    const v = this.filterState.priceChange();
-    if (v === 'reduced') return 'Showing price-reduced listings — click to show price-increased';
-    if (v === 'increased') return 'Showing price-increased listings — click to clear';
-    return 'Filter by price change — click to show reduced';
-  }
-
-  newTooltip(): string {
-    return this.filterState.isNew() === true
-      ? 'Showing new listings (last 2 days) — click to show all'
-      : 'Show all — click to show new listings only (last 2 days)';
   }
 
   resetFilters(): void {
