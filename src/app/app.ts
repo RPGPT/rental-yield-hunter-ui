@@ -31,6 +31,8 @@ export class App {
       document.documentElement.classList.toggle('dark-theme', dark);
       localStorage.setItem('theme', dark ? 'dark' : 'light');
     });
+    // Verify session in background — error interceptor handles 401 if token is stale
+    this.auth.initSession();
   }
 
   toggleTheme(): void {

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router, UrlTree } from '@angular/router';
@@ -10,10 +10,7 @@ import { authGuard, guestGuard } from './auth.guard';
 class StubComponent {}
 
 function makeAuthService(authenticated: boolean) {
-  return {
-    isAuthenticated: () => authenticated,
-    initSession: vi.fn().mockResolvedValue(undefined),
-  };
+  return { isAuthenticated: () => authenticated };
 }
 
 describe('authGuard', () => {
@@ -35,24 +32,17 @@ describe('authGuard', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('allows authenticated users to access protected route', async () => {
+  it('allows authenticated users through', () => {
     setup(true);
-    const result = await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
     expect(result).toBe(true);
   });
 
-  it('redirects unauthenticated users to /login', async () => {
+  it('redirects unauthenticated users to /login', () => {
     setup(false);
-    const result = await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
     expect(result).toBeInstanceOf(UrlTree);
     expect(router.serializeUrl(result as UrlTree)).toBe('/login');
-  });
-
-  it('calls initSession before checking auth', async () => {
-    setup(true);
-    const auth = TestBed.inject(AuthService);
-    await TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
-    expect(auth.initSession).toHaveBeenCalledOnce();
   });
 });
 
@@ -75,23 +65,16 @@ describe('guestGuard', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  it('allows unauthenticated users to access /login', async () => {
+  it('allows unauthenticated users to access /login', () => {
     setup(false);
-    const result = await TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));
     expect(result).toBe(true);
   });
 
-  it('redirects authenticated users away from /login to /', async () => {
+  it('redirects authenticated users from /login to /', () => {
     setup(true);
-    const result = await TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));
+    const result = TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));
     expect(result).toBeInstanceOf(UrlTree);
     expect(router.serializeUrl(result as UrlTree)).toBe('/');
-  });
-
-  it('calls initSession before checking auth', async () => {
-    setup(false);
-    const auth = TestBed.inject(AuthService);
-    await TestBed.runInInjectionContext(() => guestGuard({} as never, {} as never));
-    expect(auth.initSession).toHaveBeenCalledOnce();
   });
 });
