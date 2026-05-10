@@ -18,31 +18,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const blobUrl = (row[0] as { blob_url: string }).blob_url;
     console.log(`[snapshot-download] blob_url=${blobUrl}`);
 
-    const { get } = await import('@vercel/blob');
-    const result = await get(blobUrl, { access: 'private' });
+    const token = process.env['BLOB_READ_WRITE_TOKEN'];
+    const fetchRes = await fetch(blobUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     console.log(
-      `[snapshot-download] blob get result=${JSON.stringify({ hasStream: !!result?.stream, url: result?.url, size: result?.size })}`,
+      `[snapshot-download] fetch status=${fetchRes.status} ok=${fetchRes.ok} content-length=${fetchRes.headers.get('content-length')}`,
     );
-    if (!result?.stream) {
-      return res.status(404).json({ error: 'Blob not found in storage' });
+    if (!fetchRes.ok) {
+      return res.status(502).json({ error: `Blob fetch failed: ${fetchRes.status}` });
     }
 
-    const reader = result.stream.getReader();
-    const chunks: Uint8Array[] = [];
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-    const total = chunks.reduce((sum, c) => sum + c.byteLength, 0);
-    console.log(`[snapshot-download] total bytes read=${total}`);
-    const out = new Uint8Array(total);
-    let offset = 0;
-    for (const c of chunks) {
-      out.set(c, offset);
-      offset += c.byteLength;
-    }
-    const buffer = Buffer.from(out);
+    const buffer = Buffer.from(await fetchRes.arrayBuffer());
+    console.log(`[snapshot-download] buffer bytes=${buffer.byteLength}`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${id}.html"`);

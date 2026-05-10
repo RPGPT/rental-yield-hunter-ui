@@ -3,8 +3,9 @@ import handler from './snapshot-download';
 
 let dbRow: { blob_url: string } | null = null;
 let dbThrows = false;
-let stream: ReadableStream<Uint8Array> | null = null;
-let throwOnGet = false;
+let fetchStatus = 200;
+let fetchBody = '<html>Test</html>';
+let fetchThrows = false;
 
 vi.mock('@neondatabase/serverless', () => ({
   neon:
@@ -15,27 +16,23 @@ vi.mock('@neondatabase/serverless', () => ({
     },
 }));
 
-vi.mock('@vercel/blob', () => ({
-  get: async () => {
-    if (throwOnGet) throw new Error('network error');
-    return stream ? { stream } : null;
-  },
-}));
-
-function makeStream(data: Uint8Array): ReadableStream<Uint8Array> {
-  let done = false;
-  return {
-    getReader() {
-      return {
-        read(): Promise<{ done: boolean; value?: Uint8Array }> {
-          if (done) return Promise.resolve({ done: true });
-          done = true;
-          return Promise.resolve({ done: false, value: data });
-        },
-      } as ReadableStreamDefaultReader<Uint8Array>;
-    },
-  } as ReadableStream<Uint8Array>;
-}
+vi.stubGlobal(
+  'fetch',
+  vi.fn(async () => {
+    if (fetchThrows) throw new Error('network error');
+    const body = Buffer.from(fetchBody);
+    return {
+      ok: fetchStatus >= 200 && fetchStatus < 300,
+      status: fetchStatus,
+      headers: { get: (k: string) => (k === 'content-length' ? String(body.byteLength) : null) },
+      arrayBuffer: async () => {
+        const ab = new ArrayBuffer(body.byteLength);
+        new Uint8Array(ab).set(body);
+        return ab;
+      },
+    };
+  }),
+);
 
 class MockRes {
   _status = 200;
@@ -62,9 +59,11 @@ describe('api/listings/snapshot-download handler', () => {
   beforeEach(() => {
     dbRow = null;
     dbThrows = false;
-    stream = null;
-    throwOnGet = false;
+    fetchStatus = 200;
+    fetchBody = '<html>Test</html>';
+    fetchThrows = false;
     process.env['DATABASE_URL'] = 'postgresql://mock';
+    process.env['BLOB_READ_WRITE_TOKEN'] = 'mock-token';
   });
 
   it('returns 400 when id is missing', async () => {
@@ -82,34 +81,23 @@ describe('api/listings/snapshot-download handler', () => {
     expect((res._body as any)?.error).toBe('Snapshot not found');
   });
 
-  it('returns 404 when blob stream is null', async () => {
+  it('returns 502 when blob fetch fails', async () => {
     dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
-    stream = null;
+    fetchStatus = 403;
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
-    expect(res._status).toBe(404);
-    expect((res._body as any)?.error).toContain('Blob not found');
+    expect(res._status).toBe(502);
   });
 
   it('serves HTML with correct headers', async () => {
-    const data = new Uint8Array(Buffer.from('<html>Test</html>'));
     dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
-    stream = makeStream(data);
+    fetchBody = '<html>Test</html>';
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
     expect(res._headers['Content-Type']).toBe('text/html; charset=utf-8');
     expect(res._headers['Content-Disposition']).toBe('attachment; filename="42.html"');
-    expect(res._headers['Content-Length']).toBe(data.byteLength);
-  });
-
-  it('sets Content-Length to buffer byte length', async () => {
-    const content = Buffer.from('<html>Test</html>');
-    dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
-    stream = makeStream(new Uint8Array(content));
-    const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
-    expect(res._headers['Content-Length']).toBe(content.length);
+    expect(res._headers['Content-Length']).toBe(Buffer.from(fetchBody).byteLength);
   });
 
   it('returns 500 on DB error', async () => {
@@ -120,9 +108,9 @@ describe('api/listings/snapshot-download handler', () => {
     expect((res._body as any)?.error).toBe('Download failed');
   });
 
-  it('returns 500 on blob get error', async () => {
+  it('returns 500 on fetch error', async () => {
     dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
-    throwOnGet = true;
+    fetchThrows = true;
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(500);
