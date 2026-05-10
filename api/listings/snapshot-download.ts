@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '../_types';
+import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { id } = req.query;
@@ -7,15 +8,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { list, get } = await import('@vercel/blob');
-
-    const { blobs } = await list({ prefix: `snapshots/${id}` });
-    const blob = blobs.find((b) => b.size > 0);
-    if (!blob) {
-      return res.status(404).json({ error: 'Snapshot not found or empty' });
+    const sql = neon(process.env['DATABASE_URL']!);
+    const row = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
+    if (row.length === 0) {
+      return res.status(404).json({ error: 'Snapshot not found' });
     }
+    const blobUrl = (row[0] as { blob_url: string }).blob_url;
 
-    const result = await get(blob.url, { access: 'private' });
+    const { get } = await import('@vercel/blob');
+    const result = await get(blobUrl, { access: 'private' });
     if (!result?.stream) {
       return res.status(404).json({ error: 'Blob not found in storage' });
     }
@@ -36,12 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const buffer = Buffer.from(out);
 
-    const isHtml = blob.pathname.endsWith('.html');
-    const filename = `${id}${isHtml ? '.html' : '.mhtml'}`;
-    const contentType = isHtml ? 'text/html; charset=utf-8' : 'multipart/related; type="text/html"';
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${id}.html"`);
     res.setHeader('Content-Length', buffer.byteLength);
     return res.status(200).send(buffer);
   } catch (err) {

@@ -218,13 +218,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'GET') {
     if (useBlob) {
-      const { list } = await import('@vercel/blob');
-      const { blobs } = await list({ prefix: `snapshots/${id}` });
-      const found = blobs.find((b) => b.size > 0);
-      if (found) {
-        return res
-          .status(200)
-          .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+      const sql = neon(process.env['DATABASE_URL']!);
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS listing_snapshots (
+            listing_id TEXT PRIMARY KEY,
+            blob_url TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `;
+        const row = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
+        if (row.length > 0) {
+          return res
+            .status(200)
+            .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
+        }
+      } catch {
+        // fall through to exists: false
       }
       return res.status(200).json({ exists: false });
     } else {
@@ -258,11 +268,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const imageUrls = rawImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
 
       if (isVercel || useBlob) {
-        const { list, del, put } = await import('@vercel/blob');
+        const { put } = await import('@vercel/blob');
 
-        const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
-        const found = existing.find((b) => b.size > 0);
-        if (found) {
+        await sql`
+          CREATE TABLE IF NOT EXISTS listing_snapshots (
+            listing_id TEXT PRIMARY KEY,
+            blob_url TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `;
+
+        const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
+        if (existing.length > 0) {
           console.log(`[snapshot] existing snapshot found for ${id}, returning`);
           return res
             .status(200)
@@ -281,6 +298,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           contentType: 'text/html; charset=utf-8',
         });
         console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
+        await sql`
+          INSERT INTO listing_snapshots (listing_id, blob_url)
+          VALUES (${id}, ${blob.url})
+          ON CONFLICT (listing_id) DO UPDATE SET blob_url = EXCLUDED.blob_url, created_at = NOW()
+        `;
         return res
           .status(200)
           .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });

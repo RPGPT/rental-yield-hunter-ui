@@ -1,17 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import handler from './snapshot-download';
 
-let blobs: { size: number; pathname: string; url: string }[] = [];
+let dbRow: { blob_url: string } | null = null;
+let dbThrows = false;
 let stream: ReadableStream<Uint8Array> | null = null;
-let throwOnList = false;
+let throwOnGet = false;
+
+vi.mock('@neondatabase/serverless', () => ({
+  neon:
+    () =>
+    async (..._: unknown[]) => {
+      if (dbThrows) throw new Error('db error');
+      return dbRow ? [dbRow] : [];
+    },
+}));
 
 vi.mock('@vercel/blob', () => ({
-  list: async () => {
-    if (throwOnList) throw new Error('network error');
-    return { blobs };
+  get: async () => {
+    if (throwOnGet) throw new Error('network error');
+    return stream ? { stream } : null;
   },
-  get: async () => (stream ? { stream } : null),
 }));
+
+function makeStream(data: Uint8Array): ReadableStream<Uint8Array> {
+  let done = false;
+  return {
+    getReader() {
+      return {
+        read(): Promise<{ done: boolean; value?: Uint8Array }> {
+          if (done) return Promise.resolve({ done: true });
+          done = true;
+          return Promise.resolve({ done: false, value: data });
+        },
+      } as ReadableStreamDefaultReader<Uint8Array>;
+    },
+  } as ReadableStream<Uint8Array>;
+}
 
 class MockRes {
   _status = 200;
@@ -36,9 +60,11 @@ class MockRes {
 
 describe('api/listings/snapshot-download handler', () => {
   beforeEach(() => {
-    blobs = [];
+    dbRow = null;
+    dbThrows = false;
     stream = null;
-    throwOnList = false;
+    throwOnGet = false;
+    process.env['DATABASE_URL'] = 'postgresql://mock';
   });
 
   it('returns 400 when id is missing', async () => {
@@ -48,22 +74,16 @@ describe('api/listings/snapshot-download handler', () => {
     expect((res._body as any)?.error).toBe('Missing listing ID');
   });
 
-  it('returns 404 when no blobs found', async () => {
-    blobs = [];
+  it('returns 404 when no snapshot in DB', async () => {
+    dbRow = null;
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(404);
-  });
-
-  it('returns 404 when all blobs have size 0', async () => {
-    blobs = [{ size: 0, pathname: 'snapshots/42.html', url: 'blob://x' }];
-    const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
-    expect(res._status).toBe(404);
+    expect((res._body as any)?.error).toBe('Snapshot not found');
   });
 
   it('returns 404 when blob stream is null', async () => {
-    blobs = [{ size: 100, pathname: 'snapshots/42.html', url: 'blob://x' }];
+    dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
     stream = null;
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
@@ -71,91 +91,38 @@ describe('api/listings/snapshot-download handler', () => {
     expect((res._body as any)?.error).toContain('Blob not found');
   });
 
-  it('serves HTML with correct Content-Type header', async () => {
+  it('serves HTML with correct headers', async () => {
     const data = new Uint8Array(Buffer.from('<html>Test</html>'));
-    let done = false;
-    blobs = [{ size: data.length, pathname: 'snapshots/42.html', url: 'blob://x' }];
-    stream = {
-      getReader() {
-        return {
-          read(): Promise<{ done: boolean; value?: Uint8Array }> {
-            if (done) return Promise.resolve({ done: true });
-            done = true;
-            return Promise.resolve({ done: false, value: data });
-          },
-        } as ReadableStreamDefaultReader<Uint8Array>;
-      },
-    } as ReadableStream<Uint8Array>;
+    dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
+    stream = makeStream(data);
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
     expect(res._headers['Content-Type']).toBe('text/html; charset=utf-8');
-  });
-
-  it('sets attachment filename to <id>.html for HTML blobs', async () => {
-    const data = new Uint8Array(Buffer.from('<html>Test</html>'));
-    let done = false;
-    blobs = [{ size: data.length, pathname: 'snapshots/42.html', url: 'blob://x' }];
-    stream = {
-      getReader() {
-        return {
-          read(): Promise<{ done: boolean; value?: Uint8Array }> {
-            if (done) return Promise.resolve({ done: true });
-            done = true;
-            return Promise.resolve({ done: false, value: data });
-          },
-        } as ReadableStreamDefaultReader<Uint8Array>;
-      },
-    } as ReadableStream<Uint8Array>;
-    const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._headers['Content-Disposition']).toBe('attachment; filename="42.html"');
-  });
-
-  it('serves MHTML with multipart content-type header', async () => {
-    const data = new Uint8Array(Buffer.from('MHTML here'));
-    let done = false;
-    blobs = [{ size: data.length, pathname: 'snapshots/42.mhtml', url: 'blob://x' }];
-    stream = {
-      getReader() {
-        return {
-          read(): Promise<{ done: boolean; value?: Uint8Array }> {
-            if (done) return Promise.resolve({ done: true });
-            done = true;
-            return Promise.resolve({ done: false, value: data });
-          },
-        } as ReadableStreamDefaultReader<Uint8Array>;
-      },
-    } as ReadableStream<Uint8Array>;
-    const res = new MockRes();
-    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
-    expect(res._headers['Content-Type']).toBe('multipart/related; type="text/html"');
-    expect(res._headers['Content-Disposition']).toBe('attachment; filename="42.mhtml"');
+    expect(res._headers['Content-Length']).toBe(data.byteLength);
   });
 
   it('sets Content-Length to buffer byte length', async () => {
     const content = Buffer.from('<html>Test</html>');
-    const data = new Uint8Array(content);
-    let done = false;
-    blobs = [{ size: content.length, pathname: 'snapshots/42.html', url: 'blob://x' }];
-    stream = {
-      getReader() {
-        return {
-          read(): Promise<{ done: boolean; value?: Uint8Array }> {
-            if (done) return Promise.resolve({ done: true });
-            done = true;
-            return Promise.resolve({ done: false, value: data });
-          },
-        } as ReadableStreamDefaultReader<Uint8Array>;
-      },
-    } as ReadableStream<Uint8Array>;
+    dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
+    stream = makeStream(new Uint8Array(content));
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._headers['Content-Length']).toBe(content.length);
   });
 
-  it('returns 500 on unexpected error', async () => {
-    throwOnList = true;
+  it('returns 500 on DB error', async () => {
+    dbThrows = true;
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
+    expect(res._status).toBe(500);
+    expect((res._body as any)?.error).toBe('Download failed');
+  });
+
+  it('returns 500 on blob get error', async () => {
+    dbRow = { blob_url: 'https://blob.example.com/snapshots/42.html' };
+    throwOnGet = true;
     const res = new MockRes();
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(500);

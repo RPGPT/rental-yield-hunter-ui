@@ -2,10 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 let dbListingRow: { url: string } | null = null;
 let dbImages: Array<{ large: string; medium: string }> = [];
+let dbSnapshotRow: { blob_url: string } | null = null;
 let dbThrows = false;
-let neonCallCount = 0;
 
-let existingBlobs: { size: number; url: string; pathname: string }[] = [];
 let blobPutResult = { url: 'blob://new' };
 
 let pw_isBlocked = false;
@@ -21,19 +20,20 @@ let execFileFails = false;
 
 vi.mock('@neondatabase/serverless', () => ({
   neon: () => {
-    neonCallCount = 0;
-    return async (..._: unknown[]) => {
+    return async (...args: unknown[]) => {
       if (dbThrows) throw new Error('DB error');
-      neonCallCount++;
-      if (neonCallCount === 1) return dbListingRow ? [dbListingRow] : [];
-      if (neonCallCount === 2) return dbImages.length > 0 ? [{ images: dbImages }] : [];
-      return [];
+      const parts = args[0] as string[];
+      const query = Array.isArray(parts) ? (parts[0] ?? '') : String(parts);
+      if (query.includes('CREATE TABLE')) return [];
+      if (query.includes('listing_snapshots')) return dbSnapshotRow ? [dbSnapshotRow] : [];
+      if (query.includes('raw_data')) return dbImages.length > 0 ? [{ images: dbImages }] : [];
+      if (query.includes('INSERT')) return [];
+      return dbListingRow ? [dbListingRow] : [];
     };
   },
 }));
 
 vi.mock('@vercel/blob', () => ({
-  list: async () => ({ blobs: existingBlobs }),
   put: async () => blobPutResult,
   del: async () => undefined,
 }));
@@ -162,9 +162,8 @@ describe('api/listings/snapshot handler', () => {
   beforeEach(() => {
     dbListingRow = null;
     dbImages = [];
+    dbSnapshotRow = null;
     dbThrows = false;
-    neonCallCount = 0;
-    existingBlobs = [];
     blobPutResult = { url: 'blob://new' };
     pw_isBlocked = false;
     pw_capturedHtml =
@@ -199,8 +198,8 @@ describe('api/listings/snapshot handler', () => {
     expect((res._body as any)?.error).toBe('Method not allowed');
   });
 
-  it('GET returns exists:true when a blob exists', async () => {
-    existingBlobs = [{ size: 500, url: 'blob://x', pathname: 'snapshots/42.html' }];
+  it('GET returns exists:true when snapshot exists in DB', async () => {
+    dbSnapshotRow = { blob_url: 'blob://x' };
     const res = new MockRes();
     await snapshotHandler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
@@ -208,15 +207,8 @@ describe('api/listings/snapshot handler', () => {
     expect((res._body as any)?.url).toContain('snapshot-download');
   });
 
-  it('GET returns exists:false when no blobs', async () => {
-    existingBlobs = [];
-    const res = new MockRes();
-    await snapshotHandler({ method: 'GET', query: { id: '42' } } as any, res as any);
-    expect((res._body as any)?.exists).toBe(false);
-  });
-
-  it('GET returns exists:false when all blobs are empty', async () => {
-    existingBlobs = [{ size: 0, url: 'blob://x', pathname: 'snapshots/42.html' }];
+  it('GET returns exists:false when no snapshot in DB', async () => {
+    dbSnapshotRow = null;
     const res = new MockRes();
     await snapshotHandler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect((res._body as any)?.exists).toBe(false);
@@ -251,7 +243,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST returns existing snapshot URL without capturing', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [{ size: 1000, url: 'blob://existing', pathname: 'snapshots/42.html' }];
+    dbSnapshotRow = { blob_url: 'blob://existing' };
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
@@ -261,7 +253,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST captures and stores a new snapshot', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
@@ -270,7 +262,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST inlines image resources intercepted via route callback', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     pw_callRouteCallback = true;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
@@ -280,7 +272,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST returns 500 when bot-wall is detected', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     pw_isBlocked = true;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
@@ -290,7 +282,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST returns 500 when captured HTML is empty', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     pw_capturedHtml = '';
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
@@ -300,7 +292,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST returns 500 when captured HTML is too short', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     pw_capturedHtml = '<html></html>';
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
@@ -309,7 +301,7 @@ describe('api/listings/snapshot handler', () => {
 
   it('POST returns 500 when Playwright fails to launch', async () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
-    existingBlobs = [];
+    dbSnapshotRow = null;
     pw_launchThrows = true;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
@@ -368,7 +360,7 @@ describe('api/listings/snapshot handler', () => {
       { large: 'https://cdn.example.com/img1.jpg', medium: 'https://cdn.example.com/img1-m.jpg' },
       { large: 'https://cdn.example.com/img2.jpg', medium: 'https://cdn.example.com/img2-m.jpg' },
     ];
-    existingBlobs = [];
+    dbSnapshotRow = null;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
