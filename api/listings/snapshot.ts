@@ -342,14 +342,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
-        const buffer = Buffer.from(html, 'utf-8');
-        console.log(`[snapshot] captured ${buffer.byteLength} bytes for ${id}`);
-        const blob = await put(blobKey, buffer, {
+        const byteLength = Buffer.byteLength(html, 'utf-8');
+        console.log(`[snapshot] captured ${byteLength} bytes for ${id}`);
+        const blob = await put(blobKey, html, {
           access: 'private',
           addRandomSuffix: false,
           contentType: 'text/html; charset=utf-8',
         });
-        console.log(`[snapshot] stored at ${blob.url} (${buffer.byteLength} bytes)`);
+        console.log(`[snapshot] stored at ${blob.url} (${byteLength} bytes)`);
         await sql`
           INSERT INTO listing_snapshots (listing_id, blob_url)
           VALUES (${id}, ${blob.url})
