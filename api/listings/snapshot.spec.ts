@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 let dbListingRow: { url: string } | null = null;
+let dbImages: Array<{ large: string; medium: string }> = [];
 let dbThrows = false;
+let neonCallCount = 0;
 
 let existingBlobs: { size: number; url: string; pathname: string }[] = [];
 let blobPutResult = { url: 'blob://new' };
@@ -18,12 +20,16 @@ let fsSnapDirExists = true;
 let execFileFails = false;
 
 vi.mock('@neondatabase/serverless', () => ({
-  neon:
-    () =>
-    async (..._: unknown[]) => {
+  neon: () => {
+    neonCallCount = 0;
+    return async (..._: unknown[]) => {
       if (dbThrows) throw new Error('DB error');
-      return dbListingRow ? [dbListingRow] : [];
-    },
+      neonCallCount++;
+      if (neonCallCount === 1) return dbListingRow ? [dbListingRow] : [];
+      if (neonCallCount === 2) return dbImages.length > 0 ? [{ images: dbImages }] : [];
+      return [];
+    };
+  },
 }));
 
 vi.mock('@vercel/blob', () => ({
@@ -36,6 +42,67 @@ vi.mock('@sparticuz/chromium-min', () => ({
   default: { args: [], executablePath: async () => '/mock/chromium' },
 }));
 
+const mockPage = {
+  route: async (
+    _pattern: unknown,
+    cb?: (route: {
+      fetch: () => Promise<{ body: () => Promise<Buffer>; headers: () => Record<string, string> }>;
+      request: () => { url: () => string };
+      fulfill: () => Promise<void>;
+      abort: () => Promise<void>;
+    }) => Promise<void>,
+  ) => {
+    if (pw_callRouteCallback && cb) {
+      await cb({
+        fetch: async () => ({
+          body: async () => Buffer.from('js code'),
+          headers: () => ({ 'content-type': 'text/javascript' }),
+        }),
+        request: () => ({ url: () => 'https://example.com/script.js' }),
+        fulfill: async () => undefined,
+        abort: async () => undefined,
+      });
+      await cb({
+        fetch: async () => ({
+          body: async () => Buffer.from('fake-image-bytes'),
+          headers: () => ({ 'content-type': 'image/jpeg' }),
+        }),
+        request: () => ({ url: () => 'https://img.example.com/photo.jpg' }),
+        fulfill: async () => undefined,
+        abort: async () => undefined,
+      });
+      await cb({
+        fetch: async () => {
+          throw new Error('network error');
+        },
+        request: () => ({ url: () => 'https://fail.example.com/img.jpg' }),
+        fulfill: async () => undefined,
+        abort: async () => undefined,
+      });
+    }
+  },
+  goto: async () => undefined,
+  evaluate: async () => {
+    return pw_isBlocked ? true : undefined;
+  },
+  locator: () => ({
+    first: () => ({
+      waitFor: async () => {
+        throw new Error('locator not found');
+      },
+      click: async () => undefined,
+    }),
+  }),
+  waitForTimeout: async () => undefined,
+  request: {
+    get: async (_url: string) => ({
+      body: async () => Buffer.from('fetched-image-bytes'),
+      headers: () => ({ 'content-type': 'image/jpeg' }),
+    }),
+  },
+  content: async () => pw_capturedHtml,
+};
+
 vi.mock('playwright-core', () => ({
   chromium: {
     launch: async () => {
@@ -43,43 +110,7 @@ vi.mock('playwright-core', () => ({
       return {
         newContext: async () => ({
           addInitScript: async () => undefined,
-          newPage: async () => ({
-            route: async (_pattern: unknown, cb?: (route: any) => Promise<void>) => {
-              if (pw_callRouteCallback && cb) {
-                await cb({
-                  fetch: async () => ({
-                    body: async () => Buffer.from('js code'),
-                    headers: () => ({ 'content-type': 'text/javascript' }),
-                  }),
-                  request: () => ({ url: () => 'https://example.com/script.js' }),
-                  fulfill: async () => undefined,
-                  abort: async () => undefined,
-                });
-                await cb({
-                  fetch: async () => ({
-                    body: async () => Buffer.from('fake-image-bytes'),
-                    headers: () => ({ 'content-type': 'image/jpeg' }),
-                  }),
-                  request: () => ({ url: () => 'https://img.example.com/photo.jpg' }),
-                  fulfill: async () => undefined,
-                  abort: async () => undefined,
-                });
-                await cb({
-                  fetch: async () => {
-                    throw new Error('network error');
-                  },
-                  request: () => ({ url: () => 'https://fail.example.com/img.jpg' }),
-                  fulfill: async () => undefined,
-                  abort: async () => undefined,
-                });
-              }
-            },
-            goto: async () => undefined,
-            evaluate: async () => {
-              return pw_isBlocked ? true : undefined;
-            },
-            content: async () => pw_capturedHtml,
-          }),
+          newPage: async () => mockPage,
         }),
         close: async () => undefined,
       };
@@ -130,7 +161,9 @@ class MockRes {
 describe('api/listings/snapshot handler', () => {
   beforeEach(() => {
     dbListingRow = null;
+    dbImages = [];
     dbThrows = false;
+    neonCallCount = 0;
     existingBlobs = [];
     blobPutResult = { url: 'blob://new' };
     pw_isBlocked = false;
@@ -323,6 +356,19 @@ describe('api/listings/snapshot handler', () => {
     dbListingRow = { url: 'https://listing.example.com/42' };
     fsExistsResult = false;
     fsSnapDirExists = false;
+    const res = new MockRes();
+    await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.exists).toBe(true);
+  });
+
+  it('POST fetches images from raw_data and embeds them in the lightbox', async () => {
+    dbListingRow = { url: 'https://listing.example.com/42' };
+    dbImages = [
+      { large: 'https://cdn.example.com/img1.jpg', medium: 'https://cdn.example.com/img1-m.jpg' },
+      { large: 'https://cdn.example.com/img2.jpg', medium: 'https://cdn.example.com/img2-m.jpg' },
+    ];
+    existingBlobs = [];
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);

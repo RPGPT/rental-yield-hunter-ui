@@ -13,7 +13,7 @@ const CHROMIUM_URL =
   process.env['CHROMIUM_DOWNLOAD_URL'] ??
   `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${CHROMIUM_ARCH}.tar`;
 
-async function capturePageHTML(pageUrl: string): Promise<string> {
+async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<string> {
   const chromium = (await import('@sparticuz/chromium-min')).default;
   const { chromium: pw } = await import('playwright-core');
 
@@ -100,17 +100,33 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
       document.querySelectorAll('script, noscript, laq-survey-root').forEach((el) => el.remove());
     });
 
+    for (const imgUrl of imageUrls) {
+      if (!resourceCache.has(imgUrl)) {
+        try {
+          const resp = await page.request.get(imgUrl);
+          const body = await resp.body();
+          const type = resp.headers()['content-type'] ?? 'image/jpeg';
+          resourceCache.set(imgUrl, { body, type });
+        } catch {
+          // skip unreachable images
+        }
+      }
+    }
+
+    const lightboxSrcs: string[] = imageUrls
+      .map((imgUrl) => {
+        const cached = resourceCache.get(imgUrl);
+        if (!cached) return '';
+        const baseType = cached.type.split(';')[0];
+        return `data:${baseType};base64,${cached.body.toString('base64')}`;
+      })
+      .filter(Boolean);
+
     let html = await page.content();
 
-    // Inline images, CSS and fonts only (no JS — avoids 100MB bloat and mangling)
     for (const [url, { body, type }] of resourceCache) {
       const baseType = type.split(';')[0];
-      if (
-        !baseType.startsWith('image/') &&
-        !baseType.startsWith('text/css') &&
-        !baseType.startsWith('font/')
-      )
-        continue;
+      if (!baseType.startsWith('text/css') && !baseType.startsWith('font/')) continue;
       const dataUri = `data:${baseType};base64,${body.toString('base64')}`;
       const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       html = html.replace(new RegExp(escaped, 'g'), dataUri);
@@ -118,6 +134,7 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 
     html = html.replace(/<script\b[^>]*\ssrc=["'][^"']*["'][^>]*>\s*<\/script>/gi, '');
 
+    const lightboxSrcsJson = JSON.stringify(lightboxSrcs);
     const lightbox = `
 <style>
 #__lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;align-items:center;justify-content:center;flex-direction:column}
@@ -128,7 +145,6 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 .lb-btn:hover{background:rgba(255,255,255,.3)}
 #__lb-close{position:absolute;top:14px;right:18px}
 #__lb-counter{color:rgba(255,255,255,.7);font-size:.9rem;min-width:60px;text-align:center}
-img[data-lb]{cursor:zoom-in!important}
 </style>
 <div id="__lb">
   <button class="lb-btn" id="__lb-close" onclick="__lbClose()">✕</button>
@@ -141,43 +157,31 @@ img[data-lb]{cursor:zoom-in!important}
 </div>
 <script>
 (function(){
-  var imgs=[],cur=0;
+  var srcs=${lightboxSrcsJson},cur=0;
   function init(){
-    imgs=[...document.querySelectorAll('img')].filter(function(i){
-      return i.src&&i.src.startsWith('data:image')&&i.src.length>2000;
-    });
-    imgs.forEach(function(img,i){
-      img.setAttribute('data-lb',i);
-      img.style.cursor='zoom-in';
-    });
-
     var gallery=document.querySelector('[data-cy="mosaic-gallery-main-view"]');
     if(gallery){
       var btns=[...gallery.querySelectorAll('button')];
       btns.forEach(function(btn,i){
-        if(i>=imgs.length)return;
+        if(i>=srcs.length)return;
+        btn.style.cursor='zoom-in';
         btn.addEventListener('click',function(e){
           e.preventDefault();
           e.stopPropagation();
           __lbOpen(i);
         });
-        btn.style.cursor='zoom-in';
-      });
-    } else {
-      imgs.forEach(function(img,i){
-        img.addEventListener('click',function(){__lbOpen(i);});
       });
     }
   }
   window.__lbOpen=function(i){
     cur=i;
-    document.getElementById('__lb-img').src=imgs[i].src;
-    document.getElementById('__lb-counter').textContent=(i+1)+' / '+imgs.length;
+    document.getElementById('__lb-img').src=srcs[i];
+    document.getElementById('__lb-counter').textContent=(i+1)+' / '+srcs.length;
     document.getElementById('__lb').classList.add('open');
   };
   window.__lbClose=function(){document.getElementById('__lb').classList.remove('open');};
   window.__lbMove=function(d){
-    cur=(cur+d+imgs.length)%imgs.length;
+    cur=(cur+d+srcs.length)%srcs.length;
     __lbOpen(cur);
   };
   document.getElementById('__lb').addEventListener('click',function(e){
@@ -241,6 +245,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (result.length === 0) return res.status(404).json({ error: 'Listing not found' });
       const { url } = result[0] as { url: string };
 
+      const rawDataResult = await sql`
+        SELECT raw_json->'images' AS images
+        FROM raw_data
+        WHERE listing_id = ${id}
+        LIMIT 1
+      `;
+      const rawImages: Array<{ large?: string; medium?: string }> =
+        rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
+          ? (rawDataResult[0]['images'] as Array<{ large?: string; medium?: string }>)
+          : [];
+      const imageUrls = rawImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
+
       if (isVercel || useBlob) {
         const { list, del, put } = await import('@vercel/blob');
 
@@ -253,7 +269,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
         }
 
-        const html = await capturePageHTML(url);
+        const html = await capturePageHTML(url, imageUrls);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
