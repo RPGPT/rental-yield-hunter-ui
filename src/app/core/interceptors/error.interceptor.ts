@@ -21,7 +21,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         !req.url.includes('/auth/') &&
         !req.url.includes('/favorites')
       ) {
-        // Token expired or invalid — clear session and send to login
         auth.clearSession();
         message = 'Session expired. Please sign in again.';
         router.navigate(['/login']);

@@ -12,7 +12,6 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       sql`SELECT DISTINCT city, neighborhood FROM listings WHERE city IS NOT NULL AND neighborhood IS NOT NULL ORDER BY city, neighborhood`,
     ]);
 
-    // Group neighborhoods by city
     const neighborhoodsByCity: Record<string, string[]> = {};
     for (const row of neighborhoods as Record<string, string>[]) {
       if (!neighborhoodsByCity[row['city']]) neighborhoodsByCity[row['city']] = [];

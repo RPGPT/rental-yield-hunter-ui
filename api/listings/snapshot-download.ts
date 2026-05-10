@@ -9,20 +9,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { list, get } = await import('@vercel/blob');
 
-    // Find the blob — support both new .html and legacy .mhtml
     const { blobs } = await list({ prefix: `snapshots/${id}` });
     const blob = blobs.find((b) => b.size > 0);
     if (!blob) {
       return res.status(404).json({ error: 'Snapshot not found or empty' });
     }
 
-    // get() handles private blob authentication correctly
     const result = await get(blob.url, { access: 'private' });
     if (!result?.stream) {
       return res.status(404).json({ error: 'Blob not found in storage' });
     }
 
-    // Read all chunks from the ReadableStream
     const reader = result.stream.getReader();
     const chunks: Uint8Array[] = [];
     while (true) {

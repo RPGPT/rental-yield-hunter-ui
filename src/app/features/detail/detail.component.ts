@@ -82,7 +82,6 @@ export class DetailComponent implements OnInit {
           this.incomingImage.set(data.images[0].large);
         }
         this.loading.set(false);
-        // Fetch rich description from imovirtual
         if (data.url?.includes('imovirtual.com')) {
           this.descriptionLoading.set(true);
           this.api.getListingDescription(data.url).subscribe({
@@ -90,7 +89,6 @@ export class DetailComponent implements OnInit {
               if (res.description) {
                 this.richDescription.set(this.sanitizer.bypassSecurityTrustHtml(res.description));
               }
-              // Replace images with the full set from imovirtual
               if (res.images?.length) {
                 const fullListing = { ...this.listing()!, images: res.images };
                 this.listing.set(fullListing);
@@ -139,7 +137,6 @@ export class DetailComponent implements OnInit {
     const nextIdx = (idx + dir + images.length) % images.length;
     const nextUrl = images[nextIdx].large;
 
-    // Pre-set the incoming image so the browser starts loading it immediately
     this.incomingImage.set(nextUrl);
     this.imageAnim.set(dir === 1 ? 'next' : 'prev');
 
@@ -183,7 +180,6 @@ export class DetailComponent implements OnInit {
     });
   }
 
-  // One click: POST → server returns existing or creates new → auto-download
   saveSnapshot(): void {
     if (this.snapshotLoading()) return;
     this.snapshotLoading.set(true);

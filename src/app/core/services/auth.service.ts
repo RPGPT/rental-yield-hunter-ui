@@ -9,7 +9,6 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly authClient = createAuthClient(environment.neonAuthUrl);
 
-  /** Currently authenticated user, or null if not signed in. */
   readonly currentUser = signal<AuthUser | null>(this.loadStoredUser());
 
   private loadStoredUser(): AuthUser | null {
@@ -31,7 +30,6 @@ export class AuthService {
   private sessionInitialized = false;
   private sessionPromise: Promise<void> | null = null;
 
-  /** Called once on app init — resolves when auth state is known (max 3s). */
   initSession(): Promise<void> {
     if (this.sessionInitialized) return Promise.resolve();
     if (this.sessionPromise) return this.sessionPromise;
@@ -67,7 +65,6 @@ export class AuthService {
     }
   }
 
-  /** Sign in with email and password. Throws on failure. */
   async signInWithEmail(email: string, password: string): Promise<void> {
     const { error } = await this.authClient.signIn.email({ email, password });
     if (error) throw new Error(error.message ?? 'Sign-in failed');
@@ -75,7 +72,6 @@ export class AuthService {
     this.router.navigate(['/']);
   }
 
-  /** Sign up with email, password, and display name. Throws on failure. */
   async signUpWithEmail(email: string, password: string, name: string): Promise<void> {
     const { error } = await this.authClient.signUp.email({ email, password, name });
     if (error) throw new Error(error.message ?? 'Sign-up failed');
@@ -83,7 +79,6 @@ export class AuthService {
     this.router.navigate(['/']);
   }
 
-  /** Redirect to Google OAuth via Neon Auth. Navigates away from the current page. */
   async signInWithGoogle(): Promise<void> {
     await this.authClient.signIn.social({ provider: 'google', callbackURL: '/' });
   }

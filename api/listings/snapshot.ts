@@ -49,7 +49,6 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
       },
     });
 
-    // Hide webdriver fingerprint
     await context.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
       Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
@@ -60,7 +59,6 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 
     const page = await context.newPage();
 
-    // Intercept every response and cache the raw bytes + content-type
     const resourceCache = new Map<string, { body: Buffer; type: string }>();
     await page.route('**/*', async (route) => {
       try {
@@ -76,7 +74,6 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
 
     await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 });
 
-    // Detect bot-wall
     const blocked = await page.evaluate(() => {
       const text = document.body?.innerText ?? '';
       const title = document.title ?? '';
@@ -90,7 +87,6 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
     if (blocked)
       throw new Error('Bot-wall detected: the listing site blocked the headless browser');
 
-    // Strip ALL scripts and noscript — we inject our own gallery below
     await page.evaluate(() => {
       document.querySelectorAll('script, noscript').forEach((el) => el.remove());
     });
@@ -111,10 +107,8 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
       html = html.replace(new RegExp(escaped, 'g'), dataUri);
     }
 
-    // Remove leftover external <script src="..."> tags
     html = html.replace(/<script\b[^>]*\ssrc=["'][^"']*["'][^>]*>\s*<\/script>/gi, '');
 
-    // Inject a self-contained lightweight image lightbox before </body>
     const lightbox = `
 <style>
 #__lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;align-items:center;justify-content:center;flex-direction:column}
@@ -194,7 +188,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     if (useBlob) {
       const { list } = await import('@vercel/blob');
-      // check both new .html and old .mhtml keys
       const { blobs } = await list({ prefix: `snapshots/${id}` });
       const found = blobs.find((b) => b.size > 0);
       if (found) {
@@ -224,7 +217,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (isVercel || useBlob) {
         const { list, del, put } = await import('@vercel/blob');
 
-        // Return existing snapshot immediately if one exists
         const { blobs: existing } = await list({ prefix: `snapshots/${id}` });
         const found = existing.find((b) => b.size > 0);
         if (found) {
@@ -234,7 +226,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
         }
 
-        // No existing snapshot — capture a new one
         const html = await capturePageHTML(url);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
@@ -252,7 +243,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
       } else {
         const htmlPath = path.join(SNAPSHOTS_DIR, `${id}.html`);
-        // Return existing local snapshot if present
         if (existsSync(htmlPath)) {
           return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });
         }

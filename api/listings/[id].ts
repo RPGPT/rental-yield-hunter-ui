@@ -37,7 +37,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing listing ID' });
   }
 
-  // GET only — favorites managed via /api/favorites
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -76,7 +75,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ORDER BY captured_at ASC
     `;
 
-    // Fetch images from raw_data table
     const rawDataResult = await sql`
       SELECT raw_json->'images' AS images
        FROM raw_data

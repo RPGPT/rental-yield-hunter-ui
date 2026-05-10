@@ -2,7 +2,6 @@ import { inject } from '@angular/core';
 import { CanMatchFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-/** Redirects unauthenticated users to /login. Synchronous — trusts stored session. */
 export const authGuard: CanMatchFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);

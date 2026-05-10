@@ -4,7 +4,6 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
-// Mock the authClient returned by createAuthClient
 const mockAuthClient = {
   getSession: vi.fn(),
   signIn: { email: vi.fn(), social: vi.fn() },
@@ -47,8 +46,6 @@ describe('AuthService', () => {
     TestBed.resetTestingModule();
   });
 
-  // ── isAuthenticated / currentUser ────────────────────────────────────────
-
   it('starts unauthenticated when localStorage is empty', () => {
     const svc = setup();
     expect(svc.isAuthenticated()).toBe(false);
@@ -74,8 +71,6 @@ describe('AuthService', () => {
     expect(svc.getToken()).toBeNull();
   });
 
-  // ── clearSession ─────────────────────────────────────────────────────────
-
   it('clearSession removes user, token and sets currentUser to null', () => {
     localStorage.setItem('auth_user', JSON.stringify(MOCK_AUTH_USER));
     localStorage.setItem('auth_token', MOCK_TOKEN);
@@ -85,8 +80,6 @@ describe('AuthService', () => {
     expect(localStorage.getItem('auth_token')).toBeNull();
     expect(localStorage.getItem('auth_user')).toBeNull();
   });
-
-  // ── initSession ──────────────────────────────────────────────────────────
 
   it('initSession stores user and token when getSession returns valid data', async () => {
     mockAuthClient.getSession.mockResolvedValue({
@@ -116,8 +109,6 @@ describe('AuthService', () => {
     expect(svc.isAuthenticated()).toBe(false);
   });
 
-  // ── signInWithEmail ───────────────────────────────────────────────────────
-
   it('signInWithEmail stores session and navigates to / on success', async () => {
     mockAuthClient.signIn.email.mockResolvedValue({ error: null });
     mockAuthClient.getSession.mockResolvedValue({
@@ -136,8 +127,6 @@ describe('AuthService', () => {
     const svc = setup();
     await expect(svc.signInWithEmail('u@test.com', 'wrong')).rejects.toThrow('Invalid credentials');
   });
-
-  // ── logout ────────────────────────────────────────────────────────────────
 
   it('logout clears session and navigates to /login', async () => {
     mockAuthClient.signOut.mockResolvedValue({});

@@ -124,7 +124,6 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       conditions.push(`lifetime_rent = $${paramIndex++}`);
       params.push(lifetime_rent === 'true');
     }
-    // is_favorite filter handled via user_favorites join — skip if no user
     if (is_new === 'true') {
       conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`);
     }
