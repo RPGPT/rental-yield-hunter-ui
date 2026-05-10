@@ -331,6 +331,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { put } = await import('@vercel/blob');
 
         const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
+        console.log(`[snapshot] existing rows=${existing.length} for ${id}`);
         if (existing.length > 0) {
           console.log(`[snapshot] existing snapshot found for ${id}, returning`);
           return res
@@ -339,6 +340,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const html = await capturePageHTML(url, imageUrls);
+        console.log(`[snapshot] capturePageHTML returned length=${html?.length}`);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
@@ -349,7 +351,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           addRandomSuffix: false,
           contentType: 'text/html; charset=utf-8',
         });
-        console.log(`[snapshot] stored at ${blob.url} (${byteLength} bytes)`);
+        console.log(`[snapshot] put result: url=${blob.url} size=${(blob as any).size}`);
         await sql`
           INSERT INTO listing_snapshots (listing_id, blob_url)
           VALUES (${id}, ${blob.url})
