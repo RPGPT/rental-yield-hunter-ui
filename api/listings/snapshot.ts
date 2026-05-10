@@ -88,7 +88,7 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
       throw new Error('Bot-wall detected: the listing site blocked the headless browser');
 
     await page.evaluate(() => {
-      document.querySelectorAll('script, noscript').forEach((el) => el.remove());
+      document.querySelectorAll('script, noscript, laq-survey-root').forEach((el) => el.remove());
     });
 
     let html = await page.content();
