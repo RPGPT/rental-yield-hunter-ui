@@ -64,7 +64,7 @@ export class DetailComponent implements OnInit {
   isFavorite = signal(false);
   favLoading = signal(false);
   snapshotLoading = signal(false);
-  snapshotSaved = signal(false);
+  snapshotExists = signal(false);
   currentImage = signal<string>('');
   incomingImage = signal<string>('');
   imageAnim = signal<'next' | 'prev' | ''>('');
@@ -102,6 +102,10 @@ export class DetailComponent implements OnInit {
         }
       },
       error: () => this.loading.set(false),
+    });
+    this.api.checkSnapshot(this.listingId).subscribe({
+      next: ({ exists }) => this.snapshotExists.set(exists),
+      error: () => {},
     });
   }
 
@@ -182,17 +186,16 @@ export class DetailComponent implements OnInit {
 
   saveSnapshot(): void {
     if (this.snapshotLoading()) return;
+    if (this.snapshotExists()) {
+      void this.router.navigate(['/listing', this.listingId, 'snapshot']);
+      return;
+    }
     this.snapshotLoading.set(true);
     this.api.triggerSnapshot(this.listingId).subscribe({
-      next: ({ url }) => {
+      next: () => {
         this.snapshotLoading.set(false);
-        this.snapshotSaved.set(true);
-        if (url) {
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = '';
-          a.click();
-        }
+        this.snapshotExists.set(true);
+        void this.router.navigate(['/listing', this.listingId, 'snapshot']);
       },
       error: () => this.snapshotLoading.set(false),
     });

@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`[snapshot-download] buffer bytes=${buffer.byteLength}`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${id}.html"`);
+    res.setHeader('Content-Disposition', 'inline');
     res.setHeader('Content-Length', buffer.byteLength);
     console.log(`[snapshot-download] sending ${buffer.byteLength} bytes`);
     return res.status(200).send(buffer);

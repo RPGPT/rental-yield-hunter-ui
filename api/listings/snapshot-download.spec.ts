@@ -96,7 +96,7 @@ describe('api/listings/snapshot-download handler', () => {
     await handler({ method: 'GET', query: { id: '42' } } as any, res as any);
     expect(res._status).toBe(200);
     expect(res._headers['Content-Type']).toBe('text/html; charset=utf-8');
-    expect(res._headers['Content-Disposition']).toBe('attachment; filename="42.html"');
+    expect(res._headers['Content-Disposition']).toBe('inline');
     expect(res._headers['Content-Length']).toBe(Buffer.from(fetchBody).byteLength);
   });
 

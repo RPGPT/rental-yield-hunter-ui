@@ -56,15 +56,15 @@
           [matTooltip]="
             snapshotLoading()
               ? 'Saving snapshot…'
-              : snapshotSaved()
-                ? 'Re-download saved page'
+              : snapshotExists()
+                ? 'View saved snapshot'
                 : 'Save page snapshot'
           "
         >
           @if (snapshotLoading()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
-            <mat-icon>{{ snapshotSaved() ? 'save' : 'save_outlined' }}</mat-icon>
+            <mat-icon>{{ snapshotExists() ? 'photo_library' : 'save_outlined' }}</mat-icon>
           }
         </button>
 

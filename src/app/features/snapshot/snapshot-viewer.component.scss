@@ -1,0 +1,45 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.snapshot-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.snapshot-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--mat-sys-surface-container);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  flex-shrink: 0;
+}
+
+.snapshot-title {
+  font-size: 0.9rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.snapshot-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.snapshot-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+
+  &.hidden {
+    visibility: hidden;
+    height: 0;
+  }
+}

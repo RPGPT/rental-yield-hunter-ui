@@ -56,6 +56,12 @@ export class ApiService {
     }
   }
 
+  checkSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
+    return this.http.get<{ exists: boolean; url?: string }>(
+      `${this.baseUrl}/listings/snapshot?id=${id}`,
+    );
+  }
+
   triggerSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
     return this.http.post<{ exists: boolean; url?: string }>(
       `${this.baseUrl}/listings/snapshot?id=${id}`,

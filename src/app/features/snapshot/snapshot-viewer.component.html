@@ -1,0 +1,24 @@
+<div class="snapshot-container">
+  <div class="snapshot-toolbar">
+    <button mat-icon-button (click)="goBack()" matTooltip="Back to listing">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="snapshot-title">Saved snapshot — listing {{ listingId }}</span>
+  </div>
+
+  @if (loading()) {
+    <div class="snapshot-loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  }
+
+  @if (iframeUrl(); as url) {
+    <iframe
+      [src]="url"
+      class="snapshot-frame"
+      [class.hidden]="loading()"
+      sandbox="allow-same-origin allow-scripts allow-popups"
+      (load)="onIframeLoad()"
+    ></iframe>
+  }
+</div>

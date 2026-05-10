@@ -11,6 +11,14 @@ export const routes: Routes = [
       import('./features/detail/detail.component').then((m) => m.DetailComponent),
   },
   {
+    path: 'listing/:id/snapshot',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./features/snapshot/snapshot-viewer.component').then(
+        (m) => m.SnapshotViewerComponent,
+      ),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },

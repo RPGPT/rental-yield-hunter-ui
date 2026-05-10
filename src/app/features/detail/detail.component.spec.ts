@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection, signal, WritableSignal } from '@angular/core';
-import { provideRouter, ActivatedRoute } from '@angular/router';
+import { provideRouter, ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { MockComponent, MockProvider } from 'ng-mocks';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -45,12 +45,14 @@ const MOCK_LISTING: ListingDetail = {
 describe('DetailComponent', () => {
   let getListing: ReturnType<typeof vi.fn>;
   let setFavorite: ReturnType<typeof vi.fn>;
+  let checkSnapshot: ReturnType<typeof vi.fn>;
   let triggerSnapshot: ReturnType<typeof vi.fn>;
   let currentUserSignal: WritableSignal<{ id: string } | null>;
 
   beforeEach(() => {
     getListing = vi.fn().mockReturnValue(of({ ...MOCK_LISTING }));
     setFavorite = vi.fn().mockReturnValue(of(undefined));
+    checkSnapshot = vi.fn().mockReturnValue(of({ exists: false }));
     triggerSnapshot = vi
       .fn()
       .mockReturnValue(of({ exists: true, url: '/api/listings/snapshot-download?id=123' }));
@@ -65,7 +67,7 @@ describe('DetailComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        MockProvider(ApiService, { getListing, setFavorite, triggerSnapshot }),
+        MockProvider(ApiService, { getListing, setFavorite, checkSnapshot, triggerSnapshot }),
         {
           provide: AuthService,
           useValue: {
@@ -228,11 +230,11 @@ describe('DetailComponent', () => {
     expect(triggerSnapshot).toHaveBeenCalledWith('123');
   });
 
-  it('saveSnapshot() sets snapshotSaved to true after success', () => {
+  it('saveSnapshot() sets snapshotExists to true after success', () => {
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
     component.saveSnapshot();
-    expect(component.snapshotSaved()).toBe(true);
+    expect(component.snapshotExists()).toBe(true);
   });
 
   it('saveSnapshot() resets snapshotLoading to false after success', () => {
@@ -257,11 +259,14 @@ describe('DetailComponent', () => {
     expect(component.snapshotLoading()).toBe(false);
   });
 
-  it('saveSnapshot() does not throw when url is absent in response', () => {
-    triggerSnapshot.mockReturnValue(of({ exists: true }));
+  it('saveSnapshot() navigates to snapshot viewer when snapshot already exists', () => {
+    checkSnapshot.mockReturnValue(of({ exists: true }));
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.ngOnInit();
-    expect(() => component.saveSnapshot()).not.toThrow();
-    expect(component.snapshotSaved()).toBe(true);
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    component.saveSnapshot();
+    expect(triggerSnapshot).not.toHaveBeenCalled();
+    expect(navigateSpy).toHaveBeenCalledWith(['/listing', '123', 'snapshot']);
   });
 });
