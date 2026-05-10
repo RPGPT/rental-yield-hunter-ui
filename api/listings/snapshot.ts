@@ -139,8 +139,26 @@ img[data-lb]{cursor:zoom-in!important}
     });
     imgs.forEach(function(img,i){
       img.setAttribute('data-lb',i);
-      img.addEventListener('click',function(){__lbOpen(i);});
+      img.style.cursor='zoom-in';
     });
+
+    var gallery=document.querySelector('[data-cy="mosaic-gallery-main-view"]');
+    if(gallery){
+      var btns=[...gallery.querySelectorAll('button')];
+      btns.forEach(function(btn,i){
+        if(i>=imgs.length)return;
+        btn.addEventListener('click',function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          __lbOpen(i);
+        });
+        btn.style.cursor='zoom-in';
+      });
+    } else {
+      imgs.forEach(function(img,i){
+        img.addEventListener('click',function(){__lbOpen(i);});
+      });
+    }
   }
   window.__lbOpen=function(i){
     cur=i;
