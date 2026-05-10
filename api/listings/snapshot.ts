@@ -280,13 +280,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (useBlob) {
       const sql = neon(process.env['DATABASE_URL']!);
       try {
-        await sql`
-          CREATE TABLE IF NOT EXISTS listing_snapshots (
-            listing_id TEXT PRIMARY KEY,
-            blob_url TEXT NOT NULL,
-            created_at TIMESTAMPTZ DEFAULT NOW()
-          )
-        `;
         const row = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
         if (row.length > 0) {
           return res
@@ -336,14 +329,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (isVercel || useBlob) {
         const { put } = await import('@vercel/blob');
-
-        await sql`
-          CREATE TABLE IF NOT EXISTS listing_snapshots (
-            listing_id TEXT PRIMARY KEY,
-            blob_url TEXT NOT NULL,
-            created_at TIMESTAMPTZ DEFAULT NOW()
-          )
-        `;
 
         const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
         if (existing.length > 0) {
