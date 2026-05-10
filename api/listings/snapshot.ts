@@ -87,6 +87,15 @@ async function capturePageHTML(pageUrl: string): Promise<string> {
     if (blocked)
       throw new Error('Bot-wall detected: the listing site blocked the headless browser');
 
+    try {
+      const showMore = page.locator('button:has-text("Mostrar mais")').first();
+      await showMore.waitFor({ state: 'visible', timeout: 5000 });
+      await showMore.click();
+      await page.waitForTimeout(500);
+    } catch {
+      // button may not exist on all listings
+    }
+
     await page.evaluate(() => {
       document.querySelectorAll('script, noscript, laq-survey-root').forEach((el) => el.remove());
     });
