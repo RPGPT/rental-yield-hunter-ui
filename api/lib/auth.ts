@@ -41,11 +41,34 @@ async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null
   }
 }
 
+function decodeJwtPayload(token: string): NeonAuthUser | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(
+      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
+    ) as { id?: string; sub?: string; email?: string; name?: string; image?: string; exp?: number };
+    if (!payload.exp || payload.exp * 1000 < Date.now()) return null;
+    const id = payload.id ?? payload.sub;
+    if (!id) return null;
+    return {
+      id,
+      email: payload.email ?? '',
+      name: payload.name ?? null,
+      image: payload.image ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUser | null> {
   const token = extractBearerToken(req);
   if (!token) return null;
   if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
     return { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null };
   }
+  const local = decodeJwtPayload(token);
+  if (local) return local;
   return verifyNeonAuthSession(token);
 }
