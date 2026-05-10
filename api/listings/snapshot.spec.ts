@@ -18,6 +18,9 @@ let fsSnapDirExists = true;
 
 let execFileFails = false;
 
+let imovirtualImages: Array<{ large: string; medium: string }> = [];
+let imovirtualFetchFails = false;
+
 vi.mock('@neondatabase/serverless', () => ({
   neon: () => {
     return async (...args: unknown[]) => {
@@ -37,6 +40,28 @@ vi.mock('@vercel/blob', () => ({
   put: async () => blobPutResult,
   del: async () => undefined,
 }));
+
+vi.stubGlobal(
+  'fetch',
+  vi.fn(async (url: string) => {
+    if (imovirtualFetchFails) throw new Error('fetch failed');
+    if (String(url).includes('imovirtual.com/pt') && !String(url).includes('_next')) {
+      return {
+        ok: true,
+        text: async () => '"buildId":"test-build-id"',
+      };
+    }
+    if (String(url).includes('_next/data')) {
+      return {
+        ok: true,
+        json: async () => ({
+          pageProps: { ad: { images: imovirtualImages } },
+        }),
+      };
+    }
+    return { ok: false, status: 404, json: async () => ({}) };
+  }),
+);
 
 vi.mock('@sparticuz/chromium-min', () => ({
   default: { args: [], executablePath: async () => '/mock/chromium' },
@@ -173,6 +198,8 @@ describe('api/listings/snapshot handler', () => {
     fsExistsResult = false;
     fsSnapDirExists = true;
     execFileFails = false;
+    imovirtualImages = [];
+    imovirtualFetchFails = false;
     process.env['DATABASE_URL'] = 'postgresql://mock';
     process.env['VERCEL'] = '1';
     process.env['BLOB_READ_WRITE_TOKEN'] = 'mock-token';
@@ -360,6 +387,20 @@ describe('api/listings/snapshot handler', () => {
       { large: 'https://cdn.example.com/img1.jpg', medium: 'https://cdn.example.com/img1-m.jpg' },
       { large: 'https://cdn.example.com/img2.jpg', medium: 'https://cdn.example.com/img2-m.jpg' },
     ];
+    dbSnapshotRow = null;
+    const res = new MockRes();
+    await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.exists).toBe(true);
+  });
+
+  it('POST uses imovirtual live images for imovirtual listings', async () => {
+    dbListingRow = { url: 'https://www.imovirtual.com/pt/anuncio/test-slug-42' };
+    dbImages = [{ large: 'https://cdn.db.com/db.jpg', medium: '' }];
+    imovirtualImages = Array.from({ length: 22 }, (_, i) => ({
+      large: `https://cdn.example.com/img${i}.jpg`,
+      medium: `https://cdn.example.com/img${i}-m.jpg`,
+    }));
     dbSnapshotRow = null;
     const res = new MockRes();
     await snapshotHandler({ method: 'POST', query: { id: '42' } } as any, res as any);

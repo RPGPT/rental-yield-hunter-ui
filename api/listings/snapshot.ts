@@ -13,6 +13,66 @@ const CHROMIUM_URL =
   process.env['CHROMIUM_DOWNLOAD_URL'] ??
   `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${CHROMIUM_ARCH}.tar`;
 
+const IMOVIRTUAL_BASE = 'https://www.imovirtual.com';
+const IMOVIRTUAL_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+let cachedBuildId: string | null = null;
+let buildIdFetchedAt = 0;
+const BUILD_ID_TTL_MS = 10 * 60 * 1000;
+
+async function getImovirtualBuildId(): Promise<string | null> {
+  if (cachedBuildId && Date.now() - buildIdFetchedAt < BUILD_ID_TTL_MS) return cachedBuildId;
+  try {
+    const res = await fetch(`${IMOVIRTUAL_BASE}/pt`, {
+      headers: { 'User-Agent': IMOVIRTUAL_UA, 'Accept-Language': 'pt-PT,pt;q=0.9' },
+      signal: AbortSignal.timeout(8000),
+    });
+    const html = await res.text();
+    const match = html.match(/"buildId"\s*:\s*"([^"]+)"/);
+    if (!match) return null;
+    cachedBuildId = match[1];
+    buildIdFetchedAt = Date.now();
+    return cachedBuildId;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchImovirtualImages(
+  listingUrl: string,
+): Promise<Array<{ large: string; medium: string }>> {
+  const slugMatch = listingUrl.match(/\/pt\/anuncio\/([^/?#]+)/);
+  if (!slugMatch) return [];
+  const slug = slugMatch[1];
+  const buildId = await getImovirtualBuildId();
+  if (!buildId) return [];
+  try {
+    const r = await fetch(`${IMOVIRTUAL_BASE}/_next/data/${buildId}/pt/anuncio/${slug}.json`, {
+      headers: {
+        'User-Agent': IMOVIRTUAL_UA,
+        Accept: 'application/json',
+        'Accept-Language': 'pt-PT,pt;q=0.9',
+        'x-nextjs-data': '1',
+      },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) {
+      cachedBuildId = null;
+      return [];
+    }
+    const data = (await r.json()) as {
+      pageProps?: { ad?: { images?: { large?: string; medium?: string }[] } };
+    };
+    return (data?.pageProps?.ad?.images ?? []).map((img) => ({
+      large: img.large ?? '',
+      medium: img.medium ?? '',
+    }));
+  } catch {
+    return [];
+  }
+}
+
 async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<string> {
   const chromium = (await import('@sparticuz/chromium-min')).default;
   const { chromium: pw } = await import('playwright-core');
@@ -265,7 +325,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
           ? (rawDataResult[0]['images'] as Array<{ large?: string; medium?: string }>)
           : [];
-      const imageUrls = rawImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
+
+      let resolvedImages = rawImages;
+      if (url.includes('imovirtual.com')) {
+        const liveImages = await fetchImovirtualImages(url);
+        if (liveImages.length > 0) resolvedImages = liveImages;
+      }
+
+      const imageUrls = resolvedImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
 
       if (isVercel || useBlob) {
         const { put } = await import('@vercel/blob');
