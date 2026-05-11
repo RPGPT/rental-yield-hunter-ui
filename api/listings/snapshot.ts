@@ -197,23 +197,22 @@ async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<st
     const lightboxSrcsJson = JSON.stringify(lightboxSrcs);
     const lightbox = `
 <style>
-#__lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;align-items:center;justify-content:center;flex-direction:column}
+#__lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;align-items:center;justify-content:center}
 #__lb.open{display:flex}
-#__lb-img{max-width:92vw;max-height:85vh;object-fit:contain;border-radius:4px}
-#__lb-bar{display:flex;align-items:center;gap:16px;margin-top:12px}
-.lb-btn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;padding:6px 18px;cursor:pointer;border-radius:4px;line-height:1}
-.lb-btn:hover{background:rgba(255,255,255,.3)}
-#__lb-close{position:absolute;top:14px;right:18px}
-#__lb-counter{color:rgba(255,255,255,.7);font-size:.9rem;min-width:60px;text-align:center}
+#__lb-img{max-width:88vw;max-height:90vh;object-fit:contain;border-radius:4px}
+#__lb-counter{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:.9rem;background:rgba(0,0,0,.4);padding:4px 12px;border-radius:12px}
+.lb-btn{background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;width:48px;height:48px;transition:background .15s}
+.lb-btn:hover{background:rgba(255,255,255,.35)}
+#__lb-close{position:absolute;top:14px;right:18px;font-size:1.2rem}
+#__lb-prev{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:2rem}
+#__lb-next{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:2rem}
 </style>
 <div id="__lb">
   <button class="lb-btn" id="__lb-close" onclick="__lbClose()">✕</button>
+  <button class="lb-btn" id="__lb-prev" onclick="__lbMove(-1)">&#8249;</button>
   <img id="__lb-img" src="" alt="">
-  <div id="__lb-bar">
-    <button class="lb-btn" onclick="__lbMove(-1)">&#8249;</button>
-    <span id="__lb-counter"></span>
-    <button class="lb-btn" onclick="__lbMove(1)">&#8250;</button>
-  </div>
+  <button class="lb-btn" id="__lb-next" onclick="__lbMove(1)">&#8250;</button>
+  <span id="__lb-counter"></span>
 </div>
 <script>
 (function(){
