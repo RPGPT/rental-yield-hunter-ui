@@ -66,8 +66,9 @@ export class DetailComponent implements OnInit {
   snapshotLoading = signal(false);
   snapshotExists = signal(false);
   currentImage = signal<string>('');
-  incomingImage = signal<string>('');
-  imageAnim = signal<'next' | 'prev' | ''>('');
+  slotA = signal<string>('');
+  slotB = signal<string>('');
+  activeSlot = signal<'a' | 'b'>('a');
   richDescription = signal<SafeHtml | null>(null);
   descriptionLoading = signal(false);
 
@@ -78,8 +79,11 @@ export class DetailComponent implements OnInit {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
         if (data.images?.length) {
-          this.currentImage.set(data.images[0].large);
-          this.incomingImage.set(data.images[0].large);
+          const url = data.images[0].large;
+          this.currentImage.set(url);
+          this.slotA.set(url);
+          this.slotB.set(url);
+          this.activeSlot.set('a');
         }
         this.loading.set(false);
         if (data.url?.includes('imovirtual.com')) {
@@ -92,8 +96,11 @@ export class DetailComponent implements OnInit {
               if (res.images?.length) {
                 const fullListing = { ...this.listing()!, images: res.images };
                 this.listing.set(fullListing);
-                this.currentImage.set(res.images[0].large);
-                this.incomingImage.set(res.images[0].large);
+                const url = res.images[0].large;
+                this.currentImage.set(url);
+                this.slotA.set(url);
+                this.slotB.set(url);
+                this.activeSlot.set('a');
               }
               this.descriptionLoading.set(false);
             },
@@ -130,24 +137,19 @@ export class DetailComponent implements OnInit {
   }
 
   selectImage(url: string): void {
+    const next = this.activeSlot() === 'a' ? 'b' : 'a';
+    if (next === 'b') this.slotB.set(url);
+    else this.slotA.set(url);
+    this.activeSlot.set(next);
     this.currentImage.set(url);
-    this.incomingImage.set(url);
   }
 
   navigateImage(dir: 1 | -1): void {
     const images = this.listing()?.images ?? [];
-    if (images.length < 2 || this.imageAnim() !== '') return;
+    if (images.length < 2) return;
     const idx = images.findIndex((img) => img.large === this.currentImage());
     const nextIdx = (idx + dir + images.length) % images.length;
-    const nextUrl = images[nextIdx].large;
-
-    this.incomingImage.set(nextUrl);
-    this.imageAnim.set(dir === 1 ? 'next' : 'prev');
-
-    setTimeout(() => {
-      this.currentImage.set(nextUrl);
-      this.imageAnim.set('');
-    }, 180);
+    this.selectImage(images[nextIdx].large);
   }
 
   @HostListener('window:keydown', ['$event'])

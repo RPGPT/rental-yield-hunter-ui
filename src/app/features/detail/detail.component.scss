@@ -174,69 +174,12 @@
     max-height: 28rem;
     object-fit: contain;
     display: block;
-  }
+    opacity: 0;
+    transition: opacity 0.25s ease;
 
-  // Outgoing: current image slides out
-  .gallery-img-current {
-    z-index: 1;
-  }
-  .gallery-img-current.slide-out-next {
-    animation: slide-out-left 0.18s ease forwards;
-  }
-  .gallery-img-current.slide-out-prev {
-    animation: slide-out-right 0.18s ease forwards;
-  }
-
-  // Incoming: new image slides in behind
-  .gallery-img-incoming {
-    z-index: 2;
-  }
-  .gallery-img-incoming.slide-in-next {
-    animation: slide-in-right 0.18s ease forwards;
-  }
-  .gallery-img-incoming.slide-in-prev {
-    animation: slide-in-left 0.18s ease forwards;
-  }
-}
-
-@keyframes slide-out-left {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(-6%);
-    opacity: 0;
-  }
-}
-@keyframes slide-out-right {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(6%);
-    opacity: 0;
-  }
-}
-@keyframes slide-in-right {
-  from {
-    transform: translateX(6%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-@keyframes slide-in-left {
-  from {
-    transform: translateX(-6%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
+    &.gallery-img--active {
+      opacity: 1;
+    }
   }
 }
 

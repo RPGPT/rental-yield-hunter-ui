@@ -181,24 +181,18 @@
           <mat-card class="gallery-card">
             <mat-card-content>
               <div class="gallery-main">
-                <!-- Outgoing image (current) -->
                 <img
-                  [src]="currentImage()"
+                  [src]="slotA()"
                   alt="Listing image"
-                  class="gallery-main-img gallery-img-current"
-                  [class.slide-out-next]="imageAnim() === 'next'"
-                  [class.slide-out-prev]="imageAnim() === 'prev'"
+                  class="gallery-main-img"
+                  [class.gallery-img--active]="activeSlot() === 'a'"
                 />
-                <!-- Incoming image — slides in underneath/over during animation -->
-                @if (imageAnim() !== '') {
-                  <img
-                    [src]="incomingImage()"
-                    alt="Listing image"
-                    class="gallery-main-img gallery-img-incoming"
-                    [class.slide-in-next]="imageAnim() === 'next'"
-                    [class.slide-in-prev]="imageAnim() === 'prev'"
-                  />
-                }
+                <img
+                  [src]="slotB()"
+                  alt="Listing image"
+                  class="gallery-main-img"
+                  [class.gallery-img--active]="activeSlot() === 'b'"
+                />
                 @if (l.images.length > 1) {
                   <button
                     class="gallery-nav gallery-prev"
