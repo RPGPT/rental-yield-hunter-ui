@@ -4,8 +4,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$teal-palette,
-        tertiary: mat.$amber-palette,
+        primary: mat.$cyan-palette,
+        tertiary: mat.$orange-palette,
       ),
       typography: Roboto,
       density: 0,
@@ -17,8 +17,8 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$teal-palette,
-        tertiary: mat.$amber-palette,
+        primary: mat.$cyan-palette,
+        tertiary: mat.$orange-palette,
         theme-type: dark,
       ),
       typography: Roboto,
