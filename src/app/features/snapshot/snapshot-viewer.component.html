@@ -3,7 +3,7 @@
     <button mat-icon-button (click)="goBack()" matTooltip="Back to listing">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <span class="snapshot-title">Saved snapshot — listing {{ listingId }}</span>
+    <span class="snapshot-title">{{ listingTitle() ?? listingId }}</span>
   </div>
 
   @if (loading()) {

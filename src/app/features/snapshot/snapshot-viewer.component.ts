@@ -6,6 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { environment } from '../../../environments/environment';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-snapshot-viewer',
@@ -19,8 +20,10 @@ export class SnapshotViewerComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly api = inject(ApiService);
 
   listingId = '';
+  listingTitle = signal<string | null>(null);
   iframeUrl = signal<SafeResourceUrl | null>(null);
   loading = signal(true);
 
@@ -28,6 +31,10 @@ export class SnapshotViewerComponent implements OnInit {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
     const url = `${environment.apiUrl}/listings/snapshot-download?id=${this.listingId}`;
     this.iframeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
+    this.api.getListing(this.listingId).subscribe({
+      next: (listing) => this.listingTitle.set(listing.title),
+      error: () => {},
+    });
   }
 
   onIframeLoad(): void {
