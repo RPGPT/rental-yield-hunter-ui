@@ -40,13 +40,13 @@
   text-align: center;
 
   &:hover {
-    color: var(--mat-sys-primary, #{$color-primary});
-    background: var(--mat-sys-primary-container, #{$color-primary-alpha});
+    color: $color-primary;
+    background: $color-primary-alpha;
   }
 
   &--active {
-    color: var(--mat-sys-primary, #{$color-primary});
-    border-bottom-color: var(--mat-sys-primary, #{$color-primary});
+    color: $color-primary;
+    border-bottom-color: $color-primary;
     font-weight: 600;
   }
 }
