@@ -187,10 +187,13 @@ export class ListingsTableComponent {
     return text.length > TITLE_MAX_LENGTH ? text.substring(0, TITLE_MAX_LENGTH) + '…' : text;
   }
 
-  typologyColor(typology: string): 'red' | 'amber' | 'green' | 'grey' {
-    if (typology === 'T1') return 'grey';
-    if (typology === 'T2') return 'amber';
-    if (typology === 'T3' || typology === 'T4') return 'green';
+  typologyColor(typology: string): 'red' | 'amber' | 'green' | 'grey' | 'blue' {
+    const match = typology.match(/^T(\d+)$/);
+    if (!match) return 'grey';
+    const n = Number(match[1]);
+    if (n === 1) return 'blue';
+    if (n === 2) return 'amber';
+    if (n >= 3) return 'green';
     return 'grey';
   }
 }
