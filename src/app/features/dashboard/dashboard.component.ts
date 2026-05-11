@@ -32,23 +32,27 @@ export class DashboardComponent implements OnInit {
   listingsLoading = signal(true);
 
   constructor() {
+    const routeMode = (this.route.snapshot.data['mode'] as 'buy' | 'rent') ?? 'buy';
+    this.mode.set(routeMode);
+
     const params = this.route.snapshot.queryParams;
-    if (params['mode'] === 'rent') this.mode.set('rent');
+    if (routeMode === 'buy') {
+      this.filterState.initFromParams(params);
+    } else {
+      this.rentalFilterState.initFromParams(params);
+    }
 
-    this.filterState.initFromParams(params);
-    this.rentalFilterState.initFromParams(params);
-
-    // Sync buy filter state to URL
+    // Sync buy filter state to URL query params
     effect(() => {
       if (this.mode() !== 'buy') return;
-      const queryParams = { ...this.filterState.toQueryParams(), mode: undefined };
+      const queryParams = this.filterState.toQueryParams();
       this.router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' });
     });
 
-    // Sync rent filter state to URL
+    // Sync rent filter state to URL query params
     effect(() => {
       if (this.mode() !== 'rent') return;
-      const queryParams = { ...this.rentalFilterState.toQueryParams(), mode: 'rent' };
+      const queryParams = this.rentalFilterState.toQueryParams();
       this.router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' });
     });
 
@@ -84,23 +88,15 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.getFilterOptions().subscribe({ next: (data) => this.filterOptions.set(data) });
-    this.api.getRentalFilterOptions().subscribe({
-      next: (data) => {
-        if (this.mode() === 'rent') this.filterOptions.set(data);
-      },
-    });
-  }
-
-  onModeChange(newMode: 'buy' | 'rent'): void {
-    this.mode.set(newMode);
-    this.listingsLoading.set(true);
-    this.filterOptions.set(null);
-    if (newMode === 'buy') {
+    if (this.mode() === 'buy') {
       this.api.getFilterOptions().subscribe({ next: (data) => this.filterOptions.set(data) });
     } else {
       this.api.getRentalFilterOptions().subscribe({ next: (data) => this.filterOptions.set(data) });
     }
+  }
+
+  onModeChange(newMode: 'buy' | 'rent'): void {
+    void this.router.navigate([newMode === 'buy' ? '/buy' : '/rent']);
   }
 
   get activeListings(): (Listing | RentalListing)[] {

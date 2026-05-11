@@ -3,7 +3,9 @@ import { authGuard } from './core/guards/auth.guard';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', component: DashboardComponent, canMatch: [authGuard] },
+  { path: '', pathMatch: 'full', redirectTo: 'buy' },
+  { path: 'buy', component: DashboardComponent, canMatch: [authGuard], data: { mode: 'buy' } },
+  { path: 'rent', component: DashboardComponent, canMatch: [authGuard], data: { mode: 'rent' } },
   {
     path: 'listing/:id',
     canMatch: [authGuard],

@@ -5,13 +5,7 @@
 } @else if (listing(); as l) {
   <div class="detail-page">
     <div class="detail-header">
-      <a
-        mat-icon-button
-        routerLink="/"
-        [queryParams]="{ mode: 'rent' }"
-        class="back-btn"
-        matTooltip="Back to listings"
-      >
+      <a mat-icon-button routerLink="/rent" class="back-btn" matTooltip="Back to listings">
         <mat-icon>arrow_back</mat-icon>
       </a>
       <div class="title-with-tags">
