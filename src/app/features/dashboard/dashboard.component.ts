@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, signal, effect, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ApiService } from '../../core/services/api.service';
 import { FilterStateService } from '../../core/services/filter-state.service';
 import { RentalFilterStateService } from '../../core/services/rental-filter-state.service';
@@ -12,7 +11,7 @@ import { ListingsTableComponent } from './listings-table/listings-table.componen
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FiltersPanelComponent, ListingsTableComponent, MatButtonToggleModule],
+  imports: [FiltersPanelComponent, ListingsTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',

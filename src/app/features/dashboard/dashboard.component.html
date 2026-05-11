@@ -1,12 +1,23 @@
 <div class="dashboard">
-  <div class="mode-toggle-bar">
-    <mat-button-toggle-group [value]="mode()" (change)="onModeChange($event.value)">
-      <mat-button-toggle value="buy">Buy</mat-button-toggle>
-      <mat-button-toggle value="rent">Rent</mat-button-toggle>
-    </mat-button-toggle-group>
+  <div class="filter-card">
+    <div class="filter-tabs">
+      <button
+        class="filter-tab"
+        [class.filter-tab--active]="mode() === 'buy'"
+        (click)="onModeChange('buy')"
+      >
+        <span>Buy</span>
+      </button>
+      <button
+        class="filter-tab"
+        [class.filter-tab--active]="mode() === 'rent'"
+        (click)="onModeChange('rent')"
+      >
+        <span>Rent</span>
+      </button>
+    </div>
+    <app-filters-panel [filterOptions]="filterOptions()" [mode]="mode()" />
   </div>
-
-  <app-filters-panel [filterOptions]="filterOptions()" [mode]="mode()" />
 
   <app-listings-table
     [listings]="activeListings"
