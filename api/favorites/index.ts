@@ -36,7 +36,7 @@ function sendError(res: VercelResponse, error: unknown, status = 500): VercelRes
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const user = await getUserFromRequest(req);
+  const user = getUserFromRequest(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const sql = neon(process.env['DATABASE_URL']!);
