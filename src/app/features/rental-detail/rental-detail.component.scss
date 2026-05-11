@@ -257,7 +257,7 @@
   transition: border-color 0.15s ease;
 
   &.thumb-active {
-    border-color: var(--mat-sys-primary, #3f51b5);
+    border-color: var(--mat-sys-primary, #{$color-primary});
   }
   &:hover:not(.thumb-active) {
     border-color: var(--mat-sys-outline, #ccc);

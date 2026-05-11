@@ -33,20 +33,20 @@
   border-bottom: 3px solid transparent;
   background: transparent;
   cursor: pointer;
-  color: var(--mat-sys-on-surface-variant, #{$color-grey});
+  color: var(--mat-sys-on-surface-variant, #{$color-grey-dark});
   transition:
     color 0.15s,
     border-color 0.15s;
   text-align: center;
 
   &:hover {
-    color: var(--mat-sys-primary, #1976d2);
-    background: var(--mat-sys-primary-container, rgba(25, 118, 210, 0.06));
+    color: var(--mat-sys-primary, #{$color-primary});
+    background: var(--mat-sys-primary-container, #{$color-primary-alpha});
   }
 
   &--active {
-    color: var(--mat-sys-primary, #1976d2);
-    border-bottom-color: var(--mat-sys-primary, #1976d2);
+    color: var(--mat-sys-primary, #{$color-primary});
+    border-bottom-color: var(--mat-sys-primary, #{$color-primary});
     font-weight: 600;
   }
 }
