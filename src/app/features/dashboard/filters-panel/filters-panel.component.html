@@ -56,32 +56,6 @@
           </mat-form-field>
         </div>
       </div>
-
-      @if (!isBuyMode) {
-        <div class="filter-group">
-          <label class="filter-label">Rent/m² Range</label>
-          <div class="filter-row">
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Min €/m²</mat-label>
-              <input
-                matInput
-                type="number"
-                [value]="rentPerM2Min ?? ''"
-                (input)="onRentPerM2MinInput($any($event.target).value)"
-              />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="filter-field">
-              <mat-label>Max €/m²</mat-label>
-              <input
-                matInput
-                type="number"
-                [value]="rentPerM2Max ?? ''"
-                (input)="onRentPerM2MaxInput($any($event.target).value)"
-              />
-            </mat-form-field>
-          </div>
-        </div>
-      }
     </div>
 
     <!-- Right half: Typology + City -->
