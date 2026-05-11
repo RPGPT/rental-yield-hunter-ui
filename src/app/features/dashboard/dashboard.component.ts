@@ -2,17 +2,15 @@ import { Component, ChangeDetectionStrategy, inject, signal, effect, OnInit } fr
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { FilterStateService } from '../../core/services/filter-state.service';
-import { Stats } from '../../core/models/stats.model';
 import { FilterOptions } from '../../core/models/filter.model';
 import { Listing } from '../../core/models/listing.model';
-import { StatsBarComponent } from './stats-bar/stats-bar.component';
 import { FiltersPanelComponent } from './filters-panel/filters-panel.component';
 import { ListingsTableComponent } from './listings-table/listings-table.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [StatsBarComponent, FiltersPanelComponent, ListingsTableComponent],
+  imports: [FiltersPanelComponent, ListingsTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -23,8 +21,6 @@ export class DashboardComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  stats = signal<Stats | null>(null);
-  statsLoading = signal(true);
   filterOptions = signal<FilterOptions | null>(null);
   listings = signal<Listing[]>([]);
   total = signal(0);
@@ -53,14 +49,6 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.getStats().subscribe({
-      next: (data) => {
-        this.stats.set(data);
-        this.statsLoading.set(false);
-      },
-      error: () => this.statsLoading.set(false),
-    });
-
     this.api.getFilterOptions().subscribe({
       next: (data) => this.filterOptions.set(data),
     });
