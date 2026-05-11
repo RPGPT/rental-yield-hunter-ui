@@ -48,6 +48,19 @@
           }
         </button>
 
+        <!-- Google Maps -->
+        @if (mapsUrl(l)) {
+          <a
+            mat-icon-button
+            [href]="mapsUrl(l)"
+            target="_blank"
+            rel="noopener"
+            matTooltip="Open in Google Maps"
+          >
+            <mat-icon>map</mat-icon>
+          </a>
+        }
+
         <!-- Save / download snapshot — always visible -->
         <button
           mat-icon-button

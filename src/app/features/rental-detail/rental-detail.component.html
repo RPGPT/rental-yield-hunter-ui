@@ -47,6 +47,18 @@
           }
         </button>
 
+        @if (mapsUrl(l)) {
+          <a
+            mat-icon-button
+            [href]="mapsUrl(l)"
+            target="_blank"
+            rel="noopener"
+            matTooltip="Open in Google Maps"
+          >
+            <mat-icon>map</mat-icon>
+          </a>
+        }
+
         <button
           mat-icon-button
           [disabled]="snapshotLoading()"

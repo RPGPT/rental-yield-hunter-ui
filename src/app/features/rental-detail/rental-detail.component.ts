@@ -131,6 +131,16 @@ export class RentalDetailComponent implements OnInit {
     this.priceChartCard?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  mapsUrl(listing: {
+    location: string | null;
+    neighborhood: string | null;
+    city: string | null;
+  }): string | null {
+    const q = listing.location ?? [listing.neighborhood, listing.city].filter(Boolean).join(', ');
+    if (!q) return null;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  }
+
   currentImageIndex(images: { large: string }[]): number {
     return images.findIndex((img) => img.large === this.currentImage());
   }
