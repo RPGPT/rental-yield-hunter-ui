@@ -48,7 +48,10 @@ import snapshotHandler from './api/listings/snapshot';
 import snapshotDownloadHandler from './api/listings/snapshot-download';
 import statsHandler from './api/stats';
 import filtersHandler from './api/filters';
+import rentalFiltersHandler from './api/rental-filters';
 import favoritesHandler from './api/favorites/index';
+import rentalListingsHandler from './api/rental-listings/index';
+import rentalListingByIdHandler from './api/rental-listings/[id]';
 
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
 
@@ -86,6 +89,14 @@ const server = http.createServer(async (req, res) => {
       await statsHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/filters') {
       await filtersHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/rental-filters') {
+      await rentalFiltersHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/rental-listings' && req.method === 'GET') {
+      await rentalListingsHandler(fakeReq, fakeRes);
+    } else if (pathname.startsWith('/api/rental-listings/')) {
+      const id = pathname.replace('/api/rental-listings/', '');
+      fakeReq.query = { ...query, id };
+      await rentalListingByIdHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/favorites') {
       await favoritesHandler(fakeReq, fakeRes);
     } else if (pathname.match(/^\/api\/snapshots\/([^/]+)$/)) {

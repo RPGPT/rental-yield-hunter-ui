@@ -1,0 +1,249 @@
+@if (loading()) {
+  <div class="detail-loading">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+} @else if (listing(); as l) {
+  <div class="detail-page">
+    <div class="detail-header">
+      <a
+        mat-icon-button
+        routerLink="/"
+        [queryParams]="{ mode: 'rent' }"
+        class="back-btn"
+        matTooltip="Back to listings"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div class="title-with-tags">
+        <h1 class="detail-title">{{ l.title }}</h1>
+        @if (l.price_history.length > 0) {
+          @if (priceWentDown()) {
+            <button
+              class="price-tag price-tag-down"
+              (click)="scrollToPriceChart()"
+              matTooltip="Rent was reduced — click to see history"
+            >
+              <mat-icon>arrow_downward</mat-icon> Reduced
+            </button>
+          }
+          @if (priceWentUp()) {
+            <button
+              class="price-tag price-tag-up"
+              (click)="scrollToPriceChart()"
+              matTooltip="Rent was increased — click to see history"
+            >
+              <mat-icon>arrow_upward</mat-icon> Increased
+            </button>
+          }
+        }
+      </div>
+
+      <div class="header-actions">
+        <button
+          mat-icon-button
+          [class.fav-active]="isFavorite()"
+          [disabled]="favLoading()"
+          (click)="toggleFavorite()"
+          [matTooltip]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
+        >
+          @if (favLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>{{ isFavorite() ? 'favorite' : 'favorite_border' }}</mat-icon>
+          }
+        </button>
+
+        <button
+          mat-icon-button
+          [disabled]="snapshotLoading()"
+          (click)="saveSnapshot()"
+          [matTooltip]="
+            snapshotLoading()
+              ? 'Saving snapshot…'
+              : snapshotExists()
+                ? 'View saved snapshot'
+                : 'Save page snapshot'
+          "
+        >
+          @if (snapshotLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>{{ snapshotExists() ? 'photo_library' : 'save_outlined' }}</mat-icon>
+          }
+        </button>
+
+        <a
+          mat-raised-button
+          [href]="l.url"
+          target="_blank"
+          rel="noopener"
+          color="primary"
+          matTooltip="Open original listing"
+        >
+          <mat-icon>open_in_new</mat-icon>
+          <span class="btn-label">View Listing</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- Left: Metadata -->
+      <div class="detail-meta">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Details</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-list>
+              <mat-list-item>
+                <span matListItemTitle>Monthly Rent</span>
+                <span matListItemLine>{{ l.price | eur }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Area</span>
+                <span matListItemLine>{{ l.area ? l.area + ' m²' : '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Rent/m²</span>
+                <span matListItemLine>{{ l.rent_price_per_m2 | eur }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Typology</span>
+                <span matListItemLine>{{ l.typology || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>City</span>
+                <span matListItemLine>{{ l.city || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Neighborhood</span>
+                <span matListItemLine>{{ l.neighborhood || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Location</span>
+                <span matListItemLine>{{ l.location || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Floor</span>
+                <span matListItemLine>{{ l.floor || '—' }}</span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Status</span>
+                <span matListItemLine>
+                  <app-badge
+                    [label]="l.active ? 'Active' : 'Inactive'"
+                    [color]="l.active ? 'green' : 'grey'"
+                  />
+                </span>
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>First Seen</span>
+                <span matListItemLine
+                  >{{ l.first_seen | date: 'mediumDate' }} ({{ l.first_seen | relativeDate }})</span
+                >
+              </mat-list-item>
+              <mat-list-item>
+                <span matListItemTitle>Last Seen</span>
+                <span matListItemLine
+                  >{{ l.last_seen | date: 'mediumDate' }} ({{ l.last_seen | relativeDate }})</span
+                >
+              </mat-list-item>
+            </mat-list>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Right: Gallery + Description + Price History -->
+      <div class="detail-content">
+        @if (l.images.length) {
+          <mat-card class="gallery-card">
+            <mat-card-content>
+              <div class="gallery-main">
+                <img
+                  [src]="currentImage()"
+                  alt="Listing image"
+                  class="gallery-main-img gallery-img-current"
+                  [class.slide-out-next]="imageAnim() === 'next'"
+                  [class.slide-out-prev]="imageAnim() === 'prev'"
+                />
+                @if (imageAnim() !== '') {
+                  <img
+                    [src]="incomingImage()"
+                    alt="Listing image"
+                    class="gallery-main-img gallery-img-incoming"
+                    [class.slide-in-next]="imageAnim() === 'next'"
+                    [class.slide-in-prev]="imageAnim() === 'prev'"
+                  />
+                }
+                @if (l.images.length > 1) {
+                  <button
+                    class="gallery-nav gallery-prev"
+                    (click)="navigateImage(-1)"
+                    aria-label="Previous image"
+                  >
+                    <mat-icon>chevron_left</mat-icon>
+                  </button>
+                  <button
+                    class="gallery-nav gallery-next"
+                    (click)="navigateImage(1)"
+                    aria-label="Next image"
+                  >
+                    <mat-icon>chevron_right</mat-icon>
+                  </button>
+                  <span class="gallery-counter">
+                    {{ currentImageIndex(l.images) + 1 }} / {{ l.images.length }}
+                    @if (currentImageIndex(l.images) === l.images.length - 1) {
+                      <span class="gallery-last-tag">Last</span>
+                    }
+                  </span>
+                }
+              </div>
+              @if (l.images.length > 1) {
+                <div class="gallery-thumbs">
+                  @for (img of l.images; track img.large) {
+                    <button
+                      class="thumb-btn"
+                      [class.thumb-active]="currentImage() === img.large"
+                      (click)="selectImage(img.large)"
+                    >
+                      <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
+                    </button>
+                  }
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
+
+        @if (richDescription(); as html) {
+          <mat-card>
+            <mat-card-header><mat-card-title>Description</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <div class="description-text" [innerHTML]="html"></div>
+            </mat-card-content>
+          </mat-card>
+        } @else if (descriptionLoading()) {
+          <mat-card>
+            <mat-card-content class="description-loading">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>Loading description…</span>
+            </mat-card-content>
+          </mat-card>
+        } @else if (l.description) {
+          <mat-card>
+            <mat-card-header><mat-card-title>Description</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <p class="description-text">{{ l.description }}</p>
+            </mat-card-content>
+          </mat-card>
+        }
+
+        <mat-card #priceChartCard>
+          <mat-card-content>
+            <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+}

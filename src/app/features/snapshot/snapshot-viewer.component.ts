@@ -29,12 +29,22 @@ export class SnapshotViewerComponent implements OnInit {
 
   ngOnInit(): void {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
-    const url = `${environment.apiUrl}/listings/snapshot-download?id=${this.listingId}`;
+    const isRental = this.route.snapshot.url[0]?.path === 'rental';
+    const source = isRental ? 'rental' : undefined;
+    const url = `${environment.apiUrl}/listings/snapshot-download?id=${this.listingId}${source ? `&source=${source}` : ''}`;
     this.iframeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
-    this.api.getListing(this.listingId).subscribe({
-      next: (listing) => this.listingTitle.set(listing.title),
-      error: () => {},
-    });
+
+    if (isRental) {
+      this.api.getRentalListing(this.listingId).subscribe({
+        next: (listing) => this.listingTitle.set(listing.title ?? null),
+        error: () => {},
+      });
+    } else {
+      this.api.getListing(this.listingId).subscribe({
+        next: (listing) => this.listingTitle.set(listing.title),
+        error: () => {},
+      });
+    }
   }
 
   onIframeLoad(): void {
@@ -42,6 +52,7 @@ export class SnapshotViewerComponent implements OnInit {
   }
 
   goBack(): void {
-    void this.router.navigate(['/listing', this.listingId]);
+    const isRental = this.route.snapshot.url[0]?.path === 'rental';
+    void this.router.navigate([isRental ? '/rental' : '/listing', this.listingId]);
   }
 }

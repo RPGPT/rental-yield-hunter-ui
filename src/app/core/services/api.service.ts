@@ -2,10 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Listing, ListingDetail } from '../models/listing.model';
+import {
+  Listing,
+  ListingDetail,
+  RentalListing,
+  RentalListingDetail,
+} from '../models/listing.model';
 import { Stats } from '../models/stats.model';
-import { FilterOptions, FilterState, PaginatedResponse } from '../models/filter.model';
-import { buildQueryParams } from '../../shared/utils/query-params.util';
+import {
+  FilterOptions,
+  FilterState,
+  RentalFilterState,
+  PaginatedResponse,
+} from '../models/filter.model';
+import { buildQueryParams, buildRentalQueryParams } from '../../shared/utils/query-params.util';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -14,6 +24,7 @@ export class ApiService {
 
   private statsCache$: Observable<Stats> | null = null;
   private filterOptionsCache$: Observable<FilterOptions> | null = null;
+  private rentalFilterOptionsCache$: Observable<FilterOptions> | null = null;
   private cacheTimestamp = 0;
   private readonly CACHE_DURATION = 30_000;
 
@@ -44,6 +55,17 @@ export class ApiService {
     }>(`${this.baseUrl}/listings/description?url=${encodeURIComponent(url)}`);
   }
 
+  getRentalListings(filters: RentalFilterState): Observable<PaginatedResponse<RentalListing>> {
+    const params = buildRentalQueryParams(filters);
+    return this.http.get<PaginatedResponse<RentalListing>>(`${this.baseUrl}/rental-listings`, {
+      params: params as unknown as Record<string, string>,
+    });
+  }
+
+  getRentalListing(id: string): Observable<RentalListingDetail> {
+    return this.http.get<RentalListingDetail>(`${this.baseUrl}/rental-listings/${id}`);
+  }
+
   getFavorites(): Observable<string[]> {
     return this.http.get<string[]>(`${this.baseUrl}/favorites`);
   }
@@ -56,15 +78,17 @@ export class ApiService {
     }
   }
 
-  checkSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
+  checkSnapshot(id: string, source?: 'rental'): Observable<{ exists: boolean; url?: string }> {
+    const src = source ? `&source=${source}` : '';
     return this.http.get<{ exists: boolean; url?: string }>(
-      `${this.baseUrl}/listings/snapshot?id=${id}`,
+      `${this.baseUrl}/listings/snapshot?id=${id}${src}`,
     );
   }
 
-  triggerSnapshot(id: string): Observable<{ exists: boolean; url?: string }> {
+  triggerSnapshot(id: string, source?: 'rental'): Observable<{ exists: boolean; url?: string }> {
+    const src = source ? `&source=${source}` : '';
     return this.http.post<{ exists: boolean; url?: string }>(
-      `${this.baseUrl}/listings/snapshot?id=${id}`,
+      `${this.baseUrl}/listings/snapshot?id=${id}${src}`,
       null,
     );
   }
@@ -87,5 +111,14 @@ export class ApiService {
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.filterOptionsCache$;
+  }
+
+  getRentalFilterOptions(): Observable<FilterOptions> {
+    if (!this.rentalFilterOptionsCache$) {
+      this.rentalFilterOptionsCache$ = this.http
+        .get<FilterOptions>(`${this.baseUrl}/rental-filters`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    }
+    return this.rentalFilterOptionsCache$;
   }
 }

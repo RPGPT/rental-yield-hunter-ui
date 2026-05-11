@@ -23,6 +23,7 @@ import { Subject, debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FilterOptions } from '../../../core/models/filter.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
+import { RentalFilterStateService } from '../../../core/services/rental-filter-state.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -45,19 +46,30 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './filters-panel.component.scss',
 })
 export class FiltersPanelComponent implements OnInit {
-  readonly filterState = inject(FilterStateService);
+  readonly buyFilterState = inject(FilterStateService);
+  private readonly rentalFilterState = inject(RentalFilterStateService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  mode = input<'buy' | 'rent'>('buy');
   filtersExpanded = signal(window.innerWidth > 767);
-
   filterOptions = input<FilterOptions | null>(null);
+
+  get filterState() {
+    return this.mode() === 'rent' ? this.rentalFilterState : this.buyFilterState;
+  }
+
+  get isBuyMode(): boolean {
+    return this.mode() === 'buy';
+  }
 
   private priceMinSubject = new Subject<string>();
   private priceMaxSubject = new Subject<string>();
   private areaMinSubject = new Subject<string>();
   private areaMaxSubject = new Subject<string>();
+  private rentPerM2MinSubject = new Subject<string>();
+  private rentPerM2MaxSubject = new Subject<string>();
 
   get selectedTypologies(): string[] {
     return this.filterState.typology();
@@ -82,13 +94,28 @@ export class FiltersPanelComponent implements OnInit {
   }
 
   get isRentedSelection(): string[] {
-    return this.boolToSelection(this.filterState.isRented());
+    return this.isBuyMode
+      ? this.boolToSelection((this.buyFilterState as FilterStateService).isRented())
+      : [];
   }
   get lifetimeRentSelection(): string[] {
-    return this.boolToSelection(this.filterState.lifetimeRent());
+    return this.isBuyMode
+      ? this.boolToSelection((this.buyFilterState as FilterStateService).lifetimeRent())
+      : [];
   }
   get activeSelection(): string[] {
     return this.boolToSelection(this.filterState.active());
+  }
+
+  get rentPerM2Min(): number | null {
+    return this.mode() === 'rent'
+      ? (this.rentalFilterState as RentalFilterStateService).rentPricePerM2Min()
+      : null;
+  }
+  get rentPerM2Max(): number | null {
+    return this.mode() === 'rent'
+      ? (this.rentalFilterState as RentalFilterStateService).rentPricePerM2Max()
+      : null;
   }
 
   ngOnInit(): void {
@@ -98,25 +125,34 @@ export class FiltersPanelComponent implements OnInit {
         this.filterState.priceMin.set(v ? Number(v) : null);
         this.resetOffset();
       });
-
     this.priceMaxSubject
       .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
       .subscribe((v) => {
         this.filterState.priceMax.set(v ? Number(v) : null);
         this.resetOffset();
       });
-
     this.areaMinSubject
       .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
       .subscribe((v) => {
         this.filterState.areaMin.set(v ? Number(v) : null);
         this.resetOffset();
       });
-
     this.areaMaxSubject
       .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
       .subscribe((v) => {
         this.filterState.areaMax.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+    this.rentPerM2MinSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.rentalFilterState.rentPricePerM2Min.set(v ? Number(v) : null);
+        this.resetOffset();
+      });
+    this.rentPerM2MaxSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.rentalFilterState.rentPricePerM2Max.set(v ? Number(v) : null);
         this.resetOffset();
       });
   }
@@ -132,6 +168,12 @@ export class FiltersPanelComponent implements OnInit {
   }
   onAreaMaxInput(value: string): void {
     this.areaMaxSubject.next(value);
+  }
+  onRentPerM2MinInput(value: string): void {
+    this.rentPerM2MinSubject.next(value);
+  }
+  onRentPerM2MaxInput(value: string): void {
+    this.rentPerM2MaxSubject.next(value);
   }
 
   onTypologyChange(values: string[]): void {

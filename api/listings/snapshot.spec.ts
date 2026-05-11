@@ -23,7 +23,7 @@ let imovirtualFetchFails = false;
 
 vi.mock('@neondatabase/serverless', () => ({
   neon: () => {
-    return async (...args: unknown[]) => {
+    const handler = async (...args: unknown[]) => {
       if (dbThrows) throw new Error('DB error');
       const parts = args[0] as string[];
       const query = Array.isArray(parts) ? (parts[0] ?? '') : String(parts);
@@ -33,6 +33,15 @@ vi.mock('@neondatabase/serverless', () => ({
       if (query.includes('INSERT')) return [];
       return dbListingRow ? [dbListingRow] : [];
     };
+    handler.query = async (text: string, _params?: unknown[]) => {
+      if (dbThrows) throw new Error('DB error');
+      if (text.includes('CREATE TABLE')) return [];
+      if (text.includes('listing_snapshots')) return dbSnapshotRow ? [dbSnapshotRow] : [];
+      if (text.includes('raw_data')) return dbImages.length > 0 ? [{ images: dbImages }] : [];
+      if (text.includes('INSERT')) return [];
+      return dbListingRow ? [dbListingRow] : [];
+    };
+    return handler;
   },
 }));
 

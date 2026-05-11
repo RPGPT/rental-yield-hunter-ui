@@ -1,5 +1,17 @@
 <div class="dashboard">
-  <app-filters-panel [filterOptions]="filterOptions()" />
+  <div class="mode-toggle-bar">
+    <mat-button-toggle-group [value]="mode()" (change)="onModeChange($event.value)">
+      <mat-button-toggle value="buy">Buy</mat-button-toggle>
+      <mat-button-toggle value="rent">Rent</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
 
-  <app-listings-table [listings]="listings()" [total]="total()" [loading]="listingsLoading()" />
+  <app-filters-panel [filterOptions]="filterOptions()" [mode]="mode()" />
+
+  <app-listings-table
+    [listings]="activeListings"
+    [total]="total()"
+    [loading]="listingsLoading()"
+    [mode]="mode()"
+  />
 </div>

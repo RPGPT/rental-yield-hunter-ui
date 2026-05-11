@@ -16,8 +16,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Listing } from '../../../core/models/listing.model';
+import { Listing, RentalListing } from '../../../core/models/listing.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
+import { RentalFilterStateService } from '../../../core/services/rental-filter-state.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { EurPipe } from '../../../shared/pipes/eur.pipe';
@@ -25,11 +26,11 @@ import { RelativeDatePipe } from '../../../shared/pipes/relative-date.pipe';
 import { BadgeComponent } from '../../../shared/components/badge.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state.component';
 
-export type ListingColumn = keyof Listing;
+export type ListingColumn = string;
 
 const TITLE_MAX_LENGTH = 50;
 
-export const LISTING_COLUMNS = [
+const BUY_COLUMNS: ListingColumn[] = [
   'is_favorite',
   'title',
   'price',
@@ -42,7 +43,21 @@ export const LISTING_COLUMNS = [
   'active',
   'first_seen',
   'last_seen',
-] as const satisfies readonly ListingColumn[];
+];
+
+const RENT_COLUMNS: ListingColumn[] = [
+  'is_favorite',
+  'title',
+  'price',
+  'area',
+  'rent_price_per_m2',
+  'typology',
+  'neighborhood',
+  'city',
+  'active',
+  'first_seen',
+  'last_seen',
+];
 
 @Component({
   selector: 'app-listings-table',
@@ -67,13 +82,15 @@ export const LISTING_COLUMNS = [
 export class ListingsTableComponent {
   private readonly router = inject(Router);
   private readonly filterState = inject(FilterStateService);
+  private readonly rentalFilterState = inject(RentalFilterStateService);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
 
-  listings = input<Listing[]>([]);
+  listings = input<(Listing | RentalListing)[]>([]);
   total = input<number>(0);
   loading = input<boolean>(false);
+  mode = input<'buy' | 'rent'>('buy');
 
   favoriteOverrides = signal<Record<string, boolean>>({});
   private hiddenFromFilter = signal<Set<string>>(new Set());
@@ -83,6 +100,10 @@ export class ListingsTableComponent {
     return hidden.size === 0 ? this.listings() : this.listings().filter((l) => !hidden.has(l.id));
   });
 
+  displayedColumns = computed<ListingColumn[]>(() =>
+    this.mode() === 'rent' ? RENT_COLUMNS : BUY_COLUMNS,
+  );
+
   constructor() {
     effect(() => {
       this.listings();
@@ -91,30 +112,30 @@ export class ListingsTableComponent {
     });
   }
 
-  displayedColumns: readonly ListingColumn[] = LISTING_COLUMNS;
+  private get fs() {
+    return this.mode() === 'rent' ? this.rentalFilterState : this.filterState;
+  }
 
   get pageSize(): number {
-    return this.filterState.limit();
+    return this.fs.limit();
   }
   get pageIndex(): number {
-    return this.filterState.offset() / this.filterState.limit();
+    return this.fs.offset() / this.fs.limit();
   }
 
-  isFavorite(row: Listing): boolean {
+  isFavorite(row: Listing | RentalListing): boolean {
     const overrides = this.favoriteOverrides();
     return row.id in overrides ? overrides[row.id] : row.is_favorite;
   }
 
-  onFavoriteClick(event: Event, row: Listing): void {
+  onFavoriteClick(event: Event, row: Listing | RentalListing): void {
     event.stopPropagation();
 
     if (!this.auth.isAuthenticated()) {
       this.snackBar
         .open('Sign in to save favourites', 'Sign In', { duration: 4000 })
         .onAction()
-        .subscribe(() => {
-          this.router.navigate(['/login']);
-        });
+        .subscribe(() => this.router.navigate(['/login']));
       return;
     }
 
@@ -122,28 +143,28 @@ export class ListingsTableComponent {
     this.favoriteOverrides.update((o) => ({ ...o, [row.id]: newValue }));
     this.api.setFavorite(row.id, newValue).subscribe({
       next: () => {
-        if (!newValue && this.filterState.isFavorite() === true) {
+        if (!newValue && this.fs.isFavorite() === true) {
           this.hiddenFromFilter.update((s) => new Set([...s, row.id]));
         }
         if (newValue) {
-          this.api.triggerSnapshot(row.id).subscribe({
+          const source = this.mode() === 'rent' ? 'rental' : undefined;
+          this.api.triggerSnapshot(row.id, source).subscribe({
             next: (r) => console.log(`[snapshot] ${row.id}`, r.url),
             error: (e) => console.warn(`[snapshot] failed ${row.id}:`, e),
           });
         }
       },
-      error: () => {
-        this.favoriteOverrides.update((o) => ({ ...o, [row.id]: !newValue }));
-      },
+      error: () => this.favoriteOverrides.update((o) => ({ ...o, [row.id]: !newValue })),
     });
   }
 
-  trackById(_index: number, item: Listing): string {
+  trackById(_index: number, item: Listing | RentalListing): string {
     return item.id;
   }
 
-  onRowClick(listing: Listing): void {
-    this.router.navigate(['/listing', listing.id]);
+  onRowClick(listing: Listing | RentalListing): void {
+    const route = this.mode() === 'rent' ? '/rental' : '/listing';
+    this.router.navigate([route, listing.id]);
   }
 
   onTitleClick(event: Event, url: string): void {
@@ -152,14 +173,14 @@ export class ListingsTableComponent {
   }
 
   onSortChange(sort: Sort): void {
-    this.filterState.sort.set(sort.active || 'price');
-    this.filterState.order.set((sort.direction || 'asc') as 'asc' | 'desc');
-    this.filterState.offset.set(0);
+    this.fs.sort.set(sort.active || 'price');
+    this.fs.order.set((sort.direction || 'asc') as 'asc' | 'desc');
+    this.fs.offset.set(0);
   }
 
   onPageChange(event: PageEvent): void {
-    this.filterState.limit.set(event.pageSize);
-    this.filterState.offset.set(event.pageIndex * event.pageSize);
+    this.fs.limit.set(event.pageSize);
+    this.fs.offset.set(event.pageIndex * event.pageSize);
   }
 
   truncate(text: string): string {

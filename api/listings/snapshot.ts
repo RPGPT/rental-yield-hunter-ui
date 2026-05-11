@@ -266,10 +266,13 @@ async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<st
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { id } = req.query;
+  const { id, source } = req.query;
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'Missing listing ID' });
   }
+  const isRental = source === 'rental';
+  const listingsTable = isRental ? 'rental_listings' : 'listings';
+  const rawDataTable = isRental ? 'rental_raw_data' : 'raw_data';
 
   const useBlob = !!process.env['BLOB_READ_WRITE_TOKEN'];
   const isVercel = !!process.env['VERCEL'];
@@ -303,16 +306,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const sql = neon(process.env['DATABASE_URL']!);
 
     try {
-      const result = await sql`SELECT url FROM listings WHERE id = ${id}`;
+      const result = await sql.query(`SELECT url FROM ${listingsTable} WHERE id = $1`, [id]);
       if (result.length === 0) return res.status(404).json({ error: 'Listing not found' });
       const { url } = result[0] as { url: string };
 
-      const rawDataResult = await sql`
-        SELECT raw_json->'images' AS images
-        FROM raw_data
-        WHERE listing_id = ${id}
-        LIMIT 1
-      `;
+      const rawDataResult = await sql.query(
+        `SELECT raw_json->'images' AS images FROM ${rawDataTable} WHERE listing_id = $1 LIMIT 1`,
+        [id],
+      );
       const rawImages: Array<{ large?: string; medium?: string }> =
         rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
           ? (rawDataResult[0]['images'] as Array<{ large?: string; medium?: string }>)

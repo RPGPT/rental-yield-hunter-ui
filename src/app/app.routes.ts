@@ -19,6 +19,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'rental/:id',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./features/rental-detail/rental-detail.component').then(
+        (m) => m.RentalDetailComponent,
+      ),
+  },
+  {
+    path: 'rental/:id/snapshot',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./features/snapshot/snapshot-viewer.component').then(
+        (m) => m.SnapshotViewerComponent,
+      ),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent),
   },

@@ -22,12 +22,38 @@ export interface Listing {
   last_seen: string;
 }
 
+export interface RentalListing {
+  id: string;
+  source: string;
+  url: string;
+  title: string;
+  description: string | null;
+  price: number;
+  area: number | null;
+  rent_price_per_m2: number | null;
+  location: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  typology: string | null;
+  floor: string | null;
+  is_favorite: boolean;
+  active: boolean;
+  inactive_since: string | null;
+  first_seen: string;
+  last_seen: string;
+}
+
 export interface ListingImage {
   large: string;
   medium: string;
 }
 
 export interface ListingDetail extends Listing {
+  price_history: PricePoint[];
+  images: ListingImage[];
+}
+
+export interface RentalListingDetail extends RentalListing {
   price_history: PricePoint[];
   images: ListingImage[];
 }
