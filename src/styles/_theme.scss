@@ -4,7 +4,7 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
+        primary: mat.$rose-palette,
         tertiary: mat.$orange-palette,
       ),
       typography: Roboto,
@@ -17,7 +17,7 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
+        primary: mat.$rose-palette,
         tertiary: mat.$orange-palette,
         theme-type: dark,
       ),

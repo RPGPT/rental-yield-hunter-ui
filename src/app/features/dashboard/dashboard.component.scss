@@ -15,11 +15,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   background: var(--mat-sys-surface, #fff);
+  border: 1px solid $color-sand;
 }
 
 .filter-tabs {
   display: flex;
-  border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  border-bottom: 1px solid $color-grey-light;
 }
 
 .filter-tab {

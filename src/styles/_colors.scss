@@ -1,33 +1,40 @@
+// Palette source: #ECDAC8 · #D1A693 · #D8966F · #BF5B3C · #955749
+
 // ── Primary ────────────────────────────────────────────
-$color-primary: #2d7d8a; // muted teal (replaces harsh bright blue)
-$color-primary-dark: #236874;
-$color-primary-alpha: rgba(45, 125, 138, 0.1);
+$color-primary: #bf5b3c; // terracotta
+$color-primary-dark: #955749; // deep terracotta (hover / pressed)
+$color-primary-alpha: rgba(191, 91, 60, 0.1);
 
 // ── Semantic ───────────────────────────────────────────
-$color-success: #2e7d55;
-$color-error: #b53c3c;
-$color-danger: #c94f4f;
-$color-amber: #c47a0a;
+$color-success: #3a7d55;
+$color-error: #a83030;
+$color-danger: #c94040;
+$color-amber: #b87020;
 
 // ── Greys ──────────────────────────────────────────────
-$color-grey: #8d9aa5;
-$color-grey-mid: #c4cdd6;
-$color-grey-light: #e2e8ed;
-$color-grey-dark: #5b6673;
+$color-grey: #9a8f88;
+$color-grey-mid: #c8bfb9;
+$color-grey-light: #e8e0da;
+$color-grey-dark: #5e504a;
 
 // ── Surfaces & Text ────────────────────────────────────
 $color-white: #ffffff;
-$color-bg: #f4f6f8; // warm off-white (replaces flat grey)
-$color-text: #1f2933; // primary text — dark slate
-$color-text-secondary: #5b6673;
+$color-bg: #f7f2ed; // warm off-white tinted from #ECDAC8
+$color-text: #2a1f1a; // dark warm slate
+$color-text-secondary: #6b5248;
+
+// ── Palette tones (for borders, tints) ─────────────────
+$color-sand: #ecdac8; // lightest tone
+$color-blush: #d1a693; // mid-light tone
+$color-clay: #d8966f; // warm mid tone
 
 // ── Utility ────────────────────────────────────────────
 $color-overlay-hover: rgba(0, 0, 0, 0.04);
-$color-label: rgba(0, 0, 0, 0.55);
+$color-label: rgba(42, 31, 26, 0.55);
 $color-light-surface: rgba(255, 255, 255, 0.8);
 
 // ── Dark theme ─────────────────────────────────────────
-$color-dark-bg: #111418;
-$color-dark-surface: rgba(17, 20, 24, 0.75);
+$color-dark-bg: #1a1210;
+$color-dark-surface: rgba(26, 18, 16, 0.75);
 $color-dark-text: rgba(255, 255, 255, 0.87);
 $color-dark-label: rgba(255, 255, 255, 0.6);
