@@ -139,8 +139,10 @@ export class RentalDetailComponent implements OnInit {
     const next = this.activeSlot() === 'a' ? 'b' : 'a';
     if (next === 'b') this.slotB.set(url);
     else this.slotA.set(url);
-    this.activeSlot.set(next);
     this.currentImage.set(url);
+    requestAnimationFrame(() => {
+      this.activeSlot.set(next);
+    });
   }
 
   navigateImage(dir: 1 | -1): void {

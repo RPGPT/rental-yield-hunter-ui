@@ -138,10 +138,15 @@ export class DetailComponent implements OnInit {
 
   selectImage(url: string): void {
     const next = this.activeSlot() === 'a' ? 'b' : 'a';
+    // Load new URL into the inactive slot (opacity:0, no paint yet)
     if (next === 'b') this.slotB.set(url);
     else this.slotA.set(url);
-    this.activeSlot.set(next);
     this.currentImage.set(url);
+    // Flip on the next frame so the browser paints opacity:0 first,
+    // giving the CSS transition something to animate from
+    requestAnimationFrame(() => {
+      this.activeSlot.set(next);
+    });
   }
 
   navigateImage(dir: 1 | -1): void {
