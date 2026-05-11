@@ -90,9 +90,14 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await this.authClient.signOut();
-    this.clearSession();
-    this.router.navigate(['/login']);
+    try {
+      await this.authClient.signOut();
+    } catch (err) {
+      console.warn('[auth] signOut error (ignoring):', err);
+    } finally {
+      this.clearSession();
+      this.router.navigate(['/login']);
+    }
   }
 
   private async refreshSession(): Promise<void> {
