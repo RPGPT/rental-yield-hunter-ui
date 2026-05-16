@@ -70,6 +70,13 @@ export class ApiService {
     return this.http.get<string[]>(`${this.baseUrl}/favorites`);
   }
 
+  updateListingStatus(
+    id: string,
+    flags: { is_rented?: boolean; lifetime_rent?: boolean },
+  ): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/listings/${id}`, flags);
+  }
+
   setFavorite(id: string, value: boolean): Observable<void> {
     if (value) {
       return this.http.post<void>(`${this.baseUrl}/favorites?id=${id}`, null);

@@ -13,6 +13,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -35,6 +36,7 @@ import { PriceChartComponent } from './price-chart/price-chart.component';
     MatButtonModule,
     MatIconModule,
     MatListModule,
+    MatMenuModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     DatePipe,
@@ -71,6 +73,7 @@ export class DetailComponent implements OnInit {
   activeSlot = signal<'a' | 'b'>('a');
   richDescription = signal<SafeHtml | null>(null);
   descriptionLoading = signal(false);
+  statusLoading = signal(false);
 
   ngOnInit(): void {
     this.listingId = this.route.snapshot.paramMap.get('id')!;
@@ -215,6 +218,70 @@ export class DetailComponent implements OnInit {
         void this.router.navigate(['/listing', this.listingId, 'snapshot']);
       },
       error: () => this.snapshotLoading.set(false),
+    });
+  }
+
+  markAsRented(): void {
+    this.statusLoading.set(true);
+    this.api.updateListingStatus(this.listingId, { is_rented: true }).subscribe({
+      next: () => {
+        const l = this.listing();
+        if (l) this.listing.set({ ...l, is_rented: true });
+        this.statusLoading.set(false);
+        this.snackBar.open('Marked as Rented', undefined, { duration: 3000 });
+      },
+      error: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+      },
+    });
+  }
+
+  markAsNotRented(): void {
+    this.statusLoading.set(true);
+    this.api.updateListingStatus(this.listingId, { is_rented: false }).subscribe({
+      next: () => {
+        const l = this.listing();
+        if (l) this.listing.set({ ...l, is_rented: false });
+        this.statusLoading.set(false);
+        this.snackBar.open('Marked as Not Rented', undefined, { duration: 3000 });
+      },
+      error: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+      },
+    });
+  }
+
+  markAsLifetimeRent(): void {
+    this.statusLoading.set(true);
+    this.api.updateListingStatus(this.listingId, { lifetime_rent: true }).subscribe({
+      next: () => {
+        const l = this.listing();
+        if (l) this.listing.set({ ...l, lifetime_rent: true });
+        this.statusLoading.set(false);
+        this.snackBar.open('Marked as Lifetime Rent', undefined, { duration: 3000 });
+      },
+      error: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+      },
+    });
+  }
+
+  markAsNotLifetimeRent(): void {
+    this.statusLoading.set(true);
+    this.api.updateListingStatus(this.listingId, { lifetime_rent: false }).subscribe({
+      next: () => {
+        const l = this.listing();
+        if (l) this.listing.set({ ...l, lifetime_rent: false });
+        this.statusLoading.set(false);
+        this.snackBar.open('Marked as Not Lifetime Rent', undefined, { duration: 3000 });
+      },
+      error: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+      },
     });
   }
 }

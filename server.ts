@@ -57,8 +57,8 @@ const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
     res.end();
@@ -67,7 +67,25 @@ const server = http.createServer(async (req, res) => {
 
   const url = req.url ?? '/';
   const query = parseQuery(url);
-  const fakeReq = Object.assign(req, { query, cookies: {}, body: null }) as any;
+
+  // Parse JSON body for methods that may carry a payload
+  let parsedBody: unknown = null;
+  if (req.method === 'POST' || req.method === 'PATCH' || req.method === 'PUT') {
+    parsedBody = await new Promise<unknown>((resolve) => {
+      let raw = '';
+      req.on('data', (chunk: Buffer) => (raw += chunk.toString()));
+      req.on('end', () => {
+        if (!raw) return resolve(null);
+        try {
+          resolve(JSON.parse(raw));
+        } catch {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  const fakeReq = Object.assign(req, { query, cookies: {}, body: parsedBody }) as any;
   const fakeRes = wrapResponse(res) as any;
 
   try {

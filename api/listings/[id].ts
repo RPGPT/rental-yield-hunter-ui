@@ -37,6 +37,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing listing ID' });
   }
 
+  if (req.method === 'PATCH') {
+    const body = req.body as Record<string, unknown> | null;
+    if (!body || typeof body !== 'object') {
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+
+    const updates: string[] = [];
+    const patchParams: unknown[] = [];
+    let pIdx = 1;
+
+    if ('is_rented' in body && typeof body['is_rented'] === 'boolean') {
+      updates.push(`is_rented = $${pIdx++}`);
+      patchParams.push(body['is_rented']);
+    }
+    if ('lifetime_rent' in body && typeof body['lifetime_rent'] === 'boolean') {
+      updates.push(`lifetime_rent = $${pIdx++}`);
+      patchParams.push(body['lifetime_rent']);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    patchParams.push(id);
+    await sql.query(`UPDATE listings SET ${updates.join(', ')} WHERE id = $${pIdx}`, patchParams);
+    return res.status(200).json({ ok: true });
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
