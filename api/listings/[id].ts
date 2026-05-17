@@ -61,8 +61,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     patchParams.push(id);
-    await sql.query(`UPDATE listings SET ${updates.join(', ')} WHERE id = $${pIdx}`, patchParams);
-    return res.status(200).json({ ok: true });
+    try {
+      await sql.query(`UPDATE listings SET ${updates.join(', ')} WHERE id = $${pIdx}`, patchParams);
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      return res.status(500).json({
+        error: { message: error instanceof Error ? error.message : String(error) },
+      });
+    }
   }
 
   if (req.method !== 'GET') {

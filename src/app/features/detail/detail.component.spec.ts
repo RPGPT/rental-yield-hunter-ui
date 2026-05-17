@@ -47,6 +47,7 @@ describe('DetailComponent', () => {
   let setFavorite: ReturnType<typeof vi.fn>;
   let checkSnapshot: ReturnType<typeof vi.fn>;
   let triggerSnapshot: ReturnType<typeof vi.fn>;
+  let updateListingStatus: ReturnType<typeof vi.fn>;
   let currentUserSignal: WritableSignal<{ id: string } | null>;
 
   beforeEach(() => {
@@ -56,6 +57,7 @@ describe('DetailComponent', () => {
     triggerSnapshot = vi
       .fn()
       .mockReturnValue(of({ exists: true, url: '/api/listings/snapshot-download?id=123' }));
+    updateListingStatus = vi.fn().mockReturnValue(of(undefined));
     currentUserSignal = signal<{ id: string } | null>({ id: 'dev-user' });
 
     TestBed.configureTestingModule({
@@ -67,7 +69,13 @@ describe('DetailComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
-        MockProvider(ApiService, { getListing, setFavorite, checkSnapshot, triggerSnapshot }),
+        MockProvider(ApiService, {
+          getListing,
+          setFavorite,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+        }),
         {
           provide: AuthService,
           useValue: {
@@ -268,5 +276,127 @@ describe('DetailComponent', () => {
     component.saveSnapshot();
     expect(triggerSnapshot).not.toHaveBeenCalled();
     expect(navigateSpy).toHaveBeenCalledWith(['/listing', '123', 'snapshot']);
+  });
+
+  describe('markAsRented()', () => {
+    it('calls updateListingStatus with is_rented: true', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsRented();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', { is_rented: true });
+    });
+
+    it('sets is_rented to true on the listing signal after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsRented();
+      expect(component.listing()?.is_rented).toBe(true);
+    });
+
+    it('resets statusLoading to false after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsRented();
+      expect(component.statusLoading()).toBe(false);
+    });
+
+    it('resets statusLoading to false on error', () => {
+      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsRented();
+      expect(component.statusLoading()).toBe(false);
+    });
+
+    it('does not change listing on error', () => {
+      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsRented();
+      expect(component.listing()?.is_rented).toBe(false);
+    });
+  });
+
+  describe('markAsNotRented()', () => {
+    it('calls updateListingStatus with is_rented: false', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.listing.set({ ...MOCK_LISTING, is_rented: true });
+      component.markAsNotRented();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', { is_rented: false });
+    });
+
+    it('sets is_rented to false on the listing signal after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.listing.set({ ...MOCK_LISTING, is_rented: true });
+      component.markAsNotRented();
+      expect(component.listing()?.is_rented).toBe(false);
+    });
+
+    it('resets statusLoading to false on error', () => {
+      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsNotRented();
+      expect(component.statusLoading()).toBe(false);
+    });
+  });
+
+  describe('markAsLifetimeRent()', () => {
+    it('calls updateListingStatus with lifetime_rent: true', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsLifetimeRent();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', { lifetime_rent: true });
+    });
+
+    it('sets lifetime_rent to true on the listing signal after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsLifetimeRent();
+      expect(component.listing()?.lifetime_rent).toBe(true);
+    });
+
+    it('resets statusLoading to false after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsLifetimeRent();
+      expect(component.statusLoading()).toBe(false);
+    });
+
+    it('resets statusLoading to false on error', () => {
+      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsLifetimeRent();
+      expect(component.statusLoading()).toBe(false);
+    });
+  });
+
+  describe('markAsNotLifetimeRent()', () => {
+    it('calls updateListingStatus with lifetime_rent: false', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.listing.set({ ...MOCK_LISTING, lifetime_rent: true });
+      component.markAsNotLifetimeRent();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', { lifetime_rent: false });
+    });
+
+    it('sets lifetime_rent to false on the listing signal after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.listing.set({ ...MOCK_LISTING, lifetime_rent: true });
+      component.markAsNotLifetimeRent();
+      expect(component.listing()?.lifetime_rent).toBe(false);
+    });
+
+    it('resets statusLoading to false on error', () => {
+      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.markAsNotLifetimeRent();
+      expect(component.statusLoading()).toBe(false);
+    });
   });
 });

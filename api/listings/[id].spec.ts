@@ -35,17 +35,101 @@ describe('api/listings/[id] handler', () => {
     expect((res._body as any)?.error).toBe('Missing listing ID');
   });
 
-  it('returns 405 for non-GET methods', async () => {
+  it('returns 405 for unsupported methods', async () => {
     const res = new MockRes();
-    await handler({ method: 'PATCH', query: { id: '42' }, headers: {} } as any, res as any);
+    await handler({ method: 'POST', query: { id: '42' }, headers: {} } as any, res as any);
     expect(res._status).toBe(405);
     expect((res._body as any)?.error).toBe('Method not allowed');
   });
 
-  it('returns 405 for POST method', async () => {
+  it('returns 405 for DELETE method', async () => {
     const res = new MockRes();
-    await handler({ method: 'POST', query: { id: '42' }, headers: {} } as any, res as any);
+    await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
     expect(res._status).toBe(405);
+  });
+
+  describe('PATCH', () => {
+    it('returns 400 when body is missing', async () => {
+      const res = new MockRes();
+      await handler(
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: null } as any,
+        res as any,
+      );
+      expect(res._status).toBe(400);
+      expect((res._body as any)?.error).toBe('Invalid request body');
+    });
+
+    it('returns 400 when body has no valid fields', async () => {
+      const res = new MockRes();
+      await handler(
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: { foo: 'bar' } } as any,
+        res as any,
+      );
+      expect(res._status).toBe(400);
+      expect((res._body as any)?.error).toBe('No valid fields to update');
+    });
+
+    it('updates is_rented and returns 200', async () => {
+      queryResults = [[]]; // UPDATE returns empty
+      const res = new MockRes();
+      await handler(
+        {
+          method: 'PATCH',
+          query: { id: '42' },
+          headers: {},
+          body: { is_rented: true },
+        } as any,
+        res as any,
+      );
+      expect(res._status).toBe(200);
+      expect((res._body as any)?.ok).toBe(true);
+    });
+
+    it('updates lifetime_rent and returns 200', async () => {
+      queryResults = [[]];
+      const res = new MockRes();
+      await handler(
+        {
+          method: 'PATCH',
+          query: { id: '42' },
+          headers: {},
+          body: { lifetime_rent: false },
+        } as any,
+        res as any,
+      );
+      expect(res._status).toBe(200);
+      expect((res._body as any)?.ok).toBe(true);
+    });
+
+    it('updates both fields at once and returns 200', async () => {
+      queryResults = [[]];
+      const res = new MockRes();
+      await handler(
+        {
+          method: 'PATCH',
+          query: { id: '42' },
+          headers: {},
+          body: { is_rented: false, lifetime_rent: true },
+        } as any,
+        res as any,
+      );
+      expect(res._status).toBe(200);
+    });
+
+    it('returns 500 on database error', async () => {
+      dbThrows = true;
+      const res = new MockRes();
+      await handler(
+        {
+          method: 'PATCH',
+          query: { id: '42' },
+          headers: {},
+          body: { is_rented: true },
+        } as any,
+        res as any,
+      );
+      expect(res._status).toBe(500);
+    });
   });
 
   it('GET returns 404 when listing does not exist', async () => {
