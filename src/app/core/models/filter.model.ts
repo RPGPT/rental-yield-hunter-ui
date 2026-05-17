@@ -12,6 +12,7 @@ export interface FilterState {
   typology: string[];
   city: string[];
   neighborhood: string[];
+  rental_yield_min: number | null;
   is_rented: boolean | null;
   lifetime_rent: boolean | null;
   is_favorite: boolean | null;

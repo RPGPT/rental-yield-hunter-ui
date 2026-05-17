@@ -10,6 +10,7 @@ export interface FilterQueryParams {
   typology?: string;
   city?: string;
   neighborhood?: string;
+  rental_yield_min?: string;
   is_rented?: string;
   lifetime_rent?: string;
   is_favorite?: string;
@@ -33,6 +34,7 @@ export class FilterStateService {
   readonly neighborhood = signal<string[]>([]);
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
+  readonly rentalYieldMin = signal<number | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
   readonly isHidden = signal<boolean | null>(false);
   readonly isNew = signal<boolean | null>(null);
@@ -53,6 +55,7 @@ export class FilterStateService {
     neighborhood: this.neighborhood(),
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
+    rental_yield_min: this.rentalYieldMin(),
     is_favorite: this.isFavorite(),
     is_hidden: this.isHidden(),
     is_new: this.isNew(),
@@ -74,6 +77,7 @@ export class FilterStateService {
     this.neighborhood.set([]);
     this.isRented.set(null);
     this.lifetimeRent.set(null);
+    this.rentalYieldMin.set(null);
     this.isFavorite.set(null);
     this.isHidden.set(false);
     this.isNew.set(null);
@@ -93,6 +97,7 @@ export class FilterStateService {
     if (params['typology']) this.typology.set(String(params['typology']).split(','));
     if (params['city']) this.city.set(String(params['city']).split(','));
     if (params['neighborhood']) this.neighborhood.set(String(params['neighborhood']).split(','));
+    if (params['rental_yield_min']) this.rentalYieldMin.set(Number(params['rental_yield_min']));
     if (params['is_rented'] != null)
       this.isRented.set(
         params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null,
@@ -133,6 +138,7 @@ export class FilterStateService {
     if (s.typology.length) p.typology = s.typology.join(',');
     if (s.city.length) p.city = s.city.join(',');
     if (s.neighborhood.length) p.neighborhood = s.neighborhood.join(',');
+    if (s.rental_yield_min != null) p.rental_yield_min = String(s.rental_yield_min);
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);

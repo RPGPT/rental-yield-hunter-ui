@@ -126,3 +126,24 @@ table {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.rent-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  cursor: default;
+
+  &--green {
+    background-color: $color-success;
+  }
+  &--amber {
+    background-color: $color-amber;
+  }
+  &--grey {
+    background-color: $color-grey;
+  }
+}

@@ -72,9 +72,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
               l.location, l.city, l.neighborhood, l.typology, l.floor,
               l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
-              l.inactive_since, l.first_seen, l.last_seen
+              l.inactive_since, l.first_seen, l.last_seen,
+              re.estimated_rent, re.avg_rent_per_m2, re.sample_count, re.confidence, re.match_level, re.rental_yield
        FROM listings l
        ${joinClause}
+       LEFT JOIN rental_estimates re ON re.listing_id = l.id
        WHERE l.id = $1`,
       listingParams,
     );

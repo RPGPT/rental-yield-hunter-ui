@@ -172,6 +172,42 @@
                 <span matListItemTitle>€/m²</span>
                 <span matListItemLine>{{ l.price_per_m2 | eur }}</span>
               </mat-list-item>
+
+              <!-- Rent Estimate -->
+              @if (l.estimated_rent != null) {
+                <mat-list-item>
+                  <span matListItemTitle>Est. Monthly Rent</span>
+                  <span matListItemLine>
+                    <span
+                      class="rent-chip rent-chip--{{ confidenceColor(l.confidence) }}"
+                      [matTooltip]="
+                        l.sample_count != null
+                          ? l.confidence +
+                            ' confidence · based on ' +
+                            l.sample_count +
+                            ' comparables (' +
+                            l.match_level +
+                            ')'
+                          : l.confidence + ' confidence'
+                      "
+                    >
+                      {{ l.estimated_rent | eur }}
+                    </span>
+                  </span>
+                </mat-list-item>
+                <mat-list-item>
+                  <span matListItemTitle>Est. Rent/m²</span>
+                  <span matListItemLine>{{ l.avg_rent_per_m2 | eur }} / m²</span>
+                </mat-list-item>
+                @if (l.rental_yield != null) {
+                  <mat-list-item>
+                    <span matListItemTitle>Est. Gross Yield</span>
+                    <span matListItemLine class="yield-value">
+                      {{ (l.rental_yield * 100).toFixed(2) }}%
+                    </span>
+                  </mat-list-item>
+                }
+              }
               <mat-list-item>
                 <span matListItemTitle>Property Type</span>
                 <span matListItemLine>{{ l.property_type || '—' }}</span>

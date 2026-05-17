@@ -22,6 +22,7 @@ export function buildQueryParams(state: FilterState): QueryParams {
   if (state.typology.length > 0) params.typology = state.typology.join(',');
   if (state.city.length > 0) params.city = state.city.join(',');
   if (state.neighborhood.length > 0) params.neighborhood = state.neighborhood.join(',');
+  if (state.rental_yield_min != null) params.rental_yield_min = String(state.rental_yield_min);
   if (state.is_rented != null) params.is_rented = String(state.is_rented);
   if (state.lifetime_rent != null) params.lifetime_rent = String(state.lifetime_rent);
   if (state.is_favorite != null) params.is_favorite = String(state.is_favorite);

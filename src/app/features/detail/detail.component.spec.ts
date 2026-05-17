@@ -36,6 +36,11 @@ const MOCK_LISTING: ListingDetail = {
   inactive_since: null,
   first_seen: '2024-01-01T00:00:00Z',
   last_seen: '2024-06-01T00:00:00Z',
+  estimated_rent: null,
+  avg_rent_per_m2: null,
+  sample_count: null,
+  confidence: null,
+  match_level: null,
   price_history: [{ price: 1200, captured_at: '2024-01-01T00:00:00Z' }],
   images: [
     { large: 'https://img.example.com/1-large.jpg', medium: 'https://img.example.com/1-med.jpg' },

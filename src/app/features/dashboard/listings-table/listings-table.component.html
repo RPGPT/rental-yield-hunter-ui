@@ -88,6 +88,42 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="estimated_rent">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Est. Rent</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
+            @if (row.estimated_rent != null) {
+              <span
+                class="rent-chip rent-chip--{{ confidenceColor(row.confidence) }}"
+                [matTooltip]="
+                  row.sample_count != null
+                    ? row.confidence +
+                      ' confidence · based on ' +
+                      row.sample_count +
+                      ' comparables (' +
+                      row.match_level +
+                      ')'
+                    : row.confidence + ' confidence'
+                "
+              >
+                {{ row.estimated_rent | eur }}
+              </span>
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="rental_yield">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Yield</th>
+          <td mat-cell *matCellDef="let row" class="hide-mobile">
+            @if (row.rental_yield != null) {
+              {{ (row.rental_yield * 100).toFixed(2) }}%
+            } @else {
+              —
+            }
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="neighborhood">
           <th
             mat-header-cell

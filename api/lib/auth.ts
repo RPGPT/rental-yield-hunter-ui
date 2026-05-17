@@ -1,4 +1,5 @@
 import { createPublicKey, verify as cryptoVerify } from 'crypto';
+import { neon } from '@neondatabase/serverless';
 import type { VercelRequest } from '../_types';
 
 export interface NeonAuthUser {
@@ -99,6 +100,19 @@ async function verifyJwt(token: string): Promise<NeonAuthUser | null> {
   }
 }
 
+async function getRoleFromDb(userId: string): Promise<string | null> {
+  const dbUrl = process.env['DATABASE_URL'];
+  if (!dbUrl) return null;
+  try {
+    const sql = neon(dbUrl);
+    const rows = await sql`SELECT role FROM neon_auth.users_sync WHERE id = ${userId} LIMIT 1`;
+    return (rows[0] as { role?: string } | undefined)?.role ?? null;
+  } catch (err) {
+    console.error('[auth] DB role lookup failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null> {
   const authUrl = process.env['NEON_AUTH_URL'];
   if (!authUrl) {
@@ -116,8 +130,9 @@ async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null
     if (!response.ok) return null;
     const data = (await response.json()) as { user?: NeonAuthUser & { role?: string } } | null;
     const user = data?.user ?? null;
-    if (!user) return null;
-    return { ...user, role: user.role ?? null };
+    if (!user?.id) return null;
+    const role = user.role ?? (await getRoleFromDb(user.id));
+    return { ...user, role };
   } catch (err) {
     clearTimeout(timeout);
     console.error('[auth] session verification error:', err instanceof Error ? err.message : err);
@@ -138,11 +153,11 @@ export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUs
     return { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null, role: 'admin' };
   }
   const verified = await verifyJwt(token);
-  // If JWT is valid but has no role, fetch from session endpoint to get full user data (incl. role)
   if (verified) {
     if (verified.role) return verified;
-    const sessionUser = await verifyNeonAuthSession(token);
-    return sessionUser ?? verified;
+    // JWT valid but no role claim — look it up in the DB
+    const role = await getRoleFromDb(verified.id);
+    return { ...verified, role };
   }
   return verifyNeonAuthSession(token);
 }

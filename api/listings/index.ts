@@ -60,6 +60,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       has_garage,
       is_rented,
       lifetime_rent,
+      rental_yield_min,
       is_favorite,
       is_hidden,
       is_new,
@@ -125,6 +126,10 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       conditions.push(`lifetime_rent = $${paramIndex++}`);
       params.push(lifetime_rent === 'true');
     }
+    if (rental_yield_min) {
+      conditions.push(`re.rental_yield >= $${paramIndex++}`);
+      params.push(Number(rental_yield_min));
+    }
     if (is_new === 'true') {
       conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`);
     }
@@ -160,8 +165,12 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       'active',
       'first_seen',
       'last_seen',
+      'estimated_rent',
+      'rental_yield',
     ];
+    const reColumns = new Set(['estimated_rent', 'rental_yield']);
     const sortCol = allowedSorts.includes(sort as string) ? sort : 'price';
+    const sortPrefix = reColumns.has(sortCol as string) ? 're' : 'l';
     const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
 
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
@@ -200,11 +209,13 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
                l.price, l.area, l.price_per_m2,
                l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
-               l.inactive_since, l.first_seen, l.last_seen
+               l.inactive_since, l.first_seen, l.last_seen,
+               re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield
         FROM ${tableRef}
         ${joinClause}
+        LEFT JOIN rental_estimates re ON re.listing_id = l.id
         ${rebuiltWhere}
-        ORDER BY l.${sortCol} ${sortOrder} NULLS LAST
+        ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
       const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} ${rebuiltWhere}`;
@@ -221,10 +232,12 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
              l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
              l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
-             l.inactive_since, l.first_seen, l.last_seen
+             l.inactive_since, l.first_seen, l.last_seen,
+             re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield
       FROM listings l
+      LEFT JOIN rental_estimates re ON re.listing_id = l.id
       ${whereClause}
-      ORDER BY l.${sortCol} ${sortOrder} NULLS LAST
+      ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 

@@ -141,6 +141,23 @@
       </div>
     }
 
+    @if (isBuyMode) {
+      <div class="filter-group">
+        <label class="filter-label">Min Yield %</label>
+        <mat-form-field appearance="outline" class="filter-field">
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="0.1"
+            [value]="rentalYieldMin != null ? rentalYieldMin * 100 : ''"
+            (input)="onRentalYieldMinInput($any($event.target).value)"
+          />
+          <span matTextSuffix>%</span>
+        </mat-form-field>
+      </div>
+    }
+
     <div class="filter-group">
       <label class="filter-label">Status</label>
       <mat-button-toggle-group

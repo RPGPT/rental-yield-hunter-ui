@@ -38,6 +38,8 @@ const BUY_COLUMNS: ListingColumn[] = [
   'area',
   'price_per_m2',
   'typology',
+  'estimated_rent',
+  'rental_yield',
   'neighborhood',
   'city',
   'is_rented',
@@ -225,6 +227,12 @@ export class ListingsTableComponent {
     if (n === 1) return 'blue';
     if (n === 2) return 'amber';
     if (n >= 3) return 'green';
+    return 'grey';
+  }
+
+  confidenceColor(confidence: string | null): 'green' | 'amber' | 'grey' {
+    if (confidence === 'high') return 'green';
+    if (confidence === 'medium') return 'amber';
     return 'grey';
   }
 }

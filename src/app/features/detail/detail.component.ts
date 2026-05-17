@@ -248,6 +248,12 @@ export class DetailComponent implements OnInit {
     return this.auth.isAdmin();
   }
 
+  confidenceColor(confidence: string | null): 'green' | 'amber' | 'grey' {
+    if (confidence === 'high') return 'green';
+    if (confidence === 'medium') return 'amber';
+    return 'grey';
+  }
+
   markAsRented(): void {
     this.statusLoading.set(true);
     this.api.updateListingStatus(this.listingId, { is_rented: true }).subscribe({

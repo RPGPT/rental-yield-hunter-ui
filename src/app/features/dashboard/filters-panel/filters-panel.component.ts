@@ -70,6 +70,7 @@ export class FiltersPanelComponent implements OnInit {
   private areaMaxSubject = new Subject<string>();
   private rentPerM2MinSubject = new Subject<string>();
   private rentPerM2MaxSubject = new Subject<string>();
+  private rentalYieldMinSubject = new Subject<string>();
 
   get selectedTypologies(): string[] {
     return this.filterState.typology();
@@ -117,6 +118,9 @@ export class FiltersPanelComponent implements OnInit {
       ? (this.rentalFilterState as RentalFilterStateService).rentPricePerM2Max()
       : null;
   }
+  get rentalYieldMin(): number | null {
+    return this.isBuyMode ? this.buyFilterState.rentalYieldMin() : null;
+  }
 
   ngOnInit(): void {
     this.priceMinSubject
@@ -155,6 +159,12 @@ export class FiltersPanelComponent implements OnInit {
         this.rentalFilterState.rentPricePerM2Max.set(v ? Number(v) : null);
         this.resetOffset();
       });
+    this.rentalYieldMinSubject
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((v) => {
+        this.buyFilterState.rentalYieldMin.set(v ? Number(v) / 100 : null);
+        this.resetOffset();
+      });
   }
 
   onPriceMinInput(value: string): void {
@@ -174,6 +184,9 @@ export class FiltersPanelComponent implements OnInit {
   }
   onRentPerM2MaxInput(value: string): void {
     this.rentPerM2MaxSubject.next(value);
+  }
+  onRentalYieldMinInput(value: string): void {
+    this.rentalYieldMinSubject.next(value);
   }
 
   onTypologyChange(values: string[]): void {

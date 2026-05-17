@@ -21,6 +21,13 @@ export interface Listing {
   inactive_since: string | null;
   first_seen: string;
   last_seen: string;
+  // Rent estimate (from rental_estimates table, may be null if not yet computed)
+  estimated_rent: number | null;
+  avg_rent_per_m2: number | null;
+  sample_count: number | null;
+  confidence: 'high' | 'medium' | 'low' | 'none' | null;
+  match_level: 'neighborhood' | 'city' | 'neighborhood_broad' | 'city_broad' | 'none' | null;
+  rental_yield: number | null;
 }
 
 export interface RentalListing {
