@@ -13,7 +13,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PATCH') {
     const user = await getUserFromRequest(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
 
     const body = req.body as Record<string, unknown> | null;
     if (!body || typeof body !== 'object') {

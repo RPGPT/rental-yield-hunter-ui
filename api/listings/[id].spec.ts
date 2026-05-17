@@ -79,14 +79,14 @@ describe('api/listings/[id] handler', () => {
       expect(res._status).toBe(401);
     });
 
-    it('returns 403 when user is not an admin', async () => {
+    it('allows non-admin authenticated users to patch', async () => {
       mockUser = { id: 'u1', email: 'u@test.com', name: null, image: null, role: 'user' };
       const res = new MockRes();
       await handler(
         { method: 'PATCH', query: { id: '42' }, headers: {}, body: { is_rented: true } } as any,
         res as any,
       );
-      expect(res._status).toBe(403);
+      expect(res._status).toBe(200);
     });
 
     it('returns 400 when body is missing', async () => {
