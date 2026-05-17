@@ -138,6 +138,11 @@ export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUs
     return { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null, role: 'admin' };
   }
   const verified = await verifyJwt(token);
-  if (verified) return verified;
+  // If JWT is valid but has no role, fetch from session endpoint to get full user data (incl. role)
+  if (verified) {
+    if (verified.role) return verified;
+    const sessionUser = await verifyNeonAuthSession(token);
+    return sessionUser ?? verified;
+  }
   return verifyNeonAuthSession(token);
 }
