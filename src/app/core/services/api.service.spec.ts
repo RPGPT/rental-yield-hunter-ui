@@ -160,4 +160,103 @@ describe('ApiService', () => {
     obs1.subscribe();
     httpMock.expectOne((r) => r.url.includes('/api/filters')).flush({ cities: [] });
   });
+
+  it('getRentalListings() sends GET to /api/rental-listings', () => {
+    service
+      .getRentalListings({
+        price_min: null,
+        price_max: null,
+        area_min: null,
+        area_max: null,
+        rent_price_per_m2_min: null,
+        rent_price_per_m2_max: null,
+        typology: [],
+        city: [],
+        neighborhood: [],
+        is_favorite: null,
+        is_new: null,
+        price_change: null,
+        active: null,
+        sort: 'price',
+        order: 'asc',
+        limit: 50,
+        offset: 0,
+      })
+      .subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/rental-listings'));
+    expect(req.request.method).toBe('GET');
+    req.flush({ data: [], total: 0, limit: 50, offset: 0 });
+  });
+
+  it('getRentalListing() sends GET to /api/rental-listings/:id', () => {
+    service.getRentalListing('77').subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/rental-listings/77'));
+    expect(req.request.method).toBe('GET');
+    req.flush({ id: '77', title: 'Rental' });
+  });
+
+  it('getRentalFilterOptions() sends GET to /api/rental-filters', () => {
+    service.getRentalFilterOptions().subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/rental-filters'));
+    expect(req.request.method).toBe('GET');
+    req.flush({ cities: [], typologies: [], neighborhoods: {} });
+  });
+
+  it('getRentalFilterOptions() returns same observable on second call', () => {
+    const obs1 = service.getRentalFilterOptions();
+    const obs2 = service.getRentalFilterOptions();
+    expect(obs1).toBe(obs2);
+    obs1.subscribe();
+    httpMock.expectOne((r) => r.url.includes('/api/rental-filters')).flush({ cities: [] });
+  });
+
+  it('checkSnapshot() sends GET to /api/listings/snapshot with id', () => {
+    service.checkSnapshot('55').subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/snapshot'));
+    expect(req.request.method).toBe('GET');
+    expect(req.request.urlWithParams).toContain('id=55');
+    req.flush({ exists: false });
+  });
+
+  it('checkSnapshot() includes &source=rental for rental source', () => {
+    service.checkSnapshot('55', 'rental').subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/snapshot'));
+    expect(req.request.urlWithParams).toContain('source=rental');
+    req.flush({ exists: true, url: '/snap' });
+  });
+
+  it('getListingDescription() sends GET to /api/listings/description', () => {
+    service.getListingDescription('https://example.com/listing').subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/description'));
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      description: null,
+      images: [],
+      characteristics: [],
+      topInformation: [],
+      additionalInformation: [],
+    });
+  });
+
+  it('setHidden() sends POST to /api/hidden when value is true', () => {
+    service.setHidden('33', true).subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/hidden'));
+    expect(req.request.method).toBe('POST');
+    expect(req.request.urlWithParams).toContain('id=33');
+    req.flush(null);
+  });
+
+  it('setHidden() sends DELETE to /api/hidden when value is false', () => {
+    service.setHidden('33', false).subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/hidden'));
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
+
+  it('triggerSnapshot() includes &source=rental when source=rental', () => {
+    service.triggerSnapshot('99', 'rental').subscribe();
+    const req = httpMock.expectOne((r) => r.url.includes('/api/listings/snapshot'));
+    expect(req.request.urlWithParams).toContain('source=rental');
+    req.flush({ exists: true, url: '/snap' });
+  });
 });

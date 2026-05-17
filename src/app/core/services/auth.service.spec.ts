@@ -162,4 +162,119 @@ describe('AuthService', () => {
     expect(svc.isAuthenticated()).toBe(false);
     expect(navSpy).toHaveBeenCalledWith(['/login']);
   });
+
+  it('loadStoredUser returns null when localStorage has invalid JSON', () => {
+    localStorage.setItem('auth_user', 'not-valid-json{{{');
+    const svc = setup();
+    expect(svc.currentUser()).toBeNull();
+  });
+
+  it('signUpWithEmail stores session and navigates to / on success', async () => {
+    mockAuthClient.signUp.email.mockResolvedValue({ error: null });
+    mockAuthClient.getSession.mockResolvedValue({
+      data: { user: MOCK_USER, session: { token: MOCK_TOKEN } },
+    });
+    const svc = setup();
+    const router = TestBed.inject(Router);
+    const navSpy = vi.spyOn(router, 'navigate');
+    await svc.signUpWithEmail('u@test.com', 'pass', 'Test');
+    expect(svc.isAuthenticated()).toBe(true);
+    expect(navSpy).toHaveBeenCalledWith(['/']);
+  });
+
+  it('signUpWithEmail throws when authClient returns an error', async () => {
+    mockAuthClient.signUp.email.mockResolvedValue({ error: { message: 'Email taken' } });
+    const svc = setup();
+    await expect(svc.signUpWithEmail('u@test.com', 'pass', 'Test')).rejects.toThrow('Email taken');
+  });
+
+  it('signUpWithEmail throws "Sign-up failed" when error has no message', async () => {
+    mockAuthClient.signUp.email.mockResolvedValue({ error: {} });
+    const svc = setup();
+    await expect(svc.signUpWithEmail('u@test.com', 'pass', 'Test')).rejects.toThrow(
+      'Sign-up failed',
+    );
+  });
+
+  it('signInWithEmail throws "Sign-in failed" when error has no message', async () => {
+    mockAuthClient.signIn.email.mockResolvedValue({ error: {} });
+    const svc = setup();
+    await expect(svc.signInWithEmail('u@test.com', 'pass')).rejects.toThrow('Sign-in failed');
+  });
+
+  it('signInWithGoogle calls authClient.signIn.social with google provider', async () => {
+    mockAuthClient.signIn.social.mockResolvedValue({});
+    const svc = setup();
+    await svc.signInWithGoogle();
+    expect(mockAuthClient.signIn.social).toHaveBeenCalledWith({
+      provider: 'google',
+      callbackURL: '/',
+    });
+  });
+
+  it('signInWithEmail does not update session when getSession returns no data', async () => {
+    mockAuthClient.signIn.email.mockResolvedValue({ error: null });
+    mockAuthClient.getSession.mockResolvedValue({ data: null });
+    const svc = setup();
+    await svc.signInWithEmail('u@test.com', 'pass');
+    // session not stored since refreshSession got no user
+    expect(svc.isAuthenticated()).toBe(false);
+  });
+
+  it('storeSession maps image and role when provided', async () => {
+    mockAuthClient.getSession.mockResolvedValue({
+      data: {
+        user: {
+          id: 'u2',
+          email: 'u2@test.com',
+          name: null,
+          image: 'http://img.jpg',
+          role: 'admin',
+        },
+        session: { token: 'tok-2' },
+      },
+    });
+    const svc = setup();
+    await svc.initSession();
+    expect(svc.currentUser()?.picture).toBe('http://img.jpg');
+    expect(svc.currentUser()?.role).toBe('admin');
+  });
+
+  it('initSession returns immediately if already initialized', async () => {
+    mockAuthClient.getSession.mockResolvedValue({ data: null });
+    const svc = setup();
+    await svc.initSession();
+    const callCountAfterFirst = mockAuthClient.getSession.mock.calls.length;
+    await svc.initSession(); // second call should return immediately
+    expect(mockAuthClient.getSession.mock.calls.length).toBe(callCountAfterFirst); // no extra calls
+  });
+
+  it('initSession returns same promise when called concurrently', async () => {
+    let resolve!: () => void;
+    mockAuthClient.getSession.mockReturnValue(
+      new Promise<{ data: null }>((res) => {
+        resolve = () => res({ data: null });
+      }),
+    );
+    const svc = setup();
+    const p1 = svc.initSession();
+    const p2 = svc.initSession(); // concurrent
+    expect(p1).toBe(p2);
+    resolve();
+    await p1;
+  });
+
+  it('initSession uses devBypassAuth path when devBypassAuth is true', async () => {
+    const envModule = await import('../../../environments/environment');
+    (envModule.environment as Record<string, unknown>)['devBypassAuth'] = true;
+    try {
+      const svc = setup();
+      await svc.initSession();
+      expect(svc.currentUser()?.email).toBe('dev@local');
+      expect(svc.isAuthenticated()).toBe(true);
+      expect(svc.isAdmin()).toBe(true);
+    } finally {
+      (envModule.environment as Record<string, unknown>)['devBypassAuth'] = false;
+    }
+  });
 });

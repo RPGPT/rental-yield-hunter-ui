@@ -232,4 +232,187 @@ describe('api/listings/index handler', () => {
     );
     expect(res._status).toBe(200);
   });
+
+  it('filters by price_change=reduced', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { price_change: 'reduced' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by price_change=increased', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { price_change: 'increased' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by rental_yield_min', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { rental_yield_min: '5' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by estimated_rent (re column) without auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { sort: 'estimated_rent' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by rental_yield (re column) without auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { sort: 'rental_yield' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('returns 200 with data using dev-token (auth path)', async () => {
+    queryResults = [[{ id: '1', title: 'Auth Test' }], [{ total: 1 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: {}, headers: { authorization: 'Bearer dev-token' } } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+    expect((res._body as any).data).toEqual([{ id: '1', title: 'Auth Test' }]);
+  });
+
+  it('filters by price_change=reduced with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { price_change: 'reduced' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by price_change=increased with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { price_change: 'increased' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by rental_yield_min with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { rental_yield_min: '4' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by estimated_rent (re column) with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { sort: 'estimated_rent' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by rental_yield (re column) with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { sort: 'rental_yield' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('returns 500 when DB throws with auth path', async () => {
+    dbThrows = true;
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: {}, headers: { authorization: 'Bearer dev-token' } } as any,
+      res as any,
+    );
+    expect(res._status).toBe(500);
+  });
+
+  it('filters by is_favorite=true with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { is_favorite: 'true' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by is_hidden=true with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { is_hidden: 'true' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by is_hidden=false with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { is_hidden: 'false' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
 });

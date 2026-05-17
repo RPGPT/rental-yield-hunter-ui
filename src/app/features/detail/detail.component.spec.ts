@@ -409,4 +409,282 @@ describe('DetailComponent', () => {
       expect(component.statusLoading()).toBe(false);
     });
   });
+
+  describe('toggleHidden()', () => {
+    it('calls setHidden with true when not currently hidden', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.isHidden.set(false);
+      component.toggleHidden();
+      expect(setHidden).toHaveBeenCalledWith('123', true);
+    });
+
+    it('sets isHidden to true on success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.isHidden.set(false);
+      component.toggleHidden();
+      expect(component.isHidden()).toBe(true);
+    });
+
+    it('resets hiddenLoading to false after success', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.toggleHidden();
+      expect(component.hiddenLoading()).toBe(false);
+    });
+
+    it('resets hiddenLoading to false on error', () => {
+      setHidden.mockReturnValue(throwError(() => new Error('fail')));
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.toggleHidden();
+      expect(component.hiddenLoading()).toBe(false);
+    });
+
+    it('shows snackbar when not authenticated', () => {
+      currentUserSignal.set(null);
+      const snackBar = TestBed.inject(MatSnackBar);
+      const spy = vi.spyOn(snackBar, 'open').mockReturnValue({
+        onAction: () => of(undefined),
+        dismiss: () => {},
+        afterDismissed: () => of({ dismissedByAction: false }),
+        afterOpened: () => of(undefined),
+        _open: false,
+        instance: {} as never,
+        containerInstance: {} as never,
+      } as never);
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.toggleHidden();
+      expect(spy).toHaveBeenCalledWith('Sign in to hide listings', 'Sign In', { duration: 4000 });
+      expect(setHidden).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('priceWentUp() / priceWentDown()', () => {
+    it('priceWentUp() returns false when listing is null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.priceWentUp()).toBe(false);
+    });
+
+    it('priceWentDown() returns false when listing is null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.priceWentDown()).toBe(false);
+    });
+
+    it('priceWentUp() returns true when a history price < current price', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.listing.set({
+        ...MOCK_LISTING,
+        price: 1200,
+        price_history: [{ price: 900, captured_at: '2024-01-01' }],
+      });
+      expect(component.priceWentUp()).toBe(true);
+    });
+
+    it('priceWentDown() returns true when a history price > current price', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.listing.set({
+        ...MOCK_LISTING,
+        price: 900,
+        price_history: [{ price: 1200, captured_at: '2024-01-01' }],
+      });
+      expect(component.priceWentDown()).toBe(true);
+    });
+  });
+
+  describe('isAdmin()', () => {
+    it('delegates to auth.isAdmin()', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.isAdmin()).toBe(true);
+    });
+  });
+
+  describe('confidenceColor()', () => {
+    it('returns "green" for high confidence', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.confidenceColor('high')).toBe('green');
+    });
+
+    it('returns "amber" for medium confidence', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.confidenceColor('medium')).toBe('amber');
+    });
+
+    it('returns "grey" for low confidence', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.confidenceColor('low')).toBe('grey');
+    });
+
+    it('returns "grey" for null confidence', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      expect(component.confidenceColor(null)).toBe('grey');
+    });
+  });
+
+  describe('mapsUrl()', () => {
+    it('returns URL using location when available', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const url = component.mapsUrl({ location: 'Boavista', neighborhood: null, city: null });
+      expect(url).toContain('Boavista');
+    });
+
+    it('returns URL using neighborhood and city when location is null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const url = component.mapsUrl({ location: null, neighborhood: 'Bonfim', city: 'Porto' });
+      expect(url).toContain('Bonfim');
+    });
+
+    it('returns null when all location fields are null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const url = component.mapsUrl({ location: null, neighborhood: null, city: null });
+      expect(url).toBeNull();
+    });
+  });
+
+  describe('currentImageIndex()', () => {
+    it('returns the index of the current image', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const images = MOCK_LISTING.images.map((img) => ({ large: img.large }));
+      expect(component.currentImageIndex(images)).toBe(0);
+    });
+  });
+
+  describe('navigateImage()', () => {
+    it('does nothing when there are fewer than 2 images', () => {
+      getListing.mockReturnValue(
+        of({ ...MOCK_LISTING, images: [{ large: 'only.jpg', medium: 'only-m.jpg' }] }),
+      );
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.navigateImage(1);
+      expect(component.currentImage()).toBe('only.jpg');
+    });
+  });
+
+  describe('onKeyDown()', () => {
+    it('navigates right on ArrowRight key', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const spy = vi.spyOn(component, 'navigateImage');
+      component.onKeyDown(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      expect(spy).toHaveBeenCalledWith(1);
+    });
+
+    it('navigates left on ArrowLeft key', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const spy = vi.spyOn(component, 'navigateImage');
+      component.onKeyDown(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+      expect(spy).toHaveBeenCalledWith(-1);
+    });
+
+    it('ignores key events from TEXTAREA elements', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const spy = vi.spyOn(component, 'navigateImage');
+      const event = new KeyboardEvent('keydown', { key: 'ArrowRight' });
+      Object.defineProperty(event, 'target', { get: () => ({ tagName: 'TEXTAREA' }) });
+      component.onKeyDown(event);
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('ignores other keys', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      const spy = vi.spyOn(component, 'navigateImage');
+      component.onKeyDown(new KeyboardEvent('keydown', { key: 'Enter' }));
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getListingDescription (imovirtual URL path)', () => {
+    let getListingDescription: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      getListingDescription = vi
+        .fn()
+        .mockReturnValue(
+          of({
+            description: '<p>Rich</p>',
+            images: [],
+            characteristics: [],
+            topInformation: [],
+            additionalInformation: [],
+          }),
+        );
+      getListing.mockReturnValue(
+        of({ ...MOCK_LISTING, url: 'https://www.imovirtual.com/imovel/123' }),
+      );
+      TestBed.overrideProvider(ApiService, {
+        useValue: {
+          getListing,
+          setFavorite,
+          setHidden,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+          getListingDescription,
+        },
+      });
+    });
+
+    it('calls getListingDescription for imovirtual URLs', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(getListingDescription).toHaveBeenCalled();
+    });
+
+    it('sets richDescription from response', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(component.richDescription()).toBeTruthy();
+    });
+
+    it('updates images from description response', () => {
+      getListingDescription.mockReturnValue(
+        of({
+          description: null,
+          images: [{ large: 'http://new/img.jpg', medium: 'http://new/img-m.jpg' }],
+          characteristics: [],
+          topInformation: [],
+          additionalInformation: [],
+        }),
+      );
+      TestBed.overrideProvider(ApiService, {
+        useValue: {
+          getListing,
+          setFavorite,
+          setHidden,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+          getListingDescription,
+        },
+      });
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(component.currentImage()).toBe('http://new/img.jpg');
+    });
+
+    it('handles description error gracefully', () => {
+      getListingDescription.mockReturnValue(throwError(() => new Error('fail')));
+      TestBed.overrideProvider(ApiService, {
+        useValue: {
+          getListing,
+          setFavorite,
+          setHidden,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+          getListingDescription,
+        },
+      });
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(component.descriptionLoading()).toBe(false);
+    });
+  });
 });

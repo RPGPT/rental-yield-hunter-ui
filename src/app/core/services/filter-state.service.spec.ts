@@ -332,6 +332,31 @@ describe('FilterStateService', () => {
       expect(svc.priceMin()).toBeNull();
       expect(svc.active()).toBe(true);
     });
+
+    it('sets rentalYieldMin from params', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ rental_yield_min: '0.05' });
+      expect(svc.rentalYieldMin()).toBe(0.05);
+    });
+
+    it('sets isHidden to null when is_hidden param is "all"', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_hidden: 'all' });
+      expect(svc.isHidden()).toBeNull();
+    });
+
+    it('sets isHidden to false when is_hidden param is something else', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ is_hidden: 'false' });
+      expect(svc.isHidden()).toBe(false);
+    });
+
+    it('sets isHidden to false (else branch) when is_hidden param is absent', () => {
+      const svc = new FilterStateService();
+      svc.isHidden.set(null); // set to non-default first
+      svc.initFromParams({});
+      expect(svc.isHidden()).toBe(false);
+    });
   });
 
   describe('toQueryParams', () => {
@@ -469,6 +494,29 @@ describe('FilterStateService', () => {
     it('omits price_change when null', () => {
       const svc = new FilterStateService();
       expect(svc.toQueryParams().price_change).toBeUndefined();
+    });
+
+    it('includes rental_yield_min when set', () => {
+      const svc = new FilterStateService();
+      svc.rentalYieldMin.set(0.05);
+      expect(svc.toQueryParams().rental_yield_min).toBe('0.05');
+    });
+
+    it('omits rental_yield_min when null', () => {
+      const svc = new FilterStateService();
+      expect(svc.toQueryParams().rental_yield_min).toBeUndefined();
+    });
+
+    it('includes is_hidden=all when isHidden is null', () => {
+      const svc = new FilterStateService();
+      svc.isHidden.set(null);
+      expect(svc.toQueryParams().is_hidden).toBe('all');
+    });
+
+    it('omits is_hidden when false (default)', () => {
+      const svc = new FilterStateService();
+      svc.isHidden.set(false);
+      expect(svc.toQueryParams().is_hidden).toBeUndefined();
     });
   });
 });

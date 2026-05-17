@@ -100,4 +100,44 @@ describe('errorInterceptor', () => {
     httpMock.expectOne('/test').flush(null, { status: 400, statusText: 'Bad Request' });
     expect(caughtError).toBeTruthy();
   });
+
+  it('shows "Session expired" and navigates to /login on 401 for non-auth non-favorites URL', () => {
+    const openSpy = vi.spyOn(snackBar, 'open');
+    const navSpy = vi.spyOn(router, 'navigate');
+    http.get('/api/listings').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/listings').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(openSpy).toHaveBeenCalledWith(
+      'Session expired. Please sign in again.',
+      'Close',
+      expect.any(Object),
+    );
+    expect(navSpy).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('does NOT show session-expired message for 401 on /auth/ URL', () => {
+    const openSpy = vi.spyOn(snackBar, 'open');
+    const navSpy = vi.spyOn(router, 'navigate');
+    http.get('/auth/login').subscribe({ error: () => {} });
+    httpMock.expectOne('/auth/login').flush(null, { status: 401, statusText: 'Unauthorized' });
+    // Should show generic message, not navigate to /login
+    expect(navSpy).not.toHaveBeenCalledWith(['/login']);
+    expect(openSpy).toHaveBeenCalledWith(
+      'An unexpected error occurred.',
+      'Close',
+      expect.any(Object),
+    );
+  });
+
+  it('does NOT show session-expired message for 401 on /favorites URL', () => {
+    const openSpy = vi.spyOn(snackBar, 'open');
+    const navSpy = vi.spyOn(router, 'navigate');
+    http.get('/api/favorites').subscribe({ error: () => {} });
+    httpMock.expectOne('/api/favorites').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(navSpy).not.toHaveBeenCalledWith(['/login']);
+    expect(openSpy).toHaveBeenCalledWith(
+      'An unexpected error occurred.',
+      'Close',
+      expect.any(Object),
+    );
+  });
 });

@@ -207,4 +207,24 @@ describe('api/listings/[id] handler', () => {
     expect(res._status).toBe(500);
     expect((res._body as any)?.error?.message).toBe('DB error');
   });
+
+  it('returns 400 when id is an array (not a string)', async () => {
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: ['a', 'b'] }, headers: {} } as any, res as any);
+    expect(res._status).toBe(400);
+    expect((res._body as any)?.error).toBe('Missing listing ID');
+  });
+
+  it('GET returns 200 without auth (userId null — false AS is_favorite and is_hidden)', async () => {
+    mockUser = null;
+    queryResults = [
+      [{ id: '42', title: 'T', price: 100 }],
+      [{ price: 100, captured_at: '2024-01-01' }],
+      [],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.title).toBe('T');
+  });
 });
