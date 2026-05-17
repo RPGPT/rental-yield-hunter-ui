@@ -75,12 +75,13 @@ describe('DetailComponent', () => {
           checkSnapshot,
           triggerSnapshot,
           updateListingStatus,
-        }),
+        } as Partial<ApiService>),
         {
           provide: AuthService,
           useValue: {
             currentUser: currentUserSignal,
             isAuthenticated: vi.fn(() => currentUserSignal() !== null),
+            isAdmin: vi.fn(() => true),
             getToken: vi.fn(() => 'dev-token'),
           },
         },

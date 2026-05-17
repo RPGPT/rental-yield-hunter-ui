@@ -27,6 +27,10 @@ export class AuthService {
     return this.currentUser() !== null;
   }
 
+  isAdmin(): boolean {
+    return this.currentUser()?.role === 'admin';
+  }
+
   private sessionInitialized = false;
   private sessionPromise: Promise<void> | null = null;
 
@@ -44,7 +48,7 @@ export class AuthService {
   private async _doInitSession(): Promise<void> {
     if (environment.devBypassAuth) {
       this.storeSession(
-        { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null },
+        { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null, role: 'admin' },
         'dev-token',
       );
       return;
@@ -102,7 +106,13 @@ export class AuthService {
   }
 
   private storeSession(
-    user: { id: string; email: string; name?: string | null; image?: string | null },
+    user: {
+      id: string;
+      email: string;
+      name?: string | null;
+      image?: string | null;
+      role?: string | null;
+    },
     token: string,
   ): void {
     const authUser: AuthUser = {
@@ -110,6 +120,7 @@ export class AuthService {
       email: user.email,
       name: user.name ?? null,
       picture: user.image ?? null,
+      role: user.role ?? null,
     };
     localStorage.setItem('auth_user', JSON.stringify(authUser));
     localStorage.setItem('auth_token', token);

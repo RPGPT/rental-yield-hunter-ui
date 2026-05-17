@@ -6,6 +6,7 @@ export interface NeonAuthUser {
   email: string;
   name: string | null;
   image: string | null;
+  role: string | null;
 }
 
 interface JwkKey {
@@ -27,6 +28,7 @@ interface JwtPayload {
   email?: string;
   name?: string;
   image?: string;
+  role?: string;
   exp?: number;
 }
 
@@ -90,6 +92,7 @@ async function verifyJwt(token: string): Promise<NeonAuthUser | null> {
       email: payload.email ?? '',
       name: payload.name ?? null,
       image: payload.image ?? null,
+      role: payload.role ?? null,
     };
   } catch {
     return null;
@@ -111,8 +114,10 @@ async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null
     });
     clearTimeout(timeout);
     if (!response.ok) return null;
-    const data = (await response.json()) as { user?: NeonAuthUser } | null;
-    return data?.user ?? null;
+    const data = (await response.json()) as { user?: NeonAuthUser & { role?: string } } | null;
+    const user = data?.user ?? null;
+    if (!user) return null;
+    return { ...user, role: user.role ?? null };
   } catch (err) {
     clearTimeout(timeout);
     console.error('[auth] session verification error:', err instanceof Error ? err.message : err);
@@ -130,7 +135,7 @@ export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUs
   const token = extractBearerToken(req);
   if (!token) return null;
   if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
-    return { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null };
+    return { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null, role: 'admin' };
   }
   const verified = await verifyJwt(token);
   if (verified) return verified;

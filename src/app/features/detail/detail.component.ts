@@ -221,6 +221,10 @@ export class DetailComponent implements OnInit {
     });
   }
 
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
+  }
+
   markAsRented(): void {
     this.statusLoading.set(true);
     this.api.updateListingStatus(this.listingId, { is_rented: true }).subscribe({

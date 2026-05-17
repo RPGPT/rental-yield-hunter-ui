@@ -3,4 +3,5 @@ export interface AuthUser {
   email: string;
   name: string | null;
   picture: string | null;
+  role: string | null;
 }

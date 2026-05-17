@@ -20,11 +20,31 @@ vi.mock('@neondatabase/serverless', () => ({
   },
 }));
 
+// Default: authenticated as admin
+let mockUser: {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  role: string | null;
+} | null = {
+  id: 'dev-user',
+  email: 'dev@local',
+  name: 'Dev User',
+  image: null,
+  role: 'admin',
+};
+
+vi.mock('../lib/auth', () => ({
+  getUserFromRequest: async () => mockUser,
+}));
+
 describe('api/listings/[id] handler', () => {
   beforeEach(() => {
     queryIndex = 0;
     queryResults = [];
     dbThrows = false;
+    mockUser = { id: 'dev-user', email: 'dev@local', name: 'Dev User', image: null, role: 'admin' };
     process.env['DATABASE_URL'] = 'postgresql://mock';
   });
 
@@ -49,6 +69,26 @@ describe('api/listings/[id] handler', () => {
   });
 
   describe('PATCH', () => {
+    it('returns 401 when no user is authenticated', async () => {
+      mockUser = null;
+      const res = new MockRes();
+      await handler(
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: { is_rented: true } } as any,
+        res as any,
+      );
+      expect(res._status).toBe(401);
+    });
+
+    it('returns 403 when user is not an admin', async () => {
+      mockUser = { id: 'u1', email: 'u@test.com', name: null, image: null, role: 'user' };
+      const res = new MockRes();
+      await handler(
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: { is_rented: true } } as any,
+        res as any,
+      );
+      expect(res._status).toBe(403);
+    });
+
     it('returns 400 when body is missing', async () => {
       const res = new MockRes();
       await handler(
@@ -70,15 +110,10 @@ describe('api/listings/[id] handler', () => {
     });
 
     it('updates is_rented and returns 200', async () => {
-      queryResults = [[]]; // UPDATE returns empty
+      queryResults = [[]];
       const res = new MockRes();
       await handler(
-        {
-          method: 'PATCH',
-          query: { id: '42' },
-          headers: {},
-          body: { is_rented: true },
-        } as any,
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: { is_rented: true } } as any,
         res as any,
       );
       expect(res._status).toBe(200);
@@ -120,12 +155,7 @@ describe('api/listings/[id] handler', () => {
       dbThrows = true;
       const res = new MockRes();
       await handler(
-        {
-          method: 'PATCH',
-          query: { id: '42' },
-          headers: {},
-          body: { is_rented: true },
-        } as any,
+        { method: 'PATCH', query: { id: '42' }, headers: {}, body: { is_rented: true } } as any,
         res as any,
       );
       expect(res._status).toBe(500);

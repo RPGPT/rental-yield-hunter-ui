@@ -25,7 +25,13 @@ vi.mock('../../../environments/environment', () => ({
 }));
 
 const MOCK_USER = { id: 'u1', email: 'u@test.com', name: 'Test User', image: null };
-const MOCK_AUTH_USER = { id: 'u1', email: 'u@test.com', name: 'Test User', picture: null };
+const MOCK_AUTH_USER = {
+  id: 'u1',
+  email: 'u@test.com',
+  name: 'Test User',
+  picture: null,
+  role: null,
+};
 const MOCK_TOKEN = 'tok-123';
 
 function setup() {
@@ -50,6 +56,23 @@ describe('AuthService', () => {
     const svc = setup();
     expect(svc.isAuthenticated()).toBe(false);
     expect(svc.currentUser()).toBeNull();
+  });
+
+  it('isAdmin returns false when not authenticated', () => {
+    const svc = setup();
+    expect(svc.isAdmin()).toBe(false);
+  });
+
+  it('isAdmin returns false when user has no role', () => {
+    localStorage.setItem('auth_user', JSON.stringify(MOCK_AUTH_USER));
+    const svc = setup();
+    expect(svc.isAdmin()).toBe(false);
+  });
+
+  it('isAdmin returns true when user has admin role', () => {
+    localStorage.setItem('auth_user', JSON.stringify({ ...MOCK_AUTH_USER, role: 'admin' }));
+    const svc = setup();
+    expect(svc.isAdmin()).toBe(true);
   });
 
   it('restores user from localStorage on creation', () => {

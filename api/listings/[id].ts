@@ -1,33 +1,6 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-
-interface NeonAuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-}
-
-function getUserFromRequest(req: VercelRequest): NeonAuthUser | null {
-  const auth = req.headers['authorization'] as string | undefined;
-  if (!auth?.startsWith('Bearer ')) return null;
-  const token = auth.substring(7);
-  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
-    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
-  }
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(
-      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
-    ) as { id?: string; sub?: string; email?: string; name?: string; exp?: number };
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-    const id = payload.id ?? payload.sub;
-    if (!id) return null;
-    return { id, email: payload.email ?? '', name: payload.name ?? null };
-  } catch {
-    return null;
-  }
-}
+import { getUserFromRequest } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -38,6 +11,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'PATCH') {
+    const user = await getUserFromRequest(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+
     const body = req.body as Record<string, unknown> | null;
     if (!body || typeof body !== 'object') {
       return res.status(400).json({ error: 'Invalid request body' });
@@ -76,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const user = getUserFromRequest(req);
+    const user = await getUserFromRequest(req);
     const userId = user?.id ?? null;
 
     const isFavoriteSelect = userId
