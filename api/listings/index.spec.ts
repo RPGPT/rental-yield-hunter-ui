@@ -44,6 +44,30 @@ describe('api/listings/index handler', () => {
     expect((res._body as any)?.total).toBe(1);
   });
 
+  it('returns rent_current_rent and rent_contract_expiry from contract details join', async () => {
+    queryResults = [
+      [{ id: '1', rent_current_rent: 750, rent_contract_expiry: '2027-06-01' }],
+      [{ total: 1 }],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: {}, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.data[0].rent_current_rent).toBe(750);
+    expect((res._body as any)?.data[0].rent_contract_expiry).toBe('2027-06-01');
+  });
+
+  it('returns null contract fields when no contract details for listing', async () => {
+    queryResults = [
+      [{ id: '1', rent_current_rent: null, rent_contract_expiry: null }],
+      [{ total: 1 }],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: {}, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.data[0].rent_current_rent).toBeNull();
+    expect((res._body as any)?.data[0].rent_contract_expiry).toBeNull();
+  });
+
   it('uses default limit of 50', async () => {
     queryResults = [[], [{ total: 0 }]];
     const res = new MockRes();

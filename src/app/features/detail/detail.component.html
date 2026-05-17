@@ -252,6 +252,31 @@
                   }
                 </span>
               </mat-list-item>
+
+              <!-- Contract details (is_rented=true, lifetime_rent=false) -->
+              @if (l.is_rented && !l.lifetime_rent) {
+                <mat-divider></mat-divider>
+                <mat-list-item>
+                  <span matListItemTitle>Contract Rent</span>
+                  <span matListItemLine>
+                    @if (!!l.rent_current_rent) {
+                      <strong>{{ l.rent_current_rent | eur }}/mo</strong>
+                    } @else {
+                      <span class="contract-unknown">Not available</span>
+                    }
+                  </span>
+                </mat-list-item>
+                <mat-list-item>
+                  <span matListItemTitle>Contract Expiry</span>
+                  <span matListItemLine>
+                    @if (l.rent_contract_expiry) {
+                      {{ l.rent_contract_expiry | date: 'MMM y' }}
+                    } @else {
+                      <span class="contract-unknown">Not available</span>
+                    }
+                  </span>
+                </mat-list-item>
+              }
               <mat-list-item>
                 <span matListItemTitle>Status</span>
                 <span matListItemLine>

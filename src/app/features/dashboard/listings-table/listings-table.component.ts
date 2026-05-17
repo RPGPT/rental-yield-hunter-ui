@@ -230,6 +230,28 @@ export class ListingsTableComponent {
     return 'grey';
   }
 
+  rentedChipColor(row: Listing): 'red' | 'green' | 'grey' {
+    if (row.lifetime_rent) return 'red';
+    if (!!row.rent_current_rent) return 'green';
+    return 'grey';
+  }
+
+  rentedTooltip(row: Listing): string {
+    if (row.lifetime_rent) return 'Lifetime rent';
+    if (!!row.rent_current_rent) {
+      const rent = new Intl.NumberFormat('pt-PT', {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 0,
+      }).format(row.rent_current_rent);
+      const expiry = row.rent_contract_expiry
+        ? `Expires ${new Date(row.rent_contract_expiry).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })}`
+        : 'No expiry date';
+      return `Rent: ${rent}/mo · ${expiry}`;
+    }
+    return 'Rented — no contract details';
+  }
+
   confidenceColor(confidence: string | null): 'green' | 'amber' | 'grey' {
     if (confidence === 'high') return 'green';
     if (confidence === 'medium') return 'amber';

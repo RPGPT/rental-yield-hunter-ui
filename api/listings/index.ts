@@ -210,15 +210,17 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
                l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen,
-               re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield
+               re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
+               rcd.current_rent AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
         FROM ${tableRef}
         ${joinClause}
         LEFT JOIN rental_estimates re ON re.listing_id = l.id
+        LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
         ${rebuiltWhere}
         ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
-      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} LEFT JOIN rental_estimates re ON re.listing_id = l.id ${rebuiltWhere}`;
+      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id ${rebuiltWhere}`;
       const [data, countResult] = await Promise.all([
         sql.query(dataQuery, allParams),
         sql.query(countQuery, allParams),
@@ -233,15 +235,17 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
              l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
              l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
              l.inactive_since, l.first_seen, l.last_seen,
-             re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield
+             re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
+             rcd.current_rent AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
       FROM listings l
       LEFT JOIN rental_estimates re ON re.listing_id = l.id
+      LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
       ${whereClause}
       ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 
-    const countQuery = `SELECT count(*)::int AS total FROM listings l LEFT JOIN rental_estimates re ON re.listing_id = l.id ${whereClause}`;
+    const countQuery = `SELECT count(*)::int AS total FROM listings l LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id ${whereClause}`;
 
     const [data, countResult] = await Promise.all([
       sql.query(dataQuery, params),

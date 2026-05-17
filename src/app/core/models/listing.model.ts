@@ -28,6 +28,9 @@ export interface Listing {
   confidence: 'high' | 'medium' | 'low' | 'none' | null;
   match_level: 'neighborhood' | 'city' | 'neighborhood_broad' | 'city_broad' | 'none' | null;
   rental_yield: number | null;
+  // Rent contract details (from rent_contract_details table, only when is_rented=true)
+  rent_current_rent: number | null;
+  rent_contract_expiry: string | null;
 }
 
 export interface RentalListing {

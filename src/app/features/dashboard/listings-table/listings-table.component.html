@@ -148,9 +148,9 @@
           <td mat-cell *matCellDef="let row" class="hide-mobile">
             @if (row.is_rented) {
               <app-badge
-                label="Rented"
-                [color]="row.lifetime_rent ? 'red' : 'green'"
-                [matTooltip]="row.lifetime_rent ? 'Lifetime rent' : 'Rented'"
+                [label]="row.lifetime_rent ? 'Lifetime' : 'Rented'"
+                [color]="rentedChipColor(row)"
+                [matTooltip]="rentedTooltip(row)"
               />
             }
           </td>

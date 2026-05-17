@@ -186,6 +186,48 @@ describe('api/listings/[id] handler', () => {
     ]);
   });
 
+  it('GET returns rent_current_rent and rent_contract_expiry from contract details join', async () => {
+    queryResults = [
+      [
+        {
+          id: '42',
+          title: 'Test',
+          price: 1000,
+          rent_current_rent: 800,
+          rent_contract_expiry: '2026-12-01',
+        },
+      ],
+      [],
+      [],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.rent_current_rent).toBe(800);
+    expect((res._body as any)?.rent_contract_expiry).toBe('2026-12-01');
+  });
+
+  it('GET returns null contract fields when no contract details exist', async () => {
+    queryResults = [
+      [
+        {
+          id: '42',
+          title: 'Test',
+          price: 1000,
+          rent_current_rent: null,
+          rent_contract_expiry: null,
+        },
+      ],
+      [],
+      [],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect((res._body as any)?.rent_current_rent).toBeNull();
+    expect((res._body as any)?.rent_contract_expiry).toBeNull();
+  });
+
   it('GET returns empty images when raw_data has no rows', async () => {
     queryResults = [[{ id: '42', title: 'T', price: 100 }], [], []];
     const res = new MockRes();

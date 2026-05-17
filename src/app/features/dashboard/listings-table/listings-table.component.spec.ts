@@ -19,29 +19,33 @@ const MOCK_LISTING: Listing = {
   id: 'abc',
   title: 'Test listing',
   url: 'https://example.com',
+  source: 'idealista',
+  description: null,
   price: 300000,
   area: 100,
   price_per_m2: 3000,
-  typology: 'T2',
+  location: null,
   neighborhood: 'Bonfim',
   city: 'Porto',
+  property_type: null,
+  typology: 'T2',
+  floor: null,
   is_favorite: false,
   is_hidden: false,
   is_rented: false,
-  is_new: false,
-  price_change: null,
-  active: true,
-  estimated_rent: null,
-  rental_yield: null,
   lifetime_rent: false,
-  images: [],
-  price_history: [],
-  location: null,
-  description: null,
-  first_seen_at: '2024-01-01',
-  last_seen_at: '2024-01-01',
+  active: true,
+  inactive_since: null,
+  first_seen: '2024-01-01',
+  last_seen: '2024-01-01',
+  estimated_rent: null,
+  avg_rent_per_m2: null,
+  sample_count: null,
   confidence: null,
-  source: 'idealista',
+  match_level: null,
+  rental_yield: null,
+  rent_current_rent: null,
+  rent_contract_expiry: null,
 };
 
 describe('ListingsTableComponent', () => {
@@ -407,6 +411,66 @@ describe('ListingsTableComponent', () => {
     it('returns listing id', () => {
       const { component } = setup('buy');
       expect(component.trackById(0, MOCK_LISTING)).toBe('abc');
+    });
+  });
+
+  describe('rentedChipColor()', () => {
+    it('returns "red" when lifetime_rent is true', () => {
+      const { component } = setup('buy');
+      expect(component.rentedChipColor({ ...MOCK_LISTING, lifetime_rent: true })).toBe('red');
+    });
+
+    it('returns "green" when contract rent details are present', () => {
+      const { component } = setup('buy');
+      expect(
+        component.rentedChipColor({ ...MOCK_LISTING, is_rented: true, rent_current_rent: 800 }),
+      ).toBe('green');
+    });
+
+    it('returns "grey" when is_rented but no contract details', () => {
+      const { component } = setup('buy');
+      expect(
+        component.rentedChipColor({ ...MOCK_LISTING, is_rented: true, rent_current_rent: null }),
+      ).toBe('grey');
+    });
+  });
+
+  describe('rentedTooltip()', () => {
+    it('returns "Lifetime rent" for lifetime_rent listings', () => {
+      const { component } = setup('buy');
+      expect(component.rentedTooltip({ ...MOCK_LISTING, lifetime_rent: true })).toBe(
+        'Lifetime rent',
+      );
+    });
+
+    it('returns rent and expiry when contract details are present', () => {
+      const { component } = setup('buy');
+      const tooltip = component.rentedTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 800,
+        rent_contract_expiry: '2026-12-01',
+      });
+      expect(tooltip).toContain('800');
+      expect(tooltip).toContain('Dec 2026');
+    });
+
+    it('shows "No expiry date" when contract has no expiry', () => {
+      const { component } = setup('buy');
+      const tooltip = component.rentedTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 700,
+        rent_contract_expiry: null,
+      });
+      expect(tooltip).toContain('No expiry date');
+    });
+
+    it('returns fallback message when no contract details', () => {
+      const { component } = setup('buy');
+      expect(
+        component.rentedTooltip({ ...MOCK_LISTING, is_rented: true, rent_current_rent: null }),
+      ).toBe('Rented — no contract details');
     });
   });
 });
