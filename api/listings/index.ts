@@ -182,9 +182,11 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       if (is_favorite === 'true') {
         conditions.push(`uf.listing_id IS NOT NULL`);
       }
-      // Filter to only hidden if requested (no extra param — references the JOIN)
+      // Filter hidden listings based on is_hidden param
       if (is_hidden === 'true') {
         conditions.push(`uh.listing_id IS NOT NULL`);
+      } else if (is_hidden === 'false') {
+        conditions.push(`uh.listing_id IS NULL`);
       }
       // Renumber all $N params by +1 (because $1 is now userId)
       const rebuiltWhere =

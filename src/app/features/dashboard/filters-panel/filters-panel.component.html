@@ -168,9 +168,13 @@
         <button
           mat-icon-button
           class="hidden-filter-btn"
-          [class.hidden-filter-btn--active]="buyFilterState.isHidden() === true"
+          [class.hidden-filter-btn--active]="buyFilterState.isHidden() === null"
           (click)="cycleHidden()"
-          [matTooltip]="'Show hidden only'"
+          [matTooltip]="
+            buyFilterState.isHidden() === null
+              ? 'Hide hidden listings'
+              : 'Show all listings (including hidden)'
+          "
         >
           <mat-icon>{{ hiddenIcon() }}</mat-icon>
         </button>

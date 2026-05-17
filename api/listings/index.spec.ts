@@ -190,4 +190,46 @@ describe('api/listings/index handler', () => {
     await handler({ method: 'GET', query: { is_new: 'false' }, headers: {} } as any, res as any);
     expect(res._status).toBe(200);
   });
+
+  it('excludes hidden listings when is_hidden=false', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { is_hidden: 'false' },
+        headers: { authorization: 'Bearer token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('shows only hidden listings when is_hidden=true', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { is_hidden: 'true' },
+        headers: { authorization: 'Bearer token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('shows all listings (no hidden filter) when is_hidden is absent', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: {},
+        headers: { authorization: 'Bearer token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
 });

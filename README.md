@@ -7,8 +7,10 @@ A personal tool for tracking and analysing real estate listings for rental yield
 - Filterable, sortable, paginated listings table
 - Price history chart per listing
 - Favourite listings with automatic page snapshot (saved to Vercel Blob in production, local file in dev)
+- Hidden listings — hide a listing from the default view with the eye icon; toggle the filter to show all or only hidden listings
 - Dark / light theme toggle
 - Stats bar with portfolio-level aggregations
+- Admin-only context menu on listing detail to mark listings as Rented or Lifetime Rent
 - Fully deployed on Vercel with a serverless API and Neon Postgres database
 
 ## Stack
@@ -43,8 +45,12 @@ src/
 api/
   listings/
     index.ts           # GET /api/listings  (filtered, paginated)
-    [id].ts            # GET /api/listings/:id  |  PATCH (favourite toggle)
+    [id].ts            # GET /api/listings/:id  |  PATCH (rented / lifetime-rent — admin only)
     snapshot.ts        # GET/POST /api/listings/:id/snapshot
+  favorites/
+    index.ts           # GET/POST/DELETE /api/favorites
+  hidden/
+    index.ts           # GET/POST/DELETE /api/hidden
   stats.ts             # GET /api/stats
   filters.ts           # GET /api/filters  (distinct values for filter dropdowns)
 
@@ -106,6 +112,19 @@ pnpm run build
 Vercel picks up the `api/` directory as serverless functions and serves the Angular build from `dist/rental-yield-hunter-ui/browser`.
 
 To set up Vercel Blob for snapshots: Vercel dashboard → Storage → Create Blob store → copy `BLOB_READ_WRITE_TOKEN` to project environment variables.
+
+## Hidden listings
+
+The eye icon (👁) on each row in the listings table and on the listing detail page lets you hide a listing from your default view. Hidden state is user-specific and stored in the `user_hidden` table.
+
+**Filter behaviour (buy listings only):**
+
+| Filter state          | URL                  | What you see                  |
+| --------------------- | -------------------- | ----------------------------- |
+| Default (hide hidden) | `/buy`               | All non-hidden listings       |
+| Show all              | `/buy?is_hidden=all` | All listings including hidden |
+
+Click the eye icon in the filters panel to toggle between the two states. Hidden listings are shown with a red eye icon in the table.
 
 ## Snapshot feature
 

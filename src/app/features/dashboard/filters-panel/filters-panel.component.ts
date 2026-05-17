@@ -222,13 +222,16 @@ export class FiltersPanelComponent implements OnInit {
       this.router.navigate(['/login']);
       return;
     }
+    // false (default: hide hidden) → null (show all) → false
     const current = this.buyFilterState.isHidden();
-    this.buyFilterState.isHidden.set(current === null ? true : null);
+    this.buyFilterState.isHidden.set(current === false ? null : false);
     this.resetOffset();
   }
 
   hiddenIcon(): string {
-    return this.buyFilterState.isHidden() === true ? 'visibility_off' : 'visibility';
+    // null = showing all (including hidden) → eye open highlighted
+    // false = hiding hidden listings → eye with slash
+    return this.buyFilterState.isHidden() === null ? 'visibility' : 'visibility_off';
   }
 
   cycleNew(): void {
