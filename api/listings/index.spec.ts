@@ -287,6 +287,68 @@ describe('api/listings/index handler', () => {
     expect(res._status).toBe(200);
   });
 
+  it('filters by has_contract_details=true', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { has_contract_details: 'true' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('filters by has_contract_details=true with auth', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { has_contract_details: 'true' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('returns contract detail fields in data rows', async () => {
+    queryResults = [
+      [{ id: '1', rent_current_rent: 800, rent_contract_expiry: '2027-01-01' }],
+      [{ total: 1 }],
+    ];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { has_contract_details: 'true' }, headers: {} } as any,
+      res as any,
+    );
+    expect((res._body as any)?.data[0].rent_current_rent).toBe(800);
+    expect((res._body as any)?.data[0].rent_contract_expiry).toBe('2027-01-01');
+  });
+
+  it('sorts by rental_yield using contract-yield COALESCE expression', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      { method: 'GET', query: { sort: 'rental_yield', order: 'desc' }, headers: {} } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by rental_yield with auth uses contract-yield expression', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { sort: 'rental_yield', order: 'asc' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
   it('sorts by estimated_rent (re column) without auth', async () => {
     queryResults = [[], [{ total: 0 }]];
     const res = new MockRes();

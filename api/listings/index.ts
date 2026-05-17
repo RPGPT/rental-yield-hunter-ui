@@ -60,6 +60,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       has_garage,
       is_rented,
       lifetime_rent,
+      has_contract_details,
       rental_yield_min,
       is_favorite,
       is_hidden,
@@ -126,6 +127,13 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       conditions.push(`lifetime_rent = $${paramIndex++}`);
       params.push(lifetime_rent === 'true');
     }
+    if (has_contract_details === 'true') {
+      conditions.push(`l.is_rented = $${paramIndex++}`);
+      params.push(true);
+      conditions.push(`l.lifetime_rent = $${paramIndex++}`);
+      params.push(false);
+      conditions.push(`rcd.current_rent IS NOT NULL`);
+    }
     if (rental_yield_min) {
       conditions.push(`re.rental_yield >= $${paramIndex++}`);
       params.push(Number(rental_yield_min));
@@ -170,8 +178,13 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     ];
     const reColumns = new Set(['estimated_rent', 'rental_yield']);
     const sortCol = allowedSorts.includes(sort as string) ? sort : 'price';
-    const sortPrefix = reColumns.has(sortCol as string) ? 're' : 'l';
     const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
+
+    // For rental_yield, prefer contract-based yield when available
+    const sortExpr =
+      sortCol === 'rental_yield'
+        ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN (rcd.current_rent * 12) / NULLIF(l.price, 0) ELSE NULL END, re.rental_yield)`
+        : `${reColumns.has(sortCol as string) ? 're' : 'l'}.${sortCol}`;
 
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
     const offsetNum = Math.max(Number(offset) || 0, 0);
@@ -211,13 +224,13 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen,
                re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
-               rcd.current_rent AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+               rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
         FROM ${tableRef}
         ${joinClause}
         LEFT JOIN rental_estimates re ON re.listing_id = l.id
         LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
         ${rebuiltWhere}
-        ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
+        ORDER BY ${sortExpr} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
       const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id ${rebuiltWhere}`;
@@ -236,12 +249,12 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
              l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
              l.inactive_since, l.first_seen, l.last_seen,
              re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
-             rcd.current_rent AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+             rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
       FROM listings l
       LEFT JOIN rental_estimates re ON re.listing_id = l.id
       LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
       ${whereClause}
-      ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
+      ORDER BY ${sortExpr} ${sortOrder} NULLS LAST
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 

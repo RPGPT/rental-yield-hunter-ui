@@ -256,6 +256,41 @@ export class DetailComponent implements OnInit {
     return 'grey';
   }
 
+  private formatEur(value: number | null): string {
+    if (value == null) return '—';
+    return value.toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + '€';
+  }
+
+  displayYield(l: ListingDetail): number | null {
+    if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
+      return (l.rent_current_rent * 12) / l.price;
+    }
+    return l.rental_yield;
+  }
+
+  yieldTooltip(l: ListingDetail): string {
+    if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
+      const contractYield = (((l.rent_current_rent * 12) / l.price) * 100).toFixed(2);
+      const base = `Contract yield: ${this.formatEur(l.rent_current_rent)}/mo × 12 ÷ ${this.formatEur(l.price)} = ${contractYield}%`;
+      return l.rental_yield != null
+        ? `${base}\nEst. yield: ${(l.rental_yield * 100).toFixed(2)}%`
+        : base;
+    }
+    return '';
+  }
+
+  estRentTooltip(l: ListingDetail): string {
+    if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
+      return l.estimated_rent != null
+        ? `Market est.: ${this.formatEur(l.estimated_rent)}/mo`
+        : 'No market estimate available';
+    }
+    if (l.estimated_rent == null) return '';
+    return l.sample_count != null
+      ? `${l.confidence} confidence · based on ${l.sample_count} comparables (${l.match_level})`
+      : `${l.confidence} confidence`;
+  }
+
   markAsRented(): void {
     this.statusLoading.set(true);
     this.api.updateListingStatus(this.listingId, { is_rented: true }).subscribe({

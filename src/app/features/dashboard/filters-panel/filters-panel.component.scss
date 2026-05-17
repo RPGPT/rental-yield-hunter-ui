@@ -165,3 +165,19 @@ mat-button-toggle-group {
     grid-template-columns: repeat(auto-fill, minmax(120px, max-content));
   }
 }
+
+.contract-filter-btn {
+  color: inherit;
+  width: $size-40;
+  height: $size-40;
+
+  mat-icon {
+    font-size: $size-24;
+    width: $size-24;
+    height: $size-24;
+  }
+
+  &--active {
+    color: $color-danger;
+  }
+}

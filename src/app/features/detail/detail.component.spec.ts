@@ -36,11 +36,14 @@ const MOCK_LISTING: ListingDetail = {
   inactive_since: null,
   first_seen: '2024-01-01T00:00:00Z',
   last_seen: '2024-06-01T00:00:00Z',
+  rental_yield: null,
   estimated_rent: null,
   avg_rent_per_m2: null,
   sample_count: null,
   confidence: null,
   match_level: null,
+  rent_current_rent: null,
+  rent_contract_expiry: null,
   price_history: [{ price: 1200, captured_at: '2024-01-01T00:00:00Z' }],
   images: [
     { large: 'https://img.example.com/1-large.jpg', medium: 'https://img.example.com/1-med.jpg' },
@@ -604,17 +607,15 @@ describe('DetailComponent', () => {
     let getListingDescription: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
-      getListingDescription = vi
-        .fn()
-        .mockReturnValue(
-          of({
-            description: '<p>Rich</p>',
-            images: [],
-            characteristics: [],
-            topInformation: [],
-            additionalInformation: [],
-          }),
-        );
+      getListingDescription = vi.fn().mockReturnValue(
+        of({
+          description: '<p>Rich</p>',
+          images: [],
+          characteristics: [],
+          topInformation: [],
+          additionalInformation: [],
+        }),
+      );
       getListing.mockReturnValue(
         of({ ...MOCK_LISTING, url: 'https://www.imovirtual.com/imovel/123' }),
       );
@@ -685,6 +686,167 @@ describe('DetailComponent', () => {
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
       expect(component.descriptionLoading()).toBe(false);
+    });
+  });
+
+  describe('displayYield()', () => {
+    it('returns contract yield when listing is rented with contract rent', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        price: 100000,
+        is_rented: true,
+        lifetime_rent: false,
+        rent_current_rent: 500,
+        rental_yield: 0.04,
+      };
+      expect(component.displayYield(l)).toBeCloseTo(0.06); // 500*12/100000
+    });
+
+    it('falls back to rental_yield when not rented with contract details', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = { ...MOCK_LISTING, rental_yield: 0.05 };
+      expect(component.displayYield(l)).toBe(0.05);
+    });
+
+    it('falls back to rental_yield for lifetime listings (ignores contract rent)', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        is_rented: true,
+        lifetime_rent: true,
+        rent_current_rent: 500,
+        rental_yield: 0.03,
+      };
+      expect(component.displayYield(l)).toBe(0.03);
+    });
+
+    it('returns null when no yield data at all', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = { ...MOCK_LISTING, rental_yield: null };
+      expect(component.displayYield(l)).toBeNull();
+    });
+  });
+
+  describe('yieldTooltip()', () => {
+    it('returns contract yield breakdown with est yield when available', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        price: 120000,
+        is_rented: true,
+        lifetime_rent: false,
+        rent_current_rent: 600,
+        rental_yield: 0.04,
+      };
+      const tip = component.yieldTooltip(l);
+      expect(tip).toContain('Contract yield:');
+      expect(tip).toContain('600');
+      expect(tip).toContain('6.00%');
+      expect(tip).toContain('Est. yield: 4.00%');
+    });
+
+    it('returns contract yield breakdown without est yield when rental_yield is null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        price: 100000,
+        is_rented: true,
+        lifetime_rent: false,
+        rent_current_rent: 500,
+        rental_yield: null,
+      };
+      const tip = component.yieldTooltip(l);
+      expect(tip).toContain('Contract yield:');
+      expect(tip).not.toContain('Est. yield:');
+    });
+
+    it('returns empty string for non-contract listing', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = { ...MOCK_LISTING, rental_yield: 0.05 };
+      expect(component.yieldTooltip(l)).toBe('');
+    });
+
+    it('returns empty string for lifetime listing even with contract rent', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        is_rented: true,
+        lifetime_rent: true,
+        rent_current_rent: 500,
+      };
+      expect(component.yieldTooltip(l)).toBe('');
+    });
+  });
+
+  describe('estRentTooltip()', () => {
+    it('returns market estimate for contract listing when estimated_rent is set', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        is_rented: true,
+        lifetime_rent: false,
+        rent_current_rent: 500,
+        estimated_rent: 750,
+      };
+      expect(component.estRentTooltip(l)).toBe('Market est.: 750€/mo');
+    });
+
+    it('returns fallback message for contract listing when no estimated_rent', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        is_rented: true,
+        lifetime_rent: false,
+        rent_current_rent: 500,
+        estimated_rent: null,
+      };
+      expect(component.estRentTooltip(l)).toBe('No market estimate available');
+    });
+
+    it('returns empty string for non-rented listing without estimate', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = { ...MOCK_LISTING, estimated_rent: null };
+      expect(component.estRentTooltip(l)).toBe('');
+    });
+
+    it('returns confidence tooltip with sample count for normal listing', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        estimated_rent: 900,
+        confidence: 'high',
+        sample_count: 12,
+        match_level: 'typology',
+      };
+      expect(component.estRentTooltip(l)).toBe(
+        'high confidence · based on 12 comparables (typology)',
+      );
+    });
+
+    it('returns simple confidence tooltip when sample_count is null', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        estimated_rent: 900,
+        confidence: 'medium',
+        sample_count: null,
+        match_level: null,
+      };
+      expect(component.estRentTooltip(l)).toBe('medium confidence');
+    });
+
+    it('returns empty string for lifetime listing even with contract rent', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      const l: ListingDetail = {
+        ...MOCK_LISTING,
+        is_rented: true,
+        lifetime_rent: true,
+        rent_current_rent: 500,
+        estimated_rent: 750,
+      };
+      // lifetime bypasses contract branch → falls through to normal estimated_rent path
+      expect(component.estRentTooltip(l)).toContain('confidence');
     });
   });
 });

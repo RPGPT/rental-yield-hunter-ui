@@ -13,6 +13,7 @@ export interface FilterQueryParams {
   rental_yield_min?: string;
   is_rented?: string;
   lifetime_rent?: string;
+  has_contract_details?: string;
   is_favorite?: string;
   is_hidden?: string;
   is_new?: string;
@@ -34,6 +35,7 @@ export class FilterStateService {
   readonly neighborhood = signal<string[]>([]);
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
+  readonly hasContractDetails = signal<boolean | null>(null);
   readonly rentalYieldMin = signal<number | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
   readonly isHidden = signal<boolean | null>(false);
@@ -55,6 +57,7 @@ export class FilterStateService {
     neighborhood: this.neighborhood(),
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
+    has_contract_details: this.hasContractDetails(),
     rental_yield_min: this.rentalYieldMin(),
     is_favorite: this.isFavorite(),
     is_hidden: this.isHidden(),
@@ -77,6 +80,7 @@ export class FilterStateService {
     this.neighborhood.set([]);
     this.isRented.set(null);
     this.lifetimeRent.set(null);
+    this.hasContractDetails.set(null);
     this.rentalYieldMin.set(null);
     this.isFavorite.set(null);
     this.isHidden.set(false);
@@ -110,6 +114,7 @@ export class FilterStateService {
             ? false
             : null,
       );
+    if (params['has_contract_details'] === 'true') this.hasContractDetails.set(true);
     if (params['is_favorite'] != null)
       this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
     if (params['is_hidden'] != null)
@@ -141,6 +146,7 @@ export class FilterStateService {
     if (s.rental_yield_min != null) p.rental_yield_min = String(s.rental_yield_min);
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
+    if (s.has_contract_details != null) p.has_contract_details = String(s.has_contract_details);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
     if (s.is_hidden === null) p.is_hidden = 'all'; // false is default — omit from URL
     if (s.is_new != null) p.is_new = String(s.is_new);

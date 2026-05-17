@@ -414,6 +414,158 @@ describe('ListingsTableComponent', () => {
     });
   });
 
+  describe('estRentTooltip()', () => {
+    it('shows market estimate when rented with contract and estimate exists', () => {
+      const { component } = setup('buy');
+      const tooltip = component.estRentTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 800,
+        estimated_rent: 900,
+      });
+      expect(tooltip).toContain('Market est.');
+      expect(tooltip).toContain('900');
+    });
+
+    it('shows fallback when rented with contract but no estimate', () => {
+      const { component } = setup('buy');
+      expect(
+        component.estRentTooltip({
+          ...MOCK_LISTING,
+          is_rented: true,
+          rent_current_rent: 800,
+          estimated_rent: null,
+        }),
+      ).toBe('No market estimate available');
+    });
+
+    it('returns confidence tooltip for normal (non-rented) listings with sample count', () => {
+      const { component } = setup('buy');
+      const tooltip = component.estRentTooltip({
+        ...MOCK_LISTING,
+        estimated_rent: 850,
+        confidence: 'high',
+        sample_count: 10,
+        match_level: 'neighborhood',
+      });
+      expect(tooltip).toContain('high confidence');
+      expect(tooltip).toContain('10 comparables');
+    });
+
+    it('returns short confidence tooltip when no sample count', () => {
+      const { component } = setup('buy');
+      const tooltip = component.estRentTooltip({
+        ...MOCK_LISTING,
+        estimated_rent: 850,
+        confidence: 'medium',
+        sample_count: null,
+      });
+      expect(tooltip).toBe('medium confidence');
+    });
+
+    it('returns empty string when no estimated rent and not a contract listing', () => {
+      const { component } = setup('buy');
+      expect(component.estRentTooltip({ ...MOCK_LISTING, estimated_rent: null })).toBe('');
+    });
+
+    it('uses normal estimate chip when lifetime_rent even with rent_current_rent', () => {
+      const { component } = setup('buy');
+      const tooltip = component.estRentTooltip({
+        ...MOCK_LISTING,
+        lifetime_rent: true,
+        rent_current_rent: 800,
+        estimated_rent: 850,
+        confidence: 'high',
+        sample_count: 5,
+        match_level: 'city',
+      });
+      expect(tooltip).toContain('high confidence');
+    });
+  });
+
+  describe('displayYield()', () => {
+    it('returns contract-based yield when rented with contract rent', () => {
+      const { component } = setup('buy');
+      const result = component.displayYield({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 1000,
+        price: 200000,
+        rental_yield: 0.05,
+      });
+      expect(result).toBeCloseTo((1000 * 12) / 200000);
+    });
+
+    it('returns re.rental_yield when not rented', () => {
+      const { component } = setup('buy');
+      expect(component.displayYield({ ...MOCK_LISTING, rental_yield: 0.06 })).toBe(0.06);
+    });
+
+    it('returns re.rental_yield when lifetime_rent even with contract rent', () => {
+      const { component } = setup('buy');
+      expect(
+        component.displayYield({
+          ...MOCK_LISTING,
+          lifetime_rent: true,
+          rent_current_rent: 800,
+          rental_yield: 0.04,
+        }),
+      ).toBe(0.04);
+    });
+
+    it('returns null when no rental_yield and not a contract listing', () => {
+      const { component } = setup('buy');
+      expect(component.displayYield({ ...MOCK_LISTING, rental_yield: null })).toBeNull();
+    });
+  });
+
+  describe('yieldTooltip()', () => {
+    it('shows contract calculation and est yield when both available', () => {
+      const { component } = setup('buy');
+      const tooltip = component.yieldTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 1000,
+        price: 200000,
+        rental_yield: 0.055,
+      });
+      expect(tooltip).toContain('Contract yield');
+      expect(tooltip).toContain('1'); // rent amount
+      expect(tooltip).toContain('Est. yield');
+      expect(tooltip).toContain('5.50%');
+    });
+
+    it('shows contract calculation without est yield when rental_yield is null', () => {
+      const { component } = setup('buy');
+      const tooltip = component.yieldTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 800,
+        price: 150000,
+        rental_yield: null,
+      });
+      expect(tooltip).toContain('Contract yield');
+      expect(tooltip).not.toContain('Est. yield');
+    });
+
+    it('returns empty string for non-contract listing', () => {
+      const { component } = setup('buy');
+      expect(component.yieldTooltip({ ...MOCK_LISTING, rental_yield: 0.05 })).toBe('');
+    });
+
+    it('returns empty string for lifetime_rent listing', () => {
+      const { component } = setup('buy');
+      expect(
+        component.yieldTooltip({
+          ...MOCK_LISTING,
+          lifetime_rent: true,
+          rent_current_rent: 800,
+          rental_yield: 0.04,
+        }),
+      ).toBe('');
+    });
+  });
+
   describe('rentedChipColor()', () => {
     it('returns "red" when lifetime_rent is true', () => {
       const { component } = setup('buy');

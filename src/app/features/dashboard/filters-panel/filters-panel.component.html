@@ -216,6 +216,17 @@
       >
         <mat-icon>fiber_new</mat-icon>
       </button>
+      @if (isBuyMode) {
+        <button
+          mat-icon-button
+          class="contract-filter-btn"
+          [class.contract-filter-btn--active]="buyFilterState.hasContractDetails() === true"
+          (click)="cycleContractDetails()"
+          matTooltip="Show only rented (non-lifetime) listings with known contract details"
+        >
+          <mat-icon>assignment</mat-icon>
+        </button>
+      }
     </div>
   </div>
 

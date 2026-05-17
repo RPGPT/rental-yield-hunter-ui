@@ -146,4 +146,12 @@ table {
   &--grey {
     background-color: $color-grey;
   }
+  &--red {
+    background-color: $color-danger;
+  }
+}
+
+.yield-contract {
+  font-weight: 600;
+  color: $color-danger;
 }

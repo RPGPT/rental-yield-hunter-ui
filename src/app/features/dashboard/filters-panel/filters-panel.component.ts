@@ -253,6 +253,12 @@ export class FiltersPanelComponent implements OnInit {
     this.resetOffset();
   }
 
+  cycleContractDetails(): void {
+    const current = this.buyFilterState.hasContractDetails();
+    this.buyFilterState.hasContractDetails.set(current === true ? null : true);
+    this.resetOffset();
+  }
+
   cyclePriceChange(): void {
     const current = this.filterState.priceChange();
     if (current === null) this.filterState.priceChange.set('reduced');

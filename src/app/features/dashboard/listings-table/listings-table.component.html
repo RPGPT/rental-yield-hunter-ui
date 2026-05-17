@@ -91,19 +91,14 @@
         <ng-container matColumnDef="estimated_rent">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Est. Rent</th>
           <td mat-cell *matCellDef="let row" class="hide-mobile">
-            @if (row.estimated_rent != null) {
+            @if (row.is_rented && !row.lifetime_rent && !!row.rent_current_rent) {
+              <span class="rent-chip rent-chip--red" [matTooltip]="estRentTooltip(row)">
+                {{ row.rent_current_rent | eur }}
+              </span>
+            } @else if (row.estimated_rent != null) {
               <span
                 class="rent-chip rent-chip--{{ confidenceColor(row.confidence) }}"
-                [matTooltip]="
-                  row.sample_count != null
-                    ? row.confidence +
-                      ' confidence · based on ' +
-                      row.sample_count +
-                      ' comparables (' +
-                      row.match_level +
-                      ')'
-                    : row.confidence + ' confidence'
-                "
+                [matTooltip]="estRentTooltip(row)"
               >
                 {{ row.estimated_rent | eur }}
               </span>
@@ -116,8 +111,15 @@
         <ng-container matColumnDef="rental_yield">
           <th mat-header-cell *matHeaderCellDef mat-sort-header class="hide-mobile">Yield</th>
           <td mat-cell *matCellDef="let row" class="hide-mobile">
-            @if (row.rental_yield != null) {
-              {{ (row.rental_yield * 100).toFixed(2) }}%
+            @if (displayYield(row) != null) {
+              <span
+                [matTooltip]="yieldTooltip(row)"
+                [class.yield-contract]="
+                  row.is_rented && !row.lifetime_rent && !!row.rent_current_rent
+                "
+              >
+                {{ (displayYield(row)! * 100).toFixed(2) }}%
+              </span>
             } @else {
               —
             }

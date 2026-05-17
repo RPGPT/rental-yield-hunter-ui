@@ -230,6 +230,41 @@ export class ListingsTableComponent {
     return 'grey';
   }
 
+  displayYield(row: Listing): number | null {
+    if (row.is_rented && !row.lifetime_rent && !!row.rent_current_rent) {
+      return (row.rent_current_rent * 12) / row.price;
+    }
+    return row.rental_yield;
+  }
+
+  yieldTooltip(row: Listing): string {
+    if (row.is_rented && !row.lifetime_rent && !!row.rent_current_rent) {
+      const contractYield = (((row.rent_current_rent * 12) / row.price) * 100).toFixed(2);
+      const base = `Contract yield: ${this.formatEur(row.rent_current_rent)}/mo × 12 ÷ ${this.formatEur(row.price)} = ${contractYield}%`;
+      return row.rental_yield != null
+        ? `${base}\nEst. yield: ${(row.rental_yield * 100).toFixed(2)}%`
+        : base;
+    }
+    return '';
+  }
+
+  private formatEur(value: number | null): string {
+    if (value == null) return '—';
+    return value.toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + '€';
+  }
+
+  estRentTooltip(row: Listing): string {
+    if (row.is_rented && !row.lifetime_rent && !!row.rent_current_rent) {
+      return row.estimated_rent != null
+        ? `Market est.: ${this.formatEur(row.estimated_rent)}/mo`
+        : 'No market estimate available';
+    }
+    if (row.estimated_rent == null) return '';
+    return row.sample_count != null
+      ? `${row.confidence} confidence · based on ${row.sample_count} comparables (${row.match_level})`
+      : `${row.confidence} confidence`;
+  }
+
   rentedChipColor(row: Listing): 'red' | 'green' | 'grey' {
     if (row.lifetime_rent) return 'red';
     if (!!row.rent_current_rent) return 'green';

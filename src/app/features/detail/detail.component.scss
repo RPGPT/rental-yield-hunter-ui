@@ -360,11 +360,18 @@
   &--grey {
     background-color: $color-grey;
   }
+  &--red {
+    background-color: $color-danger;
+  }
 }
 
 .yield-value {
   font-weight: 600;
   color: #2e7d32;
+
+  &--contract {
+    color: $color-danger;
+  }
 }
 
 .contract-unknown {

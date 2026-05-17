@@ -174,22 +174,40 @@
               </mat-list-item>
 
               <!-- Rent Estimate -->
-              @if (l.estimated_rent != null) {
+              @if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
+                <mat-list-item>
+                  <span matListItemTitle>Contract Rent</span>
+                  <span matListItemLine>
+                    <span class="rent-chip rent-chip--red" [matTooltip]="estRentTooltip(l)">
+                      {{ l.rent_current_rent | eur }}/mo
+                    </span>
+                  </span>
+                </mat-list-item>
+                @if (l.avg_rent_per_m2) {
+                  <mat-list-item>
+                    <span matListItemTitle>Est. Rent/m²</span>
+                    <span matListItemLine>{{ l.avg_rent_per_m2 | eur }} / m²</span>
+                  </mat-list-item>
+                }
+                @if (displayYield(l) != null) {
+                  <mat-list-item>
+                    <span matListItemTitle>Gross Yield</span>
+                    <span
+                      matListItemLine
+                      class="yield-value yield-value--contract"
+                      [matTooltip]="yieldTooltip(l)"
+                    >
+                      {{ (displayYield(l)! * 100).toFixed(2) }}%
+                    </span>
+                  </mat-list-item>
+                }
+              } @else if (l.estimated_rent != null) {
                 <mat-list-item>
                   <span matListItemTitle>Est. Monthly Rent</span>
                   <span matListItemLine>
                     <span
                       class="rent-chip rent-chip--{{ confidenceColor(l.confidence) }}"
-                      [matTooltip]="
-                        l.sample_count != null
-                          ? l.confidence +
-                            ' confidence · based on ' +
-                            l.sample_count +
-                            ' comparables (' +
-                            l.match_level +
-                            ')'
-                          : l.confidence + ' confidence'
-                      "
+                      [matTooltip]="estRentTooltip(l)"
                     >
                       {{ l.estimated_rent | eur }}
                     </span>
@@ -254,18 +272,8 @@
               </mat-list-item>
 
               <!-- Contract details (is_rented=true, lifetime_rent=false) -->
-              @if (l.is_rented && !l.lifetime_rent) {
+              @if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
                 <mat-divider></mat-divider>
-                <mat-list-item>
-                  <span matListItemTitle>Contract Rent</span>
-                  <span matListItemLine>
-                    @if (!!l.rent_current_rent) {
-                      <strong>{{ l.rent_current_rent | eur }}/mo</strong>
-                    } @else {
-                      <span class="contract-unknown">Not available</span>
-                    }
-                  </span>
-                </mat-list-item>
                 <mat-list-item>
                   <span matListItemTitle>Contract Expiry</span>
                   <span matListItemLine>

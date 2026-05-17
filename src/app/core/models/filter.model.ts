@@ -15,6 +15,7 @@ export interface FilterState {
   rental_yield_min: number | null;
   is_rented: boolean | null;
   lifetime_rent: boolean | null;
+  has_contract_details: boolean | null;
   is_favorite: boolean | null;
   is_hidden: boolean | null;
   is_new: boolean | null;
