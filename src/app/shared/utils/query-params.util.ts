@@ -25,6 +25,7 @@ export function buildQueryParams(state: FilterState): QueryParams {
   if (state.is_rented != null) params.is_rented = String(state.is_rented);
   if (state.lifetime_rent != null) params.lifetime_rent = String(state.lifetime_rent);
   if (state.is_favorite != null) params.is_favorite = String(state.is_favorite);
+  if (state.is_hidden != null) params.is_hidden = String(state.is_hidden);
   if (state.is_new != null) params.is_new = String(state.is_new);
   if (state.price_change != null) params.price_change = state.price_change;
   if (state.active != null) params.active = String(state.active);

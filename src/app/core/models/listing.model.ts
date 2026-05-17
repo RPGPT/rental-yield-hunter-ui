@@ -16,6 +16,7 @@ export interface Listing {
   is_rented: boolean;
   lifetime_rent: boolean;
   is_favorite: boolean;
+  is_hidden: boolean;
   active: boolean;
   inactive_since: string | null;
   first_seen: string;

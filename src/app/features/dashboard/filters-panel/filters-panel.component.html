@@ -164,6 +164,17 @@
       >
         <mat-icon>{{ favoriteIcon() }}</mat-icon>
       </button>
+      @if (isBuyMode) {
+        <button
+          mat-icon-button
+          class="hidden-filter-btn"
+          [class.hidden-filter-btn--active]="buyFilterState.isHidden() === true"
+          (click)="cycleHidden()"
+          [matTooltip]="'Show hidden only'"
+        >
+          <mat-icon>{{ hiddenIcon() }}</mat-icon>
+        </button>
+      }
       <button
         mat-icon-button
         class="price-change-filter-btn"

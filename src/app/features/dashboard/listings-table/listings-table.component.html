@@ -31,6 +31,21 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="is_hidden">
+          <th mat-header-cell *matHeaderCellDef class="col-hidden"></th>
+          <td mat-cell *matCellDef="let row" class="col-hidden">
+            <button
+              mat-icon-button
+              class="hidden-btn"
+              [class.hidden-btn--active]="isHidden(row)"
+              (click)="onHiddenClick($event, row)"
+              [matTooltip]="isHidden(row) ? 'Unhide listing' : 'Hide listing'"
+            >
+              <mat-icon>{{ isHidden(row) ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="title">
           <th mat-header-cell *matHeaderCellDef>Title</th>
           <td mat-cell *matCellDef="let row">

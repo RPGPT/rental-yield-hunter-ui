@@ -217,6 +217,20 @@ export class FiltersPanelComponent implements OnInit {
     return this.filterState.isFavorite() === true ? 'favorite' : 'favorite_border';
   }
 
+  cycleHidden(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    const current = this.buyFilterState.isHidden();
+    this.buyFilterState.isHidden.set(current === null ? true : null);
+    this.resetOffset();
+  }
+
+  hiddenIcon(): string {
+    return this.buyFilterState.isHidden() === true ? 'visibility_off' : 'visibility';
+  }
+
   cycleNew(): void {
     const current = this.filterState.isNew();
     this.filterState.isNew.set(current === null ? true : null);

@@ -61,6 +61,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       is_rented,
       lifetime_rent,
       is_favorite,
+      is_hidden,
       is_new,
       price_change,
       active,
@@ -168,15 +169,22 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
 
     let joinClause = '';
     let isFavoriteSelect = 'false AS is_favorite';
+    let isHiddenSelect = 'false AS is_hidden';
     const allParams: unknown[] = [];
 
     if (userId) {
       allParams.push(userId); // $1 = userId
-      joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1`;
+      joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1
+        LEFT JOIN user_hidden uh ON uh.listing_id = l.id AND uh.user_id = $1`;
       isFavoriteSelect = `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`;
+      isHiddenSelect = `CASE WHEN uh.listing_id IS NOT NULL THEN true ELSE false END AS is_hidden`;
       // Filter to only favorites if requested (no extra param — references the JOIN)
       if (is_favorite === 'true') {
         conditions.push(`uf.listing_id IS NOT NULL`);
+      }
+      // Filter to only hidden if requested (no extra param — references the JOIN)
+      if (is_hidden === 'true') {
+        conditions.push(`uh.listing_id IS NOT NULL`);
       }
       // Renumber all $N params by +1 (because $1 is now userId)
       const rebuiltWhere =
@@ -189,7 +197,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
         SELECT l.id, l.source, l.url, l.title, l.description,
                l.price, l.area, l.price_per_m2,
                l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
-               l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
+               l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen
         FROM ${tableRef}
         ${joinClause}
@@ -210,7 +218,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     const dataQuery = `
       SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
              l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
-             l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, l.active,
+             l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
              l.inactive_since, l.first_seen, l.last_seen
       FROM listings l
       ${whereClause}

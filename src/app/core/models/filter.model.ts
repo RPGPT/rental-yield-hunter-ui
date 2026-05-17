@@ -15,6 +15,7 @@ export interface FilterState {
   is_rented: boolean | null;
   lifetime_rent: boolean | null;
   is_favorite: boolean | null;
+  is_hidden: boolean | null;
   is_new: boolean | null;
   price_change: 'reduced' | 'increased' | null;
   active: boolean | null;

@@ -32,6 +32,7 @@ const TITLE_MAX_LENGTH = 50;
 
 const BUY_COLUMNS: ListingColumn[] = [
   'is_favorite',
+  'is_hidden',
   'title',
   'price',
   'area',
@@ -93,6 +94,7 @@ export class ListingsTableComponent {
   mode = input<'buy' | 'rent'>('buy');
 
   favoriteOverrides = signal<Record<string, boolean>>({});
+  hiddenOverrides = signal<Record<string, boolean>>({});
   private hiddenFromFilter = signal<Set<string>>(new Set());
 
   visibleListings = computed(() => {
@@ -109,6 +111,7 @@ export class ListingsTableComponent {
       this.listings();
       this.hiddenFromFilter.set(new Set());
       this.favoriteOverrides.set({});
+      this.hiddenOverrides.set({});
     });
   }
 
@@ -126,6 +129,11 @@ export class ListingsTableComponent {
   isFavorite(row: Listing | RentalListing): boolean {
     const overrides = this.favoriteOverrides();
     return row.id in overrides ? overrides[row.id] : row.is_favorite;
+  }
+
+  isHidden(row: Listing | RentalListing): boolean {
+    const overrides = this.hiddenOverrides();
+    return row.id in overrides ? overrides[row.id] : ((row as Listing).is_hidden ?? false);
   }
 
   onFavoriteClick(event: Event, row: Listing | RentalListing): void {
@@ -155,6 +163,29 @@ export class ListingsTableComponent {
         }
       },
       error: () => this.favoriteOverrides.update((o) => ({ ...o, [row.id]: !newValue })),
+    });
+  }
+
+  onHiddenClick(event: Event, row: Listing | RentalListing): void {
+    event.stopPropagation();
+
+    if (!this.auth.isAuthenticated()) {
+      this.snackBar
+        .open('Sign in to hide listings', 'Sign In', { duration: 4000 })
+        .onAction()
+        .subscribe(() => this.router.navigate(['/login']));
+      return;
+    }
+
+    const newValue = !this.isHidden(row);
+    this.hiddenOverrides.update((o) => ({ ...o, [row.id]: newValue }));
+    this.api.setHidden(row.id, newValue).subscribe({
+      next: () => {
+        if (newValue && (this.fs as FilterStateService).isHidden() !== true) {
+          this.hiddenFromFilter.update((s) => new Set([...s, row.id]));
+        }
+      },
+      error: () => this.hiddenOverrides.update((o) => ({ ...o, [row.id]: !newValue })),
     });
   }
 

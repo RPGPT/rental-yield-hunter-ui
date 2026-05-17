@@ -31,6 +31,7 @@ const MOCK_LISTING: ListingDetail = {
   is_rented: false,
   lifetime_rent: false,
   is_favorite: true,
+  is_hidden: false,
   active: true,
   inactive_since: null,
   first_seen: '2024-01-01T00:00:00Z',
@@ -45,6 +46,7 @@ const MOCK_LISTING: ListingDetail = {
 describe('DetailComponent', () => {
   let getListing: ReturnType<typeof vi.fn>;
   let setFavorite: ReturnType<typeof vi.fn>;
+  let setHidden: ReturnType<typeof vi.fn>;
   let checkSnapshot: ReturnType<typeof vi.fn>;
   let triggerSnapshot: ReturnType<typeof vi.fn>;
   let updateListingStatus: ReturnType<typeof vi.fn>;
@@ -53,6 +55,7 @@ describe('DetailComponent', () => {
   beforeEach(() => {
     getListing = vi.fn().mockReturnValue(of({ ...MOCK_LISTING }));
     setFavorite = vi.fn().mockReturnValue(of(undefined));
+    setHidden = vi.fn().mockReturnValue(of(undefined));
     checkSnapshot = vi.fn().mockReturnValue(of({ exists: false }));
     triggerSnapshot = vi
       .fn()
@@ -72,6 +75,7 @@ describe('DetailComponent', () => {
         MockProvider(ApiService, {
           getListing,
           setFavorite,
+          setHidden,
           checkSnapshot,
           triggerSnapshot,
           updateListingStatus,

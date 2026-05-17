@@ -12,6 +12,11 @@
   padding: 0 $size-4 !important;
 }
 
+.col-hidden {
+  width: $size-48;
+  padding: 0 $size-4 !important;
+}
+
 .fav-btn {
   color: $color-grey;
   width: $size-32;
@@ -30,6 +35,27 @@
 
   &:hover {
     color: $color-danger;
+  }
+}
+
+.hidden-btn {
+  color: $color-grey;
+  width: $size-32;
+  height: $size-32;
+  line-height: $size-32;
+
+  mat-icon {
+    font-size: $size-20;
+    width: $size-20;
+    height: $size-20;
+  }
+
+  &--active {
+    color: $color-grey-dark;
+  }
+
+  &:hover {
+    color: $color-grey-dark;
   }
 }
 

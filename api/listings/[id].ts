@@ -59,15 +59,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isFavoriteSelect = userId
       ? `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`
       : `false AS is_favorite`;
+    const isHiddenSelect = userId
+      ? `CASE WHEN uh.listing_id IS NOT NULL THEN true ELSE false END AS is_hidden`
+      : `false AS is_hidden`;
     const joinClause = userId
-      ? `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $2`
+      ? `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $2
+         LEFT JOIN user_hidden uh ON uh.listing_id = l.id AND uh.user_id = $2`
       : '';
     const listingParams: unknown[] = userId ? [id, userId] : [id];
 
     const listingResult = await sql.query(
       `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
               l.location, l.city, l.neighborhood, l.typology, l.floor,
-              l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, l.active,
+              l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
               l.inactive_since, l.first_seen, l.last_seen
        FROM listings l
        ${joinClause}

@@ -50,6 +50,7 @@ import statsHandler from './api/stats';
 import filtersHandler from './api/filters';
 import rentalFiltersHandler from './api/rental-filters';
 import favoritesHandler from './api/favorites/index';
+import hiddenHandler from './api/hidden/index';
 import rentalListingsHandler from './api/rental-listings/index';
 import rentalListingByIdHandler from './api/rental-listings/[id]';
 
@@ -117,6 +118,8 @@ const server = http.createServer(async (req, res) => {
       await rentalListingByIdHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/favorites') {
       await favoritesHandler(fakeReq, fakeRes);
+    } else if (pathname === '/api/hidden') {
+      await hiddenHandler(fakeReq, fakeRes);
     } else if (pathname.match(/^\/api\/snapshots\/([^/]+)$/)) {
       const id = pathname.replace('/api/snapshots/', '');
       const htmlPath = path.join(SNAPSHOTS_DIR, `${id}.html`);

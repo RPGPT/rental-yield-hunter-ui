@@ -88,6 +88,21 @@
           }
         </button>
 
+        <!-- Hidden toggle -->
+        <button
+          mat-icon-button
+          [class.hidden-active]="isHidden()"
+          [disabled]="hiddenLoading()"
+          (click)="toggleHidden()"
+          [matTooltip]="isHidden() ? 'Unhide listing' : 'Hide listing'"
+        >
+          @if (hiddenLoading()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>{{ isHidden() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          }
+        </button>
+
         <!-- Google Maps -->
         @if (mapsUrl(l)) {
           <a

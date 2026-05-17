@@ -65,6 +65,8 @@ export class DetailComponent implements OnInit {
   loading = signal(true);
   isFavorite = signal(false);
   favLoading = signal(false);
+  isHidden = signal(false);
+  hiddenLoading = signal(false);
   snapshotLoading = signal(false);
   snapshotExists = signal(false);
   currentImage = signal<string>('');
@@ -81,6 +83,7 @@ export class DetailComponent implements OnInit {
       next: (data) => {
         this.listing.set(data);
         this.isFavorite.set(data.is_favorite);
+        this.isHidden.set(data.is_hidden);
         if (data.images?.length) {
           const url = data.images[0].large;
           this.currentImage.set(url);
@@ -201,6 +204,26 @@ export class DetailComponent implements OnInit {
         }
       },
       error: () => this.favLoading.set(false),
+    });
+  }
+
+  toggleHidden(): void {
+    if (!this.auth.isAuthenticated()) {
+      this.snackBar
+        .open('Sign in to hide listings', 'Sign In', { duration: 4000 })
+        .onAction()
+        .subscribe(() => this.router.navigate(['/login']));
+      return;
+    }
+
+    const newValue = !this.isHidden();
+    this.hiddenLoading.set(true);
+    this.api.setHidden(this.listingId, newValue).subscribe({
+      next: () => {
+        this.isHidden.set(newValue);
+        this.hiddenLoading.set(false);
+      },
+      error: () => this.hiddenLoading.set(false),
     });
   }
 

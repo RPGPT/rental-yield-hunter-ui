@@ -13,6 +13,7 @@ export interface FilterQueryParams {
   is_rented?: string;
   lifetime_rent?: string;
   is_favorite?: string;
+  is_hidden?: string;
   is_new?: string;
   price_change?: string;
   active?: string;
@@ -33,6 +34,7 @@ export class FilterStateService {
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
   readonly isFavorite = signal<boolean | null>(null);
+  readonly isHidden = signal<boolean | null>(null);
   readonly isNew = signal<boolean | null>(null);
   readonly priceChange = signal<'reduced' | 'increased' | null>(null);
   readonly active = signal<boolean | null>(true);
@@ -52,6 +54,7 @@ export class FilterStateService {
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
     is_favorite: this.isFavorite(),
+    is_hidden: this.isHidden(),
     is_new: this.isNew(),
     price_change: this.priceChange(),
     active: this.active(),
@@ -72,6 +75,7 @@ export class FilterStateService {
     this.isRented.set(null);
     this.lifetimeRent.set(null);
     this.isFavorite.set(null);
+    this.isHidden.set(null);
     this.isNew.set(null);
     this.priceChange.set(null);
     this.active.set(true);
@@ -103,6 +107,8 @@ export class FilterStateService {
       );
     if (params['is_favorite'] != null)
       this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
+    if (params['is_hidden'] != null)
+      this.isHidden.set(params['is_hidden'] === 'true' ? true : null);
     if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
     if (params['price_change'] === 'reduced' || params['price_change'] === 'increased') {
       this.priceChange.set(params['price_change']);
@@ -129,6 +135,7 @@ export class FilterStateService {
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
+    if (s.is_hidden != null) p.is_hidden = String(s.is_hidden);
     if (s.is_new != null) p.is_new = String(s.is_new);
     if (s.price_change != null) p.price_change = s.price_change;
     if (s.active !== true) p.active = s.active === null ? 'all' : 'false';

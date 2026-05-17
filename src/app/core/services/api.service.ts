@@ -85,6 +85,14 @@ export class ApiService {
     }
   }
 
+  setHidden(id: string, value: boolean): Observable<void> {
+    if (value) {
+      return this.http.post<void>(`${this.baseUrl}/hidden?id=${id}`, null);
+    } else {
+      return this.http.delete<void>(`${this.baseUrl}/hidden?id=${id}`);
+    }
+  }
+
   checkSnapshot(id: string, source?: 'rental'): Observable<{ exists: boolean; url?: string }> {
     const src = source ? `&source=${source}` : '';
     return this.http.get<{ exists: boolean; url?: string }>(
