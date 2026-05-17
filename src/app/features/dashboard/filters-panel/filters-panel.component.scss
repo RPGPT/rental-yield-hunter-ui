@@ -127,6 +127,11 @@
   width: 100%;
 }
 
+.filter-field--yield {
+  width: 110px;
+  flex: none;
+}
+
 ::ng-deep .mat-mdc-option .mdc-list-item__primary-text {
   overflow: hidden;
   text-overflow: ellipsis;

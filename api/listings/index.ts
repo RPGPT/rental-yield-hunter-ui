@@ -218,7 +218,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
         ORDER BY ${sortPrefix}.${sortCol} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
-      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} ${rebuiltWhere}`;
+      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} LEFT JOIN rental_estimates re ON re.listing_id = l.id ${rebuiltWhere}`;
       const [data, countResult] = await Promise.all([
         sql.query(dataQuery, allParams),
         sql.query(countQuery, allParams),
@@ -241,7 +241,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 
-    const countQuery = `SELECT count(*)::int AS total FROM listings l ${whereClause}`;
+    const countQuery = `SELECT count(*)::int AS total FROM listings l LEFT JOIN rental_estimates re ON re.listing_id = l.id ${whereClause}`;
 
     const [data, countResult] = await Promise.all([
       sql.query(dataQuery, params),
