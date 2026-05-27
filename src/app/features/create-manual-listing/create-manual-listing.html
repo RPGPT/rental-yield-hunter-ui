@@ -1,0 +1,122 @@
+<h2 mat-dialog-title>Create New Listing</h2>
+
+<mat-dialog-content>
+  <form autocomplete="off" class="form-grid">
+    <div class="field">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>Listing name</mat-label>
+        <input
+          matInput
+          type="text"
+          placeholder="e.g. Modern Studio in Downtown"
+          [formField]="listingForm.name"
+        />
+      </mat-form-field>
+
+      @if (showError(listingForm.name())) {
+        <div class="field-error">{{ getErrorMessage(listingForm.name()) }}</div>
+      }
+    </div>
+
+    <div class="field">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>City</mat-label>
+        <select
+          matNativeControl
+          [value]="listingForm.city().value()"
+          (change)="onCityChange($any($event.target).value)"
+        >
+          <option value="">Select a city</option>
+          @for (city of cities; track city) {
+            <option [value]="city">{{ city }}</option>
+          }
+        </select>
+      </mat-form-field>
+
+      @if (showError(listingForm.city())) {
+        <div class="field-error">{{ getErrorMessage(listingForm.city()) }}</div>
+      }
+    </div>
+
+    <div class="field">
+      @if (isCitySelected()) {
+        <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+          <mat-label>Neighborhood</mat-label>
+          <select matNativeControl [formField]="listingForm.neighborhood">
+            <option value="">Select a neighborhood</option>
+            @for (n of availableNeighborhoods(); track n) {
+              <option [value]="n">{{ n }}</option>
+            }
+          </select>
+        </mat-form-field>
+      } @else {
+        <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+          <mat-label>Neighborhood</mat-label>
+          <select matNativeControl disabled>
+            <option value="">Select a city first</option>
+          </select>
+        </mat-form-field>
+      }
+
+      @if (showError(listingForm.neighborhood())) {
+        <div class="field-error">{{ getErrorMessage(listingForm.neighborhood()) }}</div>
+      }
+    </div>
+
+    <div class="field">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>Price</mat-label>
+        <input matInput type="number" placeholder="0" [formField]="listingForm.price" />
+        <span matTextSuffix>€</span>
+      </mat-form-field>
+
+      @if (showError(listingForm.price())) {
+        <div class="field-error">{{ getErrorMessage(listingForm.price()) }}</div>
+      }
+    </div>
+
+    <div class="field">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>Size</mat-label>
+        <input matInput type="number" placeholder="0" [formField]="listingForm.sizeM2" />
+        <span matTextSuffix>m²</span>
+      </mat-form-field>
+
+      @if (showError(listingForm.sizeM2())) {
+        <div class="field-error">{{ getErrorMessage(listingForm.sizeM2()) }}</div>
+      }
+    </div>
+
+    <div class="rent-row">
+      <mat-checkbox [formField]="listingForm.isRented"> Currently rented </mat-checkbox>
+
+      @if (isRented()) {
+        <div class="field rent-field">
+          <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+            <mat-label>Current rent price</mat-label>
+            <input
+              matInput
+              type="number"
+              placeholder="0"
+              [formField]="listingForm.currentRentPrice"
+            />
+            <span matTextSuffix>€/mo</span>
+          </mat-form-field>
+
+          @if (showError(listingForm.currentRentPrice())) {
+            <div class="field-error">
+              {{ getErrorMessage(listingForm.currentRentPrice()) }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Cancel</button>
+  <button mat-flat-button color="primary" [disabled]="listingForm().invalid()" (click)="submit()">
+    Create Listing
+  </button>
+</mat-dialog-actions>

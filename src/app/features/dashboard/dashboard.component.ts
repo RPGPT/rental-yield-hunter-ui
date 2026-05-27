@@ -7,11 +7,16 @@ import { FilterOptions } from '../../core/models/filter.model';
 import { Listing, RentalListing } from '../../core/models/listing.model';
 import { FiltersPanelComponent } from './filters-panel/filters-panel.component';
 import { ListingsTableComponent } from './listings-table/listings-table.component';
+import { MatDialog } from '@angular/material/dialog';
+import { CreateManualListing } from '../create-manual-listing/create-manual-listing';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [FiltersPanelComponent, ListingsTableComponent],
+  imports: [FiltersPanelComponent, ListingsTableComponent, MatIconButton, MatIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
@@ -22,6 +27,8 @@ export class DashboardComponent implements OnInit {
   private readonly rentalFilterState = inject(RentalFilterStateService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
+  private readonly dialog = inject(MatDialog);
 
   mode = signal<'buy' | 'rent'>('buy');
   filterOptions = signal<FilterOptions | null>(null);
@@ -94,8 +101,26 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  onCreateNewListing() {
+    const dialogRef = this.dialog.open(CreateManualListing, {
+      width: '520px',
+      autoFocus: false,
+      data: { neighborhoods: this.filterOptions()?.neighborhoods },
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        console.log('New listing data:', result);
+      }
+    });
+  }
+
   onModeChange(newMode: 'buy' | 'rent'): void {
     void this.router.navigate([newMode === 'buy' ? '/buy' : '/rent']);
+  }
+
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
   }
 
   get activeListings(): (Listing | RentalListing)[] {

@@ -3,6 +3,7 @@
     <div class="filter-tabs">
       <button
         class="filter-tab"
+        aria-label="See buy listings"
         [class.filter-tab--active]="mode() === 'buy'"
         (click)="onModeChange('buy')"
       >
@@ -10,11 +11,17 @@
       </button>
       <button
         class="filter-tab"
+        aria-label="See rent listings"
         [class.filter-tab--active]="mode() === 'rent'"
         (click)="onModeChange('rent')"
       >
         <span>Rent</span>
       </button>
+      @if (isAdmin()) {
+        <button mat-icon-button (click)="onCreateNewListing()" aria-label="Create new listing">
+          <mat-icon>add</mat-icon>
+        </button>
+      }
     </div>
     <app-filters-panel [filterOptions]="filterOptions()" [mode]="mode()" />
   </div>

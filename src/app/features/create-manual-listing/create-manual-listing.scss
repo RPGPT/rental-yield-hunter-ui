@@ -1,0 +1,35 @@
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field mat-form-field {
+  width: 100%;
+}
+
+.field-error {
+  margin-top: 4px;
+  margin-left: 16px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--mat-sys-error, #ba1a1a);
+}
+
+.rent-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: start;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.rent-field {
+  flex: 1;
+}
