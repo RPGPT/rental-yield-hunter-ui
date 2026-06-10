@@ -18,6 +18,13 @@
       }
     </div>
 
+    <div class="field full-width">
+      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+        <mat-label>URL</mat-label>
+        <input matInput type="url" placeholder="https://..." [formField]="listingForm.url" />
+      </mat-form-field>
+    </div>
+
     <div class="field">
       <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
         <mat-label>City</mat-label>

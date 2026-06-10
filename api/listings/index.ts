@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
+import { randomUUID } from 'crypto';
+import { getUserFromRequest as getAdminUser } from '../lib/auth.js';
 
 interface NeonAuthUser {
   id: string;
@@ -42,9 +44,89 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+async function createListing(
+  req: VercelRequest,
+  res: VercelResponse,
+  sql: ReturnType<typeof neon>,
+) {
+  const user = await getAdminUser(req);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const body = req.body as Record<string, unknown> | null;
+  if (!body || typeof body !== 'object') {
+    return res.status(400).json({ error: 'Invalid request body' });
+  }
+
+  const { title, url, city, neighborhood, price, sizeM2, isRented, currentRentPrice } = body as {
+    title?: string;
+    url?: string;
+    city?: string;
+    neighborhood?: string;
+    price?: number;
+    sizeM2?: number;
+    isRented?: boolean;
+    currentRentPrice?: number | null;
+  };
+
+  if (!title || !city || !neighborhood || !price || !sizeM2) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const id = randomUUID();
+  const pricePerM2 = sizeM2 > 0 ? price / sizeM2 : null;
+
+  await sql.query(
+    `INSERT INTO listings (id, source, url, title, price, area, price_per_m2, city, neighborhood, is_rented, lifetime_rent, active, first_seen, last_seen)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
+    [
+      id,
+      'manual',
+      url ?? '',
+      title,
+      price,
+      sizeM2,
+      pricePerM2,
+      city,
+      neighborhood,
+      isRented ?? false,
+      false,
+      true,
+    ],
+  );
+
+  if (isRented && currentRentPrice) {
+    await sql.query(
+      `INSERT INTO rent_contract_details (listing_id, current_rent) VALUES ($1, $2)`,
+      [id, currentRentPrice],
+    );
+  }
+
+  const result = await sql.query(
+    `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
+            l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
+            l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
+            l.inactive_since, l.first_seen, l.last_seen,
+            re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
+            rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+     FROM listings l
+     LEFT JOIN rental_estimates re ON re.listing_id = l.id
+     LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
+     WHERE l.id = $1`,
+    [id],
+  );
+
+  return res.status(201).json(result[0]);
+}
+
 async function listingsHandler(req: VercelRequest, res: VercelResponse) {
   console.log('[listings] handler start, hasAuth:', !!req.headers['authorization']);
   const sql = neon(process.env['DATABASE_URL']!);
+
+  if (req.method === 'POST') {
+    return createListing(req, res, sql);
+  }
 
   try {
     const user = getUserFromRequest(req);

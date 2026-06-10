@@ -35,6 +35,19 @@ export class ApiService {
     });
   }
 
+  createListing(data: {
+    title: string;
+    url: string;
+    city: string;
+    neighborhood: string;
+    price: number;
+    sizeM2: number;
+    isRented: boolean;
+    currentRentPrice: number | null;
+  }): Observable<Listing> {
+    return this.http.post<Listing>(`${this.baseUrl}/listings`, data);
+  }
+
   getListing(id: string): Observable<ListingDetail> {
     return this.http.get<ListingDetail>(`${this.baseUrl}/listings/${id}`);
   }

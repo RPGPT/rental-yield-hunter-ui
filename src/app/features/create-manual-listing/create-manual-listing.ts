@@ -18,6 +18,7 @@ interface DialogData {
 
 interface ListingData {
   name: string;
+  url: string;
   city: string;
   neighborhood: string;
   price: number;
@@ -51,6 +52,7 @@ export class CreateManualListing {
 
   readonly listingModel = signal<ListingData>({
     name: '',
+    url: '',
     city: '',
     neighborhood: '',
     price: 0,
@@ -116,7 +118,13 @@ export class CreateManualListing {
     const data = this.listingModel();
 
     this.dialogRef.close({
-      ...data,
+      title: data.name,
+      url: data.url,
+      city: data.city,
+      neighborhood: data.neighborhood,
+      price: data.price,
+      sizeM2: data.sizeM2,
+      isRented: data.isRented,
       currentRentPrice: data.isRented ? data.currentRentPrice : null,
     });
   }

@@ -92,7 +92,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const pathname = new URL(url, 'http://localhost').pathname;
 
-    if (pathname === '/api/listings' && req.method === 'GET') {
+    if (pathname === '/api/listings' && (req.method === 'GET' || req.method === 'POST')) {
       await listingsHandler(fakeReq, fakeRes);
     } else if (pathname === '/api/listings/description') {
       await listingDescriptionHandler(fakeReq, fakeRes);

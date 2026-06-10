@@ -110,7 +110,12 @@ export class DashboardComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        console.log('New listing data:', result);
+        this.api.createListing(result).subscribe({
+          next: (newListing) => {
+            this.listings.update((list) => [newListing, ...list]);
+            this.total.update((t) => t + 1);
+          },
+        });
       }
     });
   }
