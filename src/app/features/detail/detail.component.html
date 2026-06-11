@@ -49,7 +49,7 @@
           </button>
           <mat-menu #listingMenu="matMenu">
             @if (!listing()?.is_rented) {
-              <button mat-menu-item (click)="markAsRented()">
+              <button mat-menu-item (click)="openMarkAsRentedDialog()">
                 <mat-icon>home</mat-icon>
                 Mark as Rented
               </button>
@@ -57,17 +57,6 @@
               <button mat-menu-item (click)="markAsNotRented()">
                 <mat-icon>home</mat-icon>
                 Mark as Not Rented
-              </button>
-            }
-            @if (!listing()?.lifetime_rent) {
-              <button mat-menu-item (click)="markAsLifetimeRent()">
-                <mat-icon>lock_clock</mat-icon>
-                Mark as Lifetime Rent
-              </button>
-            } @else {
-              <button mat-menu-item (click)="markAsNotLifetimeRent()">
-                <mat-icon>lock_open</mat-icon>
-                Mark as Not Lifetime Rent
               </button>
             }
           </mat-menu>

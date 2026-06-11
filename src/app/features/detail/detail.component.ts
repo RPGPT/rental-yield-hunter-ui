@@ -18,6 +18,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ListingDetail } from '../../core/models/listing.model';
@@ -27,6 +28,7 @@ import { EurPipe } from '../../shared/pipes/eur.pipe';
 import { RelativeDatePipe } from '../../shared/pipes/relative-date.pipe';
 import { BadgeComponent } from '../../shared/components/badge.component';
 import { PriceChartComponent } from './price-chart/price-chart.component';
+import { MarkAsRentedDialogComponent, MarkAsRentedResult } from './mark-as-rented-dialog.component';
 
 @Component({
   selector: 'app-detail',
@@ -57,6 +59,7 @@ export class DetailComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
   private listingId = '';
 
   private readonly sanitizer = inject(DomSanitizer);
@@ -94,7 +97,7 @@ export class DetailComponent implements OnInit {
           this.activeSlot.set('a');
         }
         this.loading.set(false);
-        if (data.url?.includes('imovirtual.com')) {
+        if (data.url?.includes('imovirtual.com') || data.url?.includes('era.pt')) {
           this.descriptionLoading.set(true);
           this.api.getListingDescription(data.url).subscribe({
             next: (res) => {
@@ -291,67 +294,66 @@ export class DetailComponent implements OnInit {
       : `${l.confidence} confidence`;
   }
 
-  markAsRented(): void {
-    this.statusLoading.set(true);
-    this.api.updateListingStatus(this.listingId, { is_rented: true }).subscribe({
-      next: () => {
-        const l = this.listing();
-        if (l) this.listing.set({ ...l, is_rented: true });
-        this.statusLoading.set(false);
-        this.snackBar.open('Marked as Rented', undefined, { duration: 3000 });
-      },
-      error: () => {
-        this.statusLoading.set(false);
-        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
-      },
+  openMarkAsRentedDialog(): void {
+    const ref = this.dialog.open<MarkAsRentedDialogComponent, void, MarkAsRentedResult | null>(
+      MarkAsRentedDialogComponent,
+    );
+    ref.afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.statusLoading.set(true);
+      this.api
+        .updateListingStatus(this.listingId, {
+          is_rented: true,
+          lifetime_rent: result.lifetimeRent,
+          rent_per_month: result.rentPerMonth,
+          contract_expiry_date: result.contractExpiryDate,
+        })
+        .subscribe({
+          next: () => {
+            const l = this.listing();
+            if (l) {
+              this.listing.set({
+                ...l,
+                is_rented: true,
+                lifetime_rent: result.lifetimeRent,
+                rent_current_rent: result.rentPerMonth,
+                rent_contract_expiry: result.contractExpiryDate,
+              });
+            }
+            this.statusLoading.set(false);
+            this.snackBar.open('Marked as Rented', undefined, { duration: 3000 });
+          },
+          error: () => {
+            this.statusLoading.set(false);
+            this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+          },
+        });
     });
   }
 
   markAsNotRented(): void {
     this.statusLoading.set(true);
-    this.api.updateListingStatus(this.listingId, { is_rented: false }).subscribe({
-      next: () => {
-        const l = this.listing();
-        if (l) this.listing.set({ ...l, is_rented: false });
-        this.statusLoading.set(false);
-        this.snackBar.open('Marked as Not Rented', undefined, { duration: 3000 });
-      },
-      error: () => {
-        this.statusLoading.set(false);
-        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
-      },
-    });
-  }
-
-  markAsLifetimeRent(): void {
-    this.statusLoading.set(true);
-    this.api.updateListingStatus(this.listingId, { lifetime_rent: true }).subscribe({
-      next: () => {
-        const l = this.listing();
-        if (l) this.listing.set({ ...l, lifetime_rent: true });
-        this.statusLoading.set(false);
-        this.snackBar.open('Marked as Lifetime Rent', undefined, { duration: 3000 });
-      },
-      error: () => {
-        this.statusLoading.set(false);
-        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
-      },
-    });
-  }
-
-  markAsNotLifetimeRent(): void {
-    this.statusLoading.set(true);
-    this.api.updateListingStatus(this.listingId, { lifetime_rent: false }).subscribe({
-      next: () => {
-        const l = this.listing();
-        if (l) this.listing.set({ ...l, lifetime_rent: false });
-        this.statusLoading.set(false);
-        this.snackBar.open('Marked as Not Lifetime Rent', undefined, { duration: 3000 });
-      },
-      error: () => {
-        this.statusLoading.set(false);
-        this.snackBar.open('Failed to update', undefined, { duration: 3000 });
-      },
-    });
+    this.api
+      .updateListingStatus(this.listingId, { is_rented: false, lifetime_rent: false })
+      .subscribe({
+        next: () => {
+          const l = this.listing();
+          if (l) {
+            this.listing.set({
+              ...l,
+              is_rented: false,
+              lifetime_rent: false,
+              rent_current_rent: null,
+              rent_contract_expiry: null,
+            });
+          }
+          this.statusLoading.set(false);
+          this.snackBar.open('Marked as Not Rented', undefined, { duration: 3000 });
+        },
+        error: () => {
+          this.statusLoading.set(false);
+          this.snackBar.open('Failed to update', undefined, { duration: 3000 });
+        },
+      });
   }
 }

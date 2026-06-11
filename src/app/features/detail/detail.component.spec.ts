@@ -6,12 +6,14 @@ import { of, throwError } from 'rxjs';
 import { MockComponent, MockProvider } from 'ng-mocks';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { DetailComponent } from './detail.component';
 import { PriceChartComponent } from './price-chart/price-chart.component';
 import { BadgeComponent } from '../../shared/components/badge.component';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import type { ListingDetail } from '../../core/models/listing.model';
+import { MarkAsRentedDialogComponent } from './mark-as-rented-dialog.component';
 
 const MOCK_LISTING: ListingDetail = {
   id: '123',
@@ -59,6 +61,8 @@ describe('DetailComponent', () => {
   let triggerSnapshot: ReturnType<typeof vi.fn>;
   let updateListingStatus: ReturnType<typeof vi.fn>;
   let currentUserSignal: WritableSignal<{ id: string } | null>;
+  let dialogAfterClosed: ReturnType<typeof vi.fn>;
+  let dialogOpen: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     getListing = vi.fn().mockReturnValue(of({ ...MOCK_LISTING }));
@@ -70,6 +74,8 @@ describe('DetailComponent', () => {
       .mockReturnValue(of({ exists: true, url: '/api/listings/snapshot-download?id=123' }));
     updateListingStatus = vi.fn().mockReturnValue(of(undefined));
     currentUserSignal = signal<{ id: string } | null>({ id: 'dev-user' });
+    dialogAfterClosed = vi.fn().mockReturnValue(of(null));
+    dialogOpen = vi.fn().mockReturnValue({ afterClosed: dialogAfterClosed });
 
     TestBed.configureTestingModule({
       imports: [
@@ -98,6 +104,7 @@ describe('DetailComponent', () => {
           },
         },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => '123' } } } },
+        { provide: MatDialog, useValue: { open: dialogOpen } },
       ],
     });
   });
@@ -147,6 +154,13 @@ describe('DetailComponent', () => {
     const component = TestBed.runInInjectionContext(() => new DetailComponent());
     component.selectImage('https://img.example.com/2-large.jpg');
     expect(component.currentImage()).toBe('https://img.example.com/2-large.jpg');
+  });
+
+  it('selectImage() sets slotA when active slot is b (covers else branch)', () => {
+    const component = TestBed.runInInjectionContext(() => new DetailComponent());
+    component.activeSlot.set('b');
+    component.selectImage('https://img.example.com/2-large.jpg');
+    expect(component.slotA()).toBe('https://img.example.com/2-large.jpg');
   });
 
   it('toggleFavorite() calls setFavorite with the negated current value', () => {
@@ -203,6 +217,16 @@ describe('DetailComponent', () => {
     triggerSnapshot.mockClear();
     component.toggleFavorite();
     expect(triggerSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('toggleFavorite() handles triggerSnapshot error gracefully', () => {
+    triggerSnapshot.mockReturnValue(throwError(() => new Error('snapshot fail')));
+    const component = TestBed.runInInjectionContext(() => new DetailComponent());
+    component.ngOnInit();
+    component.isFavorite.set(false);
+    component.toggleFavorite();
+    // Should not throw; isFavorite still flips successfully
+    expect(component.isFavorite()).toBe(true);
   });
 
   describe('toggleFavorite() — unauthenticated', () => {
@@ -291,41 +315,91 @@ describe('DetailComponent', () => {
     expect(navigateSpy).toHaveBeenCalledWith(['/listing', '123', 'snapshot']);
   });
 
-  describe('markAsRented()', () => {
-    it('calls updateListingStatus with is_rented: true', () => {
+  describe('openMarkAsRentedDialog()', () => {
+    it('opens MarkAsRentedDialogComponent', () => {
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
-      component.markAsRented();
-      expect(updateListingStatus).toHaveBeenCalledWith('123', { is_rented: true });
+      component.openMarkAsRentedDialog();
+      expect(dialogOpen).toHaveBeenCalledWith(MarkAsRentedDialogComponent);
+    });
+
+    it('does nothing when dialog is cancelled (null result)', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.openMarkAsRentedDialog();
+      expect(updateListingStatus).not.toHaveBeenCalled();
+    });
+
+    it('calls updateListingStatus with contract details when confirmed', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: false, rentPerMonth: 1200, contractExpiryDate: '2025-12-31' }),
+      );
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.openMarkAsRentedDialog();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', {
+        is_rented: true,
+        lifetime_rent: false,
+        rent_per_month: 1200,
+        contract_expiry_date: '2025-12-31',
+      });
+    });
+
+    it('calls updateListingStatus with lifetime_rent: true when confirmed as lifetime', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: true, rentPerMonth: null, contractExpiryDate: null }),
+      );
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      component.openMarkAsRentedDialog();
+      expect(updateListingStatus).toHaveBeenCalledWith('123', {
+        is_rented: true,
+        lifetime_rent: true,
+        rent_per_month: null,
+        contract_expiry_date: null,
+      });
     });
 
     it('sets is_rented to true on the listing signal after success', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: false, rentPerMonth: 900, contractExpiryDate: null }),
+      );
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
-      component.markAsRented();
+      component.openMarkAsRentedDialog();
       expect(component.listing()?.is_rented).toBe(true);
+      expect(component.listing()?.rent_current_rent).toBe(900);
     });
 
     it('resets statusLoading to false after success', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: false, rentPerMonth: 900, contractExpiryDate: null }),
+      );
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
-      component.markAsRented();
+      component.openMarkAsRentedDialog();
       expect(component.statusLoading()).toBe(false);
     });
 
     it('resets statusLoading to false on error', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: false, rentPerMonth: 900, contractExpiryDate: null }),
+      );
       updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
-      component.markAsRented();
+      component.openMarkAsRentedDialog();
       expect(component.statusLoading()).toBe(false);
     });
 
     it('does not change listing on error', () => {
+      dialogAfterClosed.mockReturnValue(
+        of({ lifetimeRent: false, rentPerMonth: 900, contractExpiryDate: null }),
+      );
       updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
-      component.markAsRented();
+      component.openMarkAsRentedDialog();
       expect(component.listing()?.is_rented).toBe(false);
     });
   });
@@ -336,7 +410,10 @@ describe('DetailComponent', () => {
       component.ngOnInit();
       component.listing.set({ ...MOCK_LISTING, is_rented: true });
       component.markAsNotRented();
-      expect(updateListingStatus).toHaveBeenCalledWith('123', { is_rented: false });
+      expect(updateListingStatus).toHaveBeenCalledWith('123', {
+        is_rented: false,
+        lifetime_rent: false,
+      });
     });
 
     it('sets is_rented to false on the listing signal after success', () => {
@@ -352,63 +429,6 @@ describe('DetailComponent', () => {
       const component = TestBed.runInInjectionContext(() => new DetailComponent());
       component.ngOnInit();
       component.markAsNotRented();
-      expect(component.statusLoading()).toBe(false);
-    });
-  });
-
-  describe('markAsLifetimeRent()', () => {
-    it('calls updateListingStatus with lifetime_rent: true', () => {
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.markAsLifetimeRent();
-      expect(updateListingStatus).toHaveBeenCalledWith('123', { lifetime_rent: true });
-    });
-
-    it('sets lifetime_rent to true on the listing signal after success', () => {
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.markAsLifetimeRent();
-      expect(component.listing()?.lifetime_rent).toBe(true);
-    });
-
-    it('resets statusLoading to false after success', () => {
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.markAsLifetimeRent();
-      expect(component.statusLoading()).toBe(false);
-    });
-
-    it('resets statusLoading to false on error', () => {
-      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.markAsLifetimeRent();
-      expect(component.statusLoading()).toBe(false);
-    });
-  });
-
-  describe('markAsNotLifetimeRent()', () => {
-    it('calls updateListingStatus with lifetime_rent: false', () => {
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.listing.set({ ...MOCK_LISTING, lifetime_rent: true });
-      component.markAsNotLifetimeRent();
-      expect(updateListingStatus).toHaveBeenCalledWith('123', { lifetime_rent: false });
-    });
-
-    it('sets lifetime_rent to false on the listing signal after success', () => {
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.listing.set({ ...MOCK_LISTING, lifetime_rent: true });
-      component.markAsNotLifetimeRent();
-      expect(component.listing()?.lifetime_rent).toBe(false);
-    });
-
-    it('resets statusLoading to false on error', () => {
-      updateListingStatus.mockReturnValue(throwError(() => new Error('fail')));
-      const component = TestBed.runInInjectionContext(() => new DetailComponent());
-      component.ngOnInit();
-      component.markAsNotLifetimeRent();
       expect(component.statusLoading()).toBe(false);
     });
   });
@@ -630,6 +650,28 @@ describe('DetailComponent', () => {
           getListingDescription,
         },
       });
+    });
+
+    it('calls getListingDescription for era.pt URLs', () => {
+      getListing.mockReturnValue(
+        of({ ...MOCK_LISTING, url: 'https://www.era.pt/comprar/apartamento-t3-423260032' }),
+      );
+      TestBed.overrideProvider(ApiService, {
+        useValue: {
+          getListing,
+          setFavorite,
+          setHidden,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+          getListingDescription,
+        },
+      });
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(getListingDescription).toHaveBeenCalledWith(
+        'https://www.era.pt/comprar/apartamento-t3-423260032',
+      );
     });
 
     it('calls getListingDescription for imovirtual URLs', () => {

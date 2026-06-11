@@ -39,6 +39,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     patchParams.push(id);
     try {
       await sql.query(`UPDATE listings SET ${updates.join(', ')} WHERE id = $${pIdx}`, patchParams);
+
+      const shouldClearContract = body['is_rented'] === false || body['lifetime_rent'] === true;
+      const rentPerMonth = body['rent_per_month'];
+
+      if (shouldClearContract) {
+        await sql`DELETE FROM rent_contract_details WHERE listing_id = ${id}`;
+      } else if (typeof rentPerMonth === 'number') {
+        const contractExpiry =
+          typeof body['contract_expiry_date'] === 'string' ? body['contract_expiry_date'] : null;
+        await sql`
+          INSERT INTO rent_contract_details (listing_id, current_rent, contract_expiry_date)
+          VALUES (${id}, ${rentPerMonth}, ${contractExpiry})
+          ON CONFLICT (listing_id) DO UPDATE SET
+            current_rent = EXCLUDED.current_rent,
+            contract_expiry_date = EXCLUDED.contract_expiry_date
+        `;
+      }
+
       return res.status(200).json({ ok: true });
     } catch (error) {
       return res.status(500).json({

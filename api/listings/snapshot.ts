@@ -4,6 +4,9 @@ import { existsSync, mkdirSync } from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
+import { put } from '@vercel/blob';
+import chromium from '@sparticuz/chromium-min';
+import { chromium as pw } from 'playwright-core';
 
 const execFileAsync = promisify(execFile);
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
@@ -74,9 +77,6 @@ async function fetchImovirtualImages(
 }
 
 async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<string> {
-  const chromium = (await import('@sparticuz/chromium-min')).default;
-  const { chromium: pw } = await import('playwright-core');
-
   const browser = await pw.launch({
     args: [
       ...chromium.args,
@@ -279,7 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const blobKey = `snapshots/${id}.html`;
 
   if (req.method === 'GET') {
-    if (useBlob) {
+    if (isVercel) {
       const sql = neon(process.env['DATABASE_URL']!);
       try {
         const row = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
@@ -327,9 +327,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const imageUrls = resolvedImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
 
-      if (isVercel || useBlob) {
-        const { put } = await import('@vercel/blob');
-
+      if (isVercel) {
         const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
         console.log(`[snapshot] existing rows=${existing.length} for ${id}`);
         if (existing.length > 0) {
@@ -369,6 +367,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const singleFileBin = path.join(process.cwd(), 'node_modules', '.bin', 'single-file');
         await execFileAsync(singleFileBin, [url, htmlPath, '--browser-wait-until=networkidle0'], {
           timeout: 90_000,
+          shell: true,
         });
         console.log(`[snapshot] ${htmlPath}`);
         return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });

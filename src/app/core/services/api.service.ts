@@ -85,7 +85,12 @@ export class ApiService {
 
   updateListingStatus(
     id: string,
-    flags: { is_rented?: boolean; lifetime_rent?: boolean },
+    flags: {
+      is_rented?: boolean;
+      lifetime_rent?: boolean;
+      rent_per_month?: number | null;
+      contract_expiry_date?: string | null;
+    },
   ): Observable<void> {
     return this.http.patch<void>(`${this.baseUrl}/listings/${id}`, flags);
   }
