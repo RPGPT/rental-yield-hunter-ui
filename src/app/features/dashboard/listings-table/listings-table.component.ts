@@ -133,6 +133,12 @@ export class ListingsTableComponent {
     return row.id in overrides ? overrides[row.id] : row.is_favorite;
   }
 
+  priceChangePct(row: Listing | RentalListing): number | null {
+    const prev = (row as Listing).previous_price;
+    if (!prev || prev === row.price) return null;
+    return Math.round(((row.price - prev) / prev) * 100) || null;
+  }
+
   isHidden(row: Listing | RentalListing): boolean {
     const overrides = this.hiddenOverrides();
     return row.id in overrides ? overrides[row.id] : ((row as Listing).is_hidden ?? false);

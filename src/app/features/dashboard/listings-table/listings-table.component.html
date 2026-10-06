@@ -68,7 +68,19 @@
 
         <ng-container matColumnDef="price">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Price</th>
-          <td mat-cell *matCellDef="let row">{{ row.price | eur }}</td>
+          <td mat-cell *matCellDef="let row">
+            {{ row.price | eur }}
+            @if (priceChangePct(row); as pct) {
+              <span
+                class="price-badge"
+                [class.price-badge--down]="pct < 0"
+                [class.price-badge--up]="pct > 0"
+                [matTooltip]="'Previously ' + (row.previous_price | eur)"
+              >
+                {{ pct > 0 ? '▲' : '▼' }} {{ pct < 0 ? -pct : pct }}%
+              </span>
+            }
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="area">

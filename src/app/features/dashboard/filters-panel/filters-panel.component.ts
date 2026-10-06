@@ -270,9 +270,18 @@ export class FiltersPanelComponent implements OnInit {
 
   cyclePriceChange(): void {
     const current = this.filterState.priceChange();
-    if (current === null) this.filterState.priceChange.set('reduced');
-    else if (current === 'reduced') this.filterState.priceChange.set('increased');
-    else this.filterState.priceChange.set(null);
+    if (current === null) {
+      this.filterState.priceChange.set('reduced');
+      this.filterState.sort.set('price_drop_pct');
+      this.filterState.order.set('desc');
+    } else if (current === 'reduced') this.filterState.priceChange.set('increased');
+    else {
+      this.filterState.priceChange.set(null);
+      if (this.filterState.sort() === 'price_drop_pct') {
+        this.filterState.sort.set('price');
+        this.filterState.order.set('asc');
+      }
+    }
     this.resetOffset();
   }
 

@@ -120,6 +120,8 @@ async function createListing(
   return res.status(201).json((result as Record<string, unknown>[])[0]);
 }
 
+const PREV_PRICE_SQL = `(SELECT lph.price FROM listing_price_history lph WHERE lph.listing_id = l.id AND lph.price <> l.price ORDER BY lph.captured_at DESC LIMIT 1)`;
+
 async function listingsHandler(req: VercelRequest, res: VercelResponse) {
   console.log('[listings] handler start, hasAuth:', !!req.headers['authorization']);
   const sql = neon(process.env['DATABASE_URL']!);
@@ -261,6 +263,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       'last_seen',
       'estimated_rent',
       'rental_yield',
+      'price_drop_pct',
     ];
     const reColumns = new Set(['estimated_rent', 'rental_yield']);
     const sortCol = allowedSorts.includes(sort as string) ? sort : 'price';
@@ -268,9 +271,11 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
 
     // For rental_yield, prefer contract-based yield when available
     const sortExpr =
-      sortCol === 'rental_yield'
-        ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN (rcd.current_rent * 12) / NULLIF(l.price, 0) ELSE NULL END, re.rental_yield)`
-        : `${reColumns.has(sortCol as string) ? 're' : 'l'}.${sortCol}`;
+      sortCol === 'price_drop_pct'
+        ? `(${PREV_PRICE_SQL} - l.price)::float / NULLIF(${PREV_PRICE_SQL}, 0)`
+        : sortCol === 'rental_yield'
+          ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN (rcd.current_rent * 12) / NULLIF(l.price, 0) ELSE NULL END, re.rental_yield)`
+          : `${reColumns.has(sortCol as string) ? 're' : 'l'}.${sortCol}`;
 
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
     const offsetNum = Math.max(Number(offset) || 0, 0);
@@ -310,6 +315,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen,
                re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
+               ${PREV_PRICE_SQL} AS previous_price,
                rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
         FROM ${tableRef}
         ${joinClause}
