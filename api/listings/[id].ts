@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
 import { getUserFromRequest } from '../_lib/auth.js';
+import { recordAudit } from '../_lib/audit.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -21,6 +22,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         RETURNING id
       `;
       if (rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+      await recordAudit(sql, {
+        action: 'delete',
+        listingId: id,
+        userId: user.id,
+        userEmail: user.email,
+      });
       return res.status(200).json({ ok: true });
     } catch (error) {
       return res.status(500).json({

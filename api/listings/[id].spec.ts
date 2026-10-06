@@ -75,6 +75,16 @@ describe('api/listings/[id] handler', () => {
     expect(res._status).toBe(200);
   });
 
+  it('DELETE records an audit entry', async () => {
+    queryResults = [[{ id: '42' }]];
+    const res = new MockRes();
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it('DELETE returns 404 when listing not found', async () => {
     queryResults = [[]];
     const res = new MockRes();
