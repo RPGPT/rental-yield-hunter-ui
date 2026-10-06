@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '../_types';
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { randomUUID } from 'crypto';
 import { getUserFromRequest as getAdminUser } from '../lib/auth.js';
 
@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function createListing(
   req: VercelRequest,
   res: VercelResponse,
-  sql: ReturnType<typeof neon>,
+  sql: NeonQueryFunction<false, false>,
 ) {
   const user = await getAdminUser(req);
   if (!user || user.role !== 'admin') {
@@ -117,7 +117,7 @@ async function createListing(
     [id],
   );
 
-  return res.status(201).json(result[0]);
+  return res.status(201).json((result as Record<string, unknown>[])[0]);
 }
 
 async function listingsHandler(req: VercelRequest, res: VercelResponse) {
@@ -155,7 +155,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       offset = '0',
     } = req.query as Record<string, string | undefined>;
 
-    const conditions: string[] = [];
+    const conditions: string[] = [`COALESCE(l.is_deleted, false) = false`];
     const params: unknown[] = [];
     let paramIndex = 1;
 

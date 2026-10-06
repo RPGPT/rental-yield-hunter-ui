@@ -95,6 +95,10 @@ export class ApiService {
     return this.http.patch<void>(`${this.baseUrl}/listings/${id}`, flags);
   }
 
+  deleteListing(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/listings/${id}`);
+  }
+
   setFavorite(id: string, value: boolean): Observable<void> {
     if (value) {
       return this.http.post<void>(`${this.baseUrl}/favorites?id=${id}`, null);

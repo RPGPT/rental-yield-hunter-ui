@@ -10,6 +10,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing listing ID' });
   }
 
+  if (req.method === 'DELETE') {
+    const user = await getUserFromRequest(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+
+    try {
+      const rows = await sql`
+        UPDATE listings SET is_deleted = true
+        WHERE id = ${id} AND COALESCE(is_deleted, false) = false
+        RETURNING id
+      `;
+      if (rows.length === 0) return res.status(404).json({ error: 'Listing not found' });
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      return res.status(500).json({
+        error: { message: error instanceof Error ? error.message : String(error) },
+      });
+    }
+  }
+
   if (req.method === 'PATCH') {
     const user = await getUserFromRequest(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -96,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        ${joinClause}
        LEFT JOIN rental_estimates re ON re.listing_id = l.id
        LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
-       WHERE l.id = $1`,
+       WHERE l.id = $1 AND COALESCE(l.is_deleted, false) = false`,
       listingParams,
     );
 

@@ -62,10 +62,38 @@ describe('api/listings/[id] handler', () => {
     expect((res._body as any)?.error).toBe('Method not allowed');
   });
 
-  it('returns 405 for DELETE method', async () => {
+  it('returns 405 for PUT method', async () => {
+    const res = new MockRes();
+    await handler({ method: 'PUT', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(405);
+  });
+
+  it('DELETE soft-deletes listing for admin', async () => {
+    queryResults = [[{ id: '42' }]];
     const res = new MockRes();
     await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
-    expect(res._status).toBe(405);
+    expect(res._status).toBe(200);
+  });
+
+  it('DELETE returns 404 when listing not found', async () => {
+    queryResults = [[]];
+    const res = new MockRes();
+    await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(404);
+  });
+
+  it('DELETE returns 403 for non-admin', async () => {
+    mockUser = { id: 'u', email: 'e', name: null, image: null, role: 'user' };
+    const res = new MockRes();
+    await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(403);
+  });
+
+  it('DELETE returns 401 when unauthenticated', async () => {
+    mockUser = null;
+    const res = new MockRes();
+    await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(401);
   });
 
   describe('PATCH', () => {

@@ -15,9 +15,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         (SELECT count(DISTINCT lph.listing_id)::int
           FROM listing_price_history lph
           JOIN listings l ON l.id = lph.listing_id
-          WHERE lph.price > l.price
+          WHERE lph.price > l.price AND COALESCE(l.is_deleted, false) = false
         ) AS price_drops
       FROM listings
+      WHERE COALESCE(is_deleted, false) = false
     `;
 
     res.status(200).json(result[0]);

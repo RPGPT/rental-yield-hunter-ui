@@ -32,13 +32,13 @@ function getUserFromRequest(req: VercelRequest): NeonAuthUser | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   try {
-    await rentalListingsHandler(req, res);
+    return await rentalListingsHandler(req, res);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     const code = (error as { code?: string }).code;
     console.error('[rental-listings] Unhandled crash:', msg);
-    if (!res.headersSent)
-      res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
+    if (res.headersSent) return;
+    return res.status(500).json({ error: { message: msg, ...(code ? { code } : {}) } });
   }
 }
 

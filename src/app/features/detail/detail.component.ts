@@ -356,4 +356,20 @@ export class DetailComponent implements OnInit {
         },
       });
   }
+
+  deleteListing(): void {
+    if (!window.confirm('Delete this listing? It will no longer appear in the app.')) return;
+    this.statusLoading.set(true);
+    this.api.deleteListing(this.listingId).subscribe({
+      next: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Listing deleted', undefined, { duration: 3000 });
+        void this.router.navigate(['/buy']);
+      },
+      error: () => {
+        this.statusLoading.set(false);
+        this.snackBar.open('Failed to delete', undefined, { duration: 3000 });
+      },
+    });
+  }
 }

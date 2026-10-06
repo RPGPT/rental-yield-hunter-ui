@@ -50,7 +50,7 @@ async function fetchJwks(): Promise<void> {
     if (!jwk.kid) continue;
     try {
       const key = createPublicKey({
-        key: jwk as Parameters<typeof createPublicKey>[0],
+        key: jwk as unknown as JsonWebKey,
         format: 'jwk',
       });
       jwksCache.set(jwk.kid, { key, fetchedAt: Date.now() });
