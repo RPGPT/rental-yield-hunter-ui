@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { sendError } from './errors';
-import { MockRes } from '../test/mock-res';
+import { MockRes } from '../_test/mock-res';
 
 describe('api/lib/errors - sendError', () => {
   it('returns 500 with message for a plain Error', () => {

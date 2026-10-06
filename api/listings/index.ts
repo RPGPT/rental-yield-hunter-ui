@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 import { randomUUID } from 'crypto';
-import { getUserFromRequest as getAdminUser } from '../lib/auth.js';
+import { getUserFromRequest as getAdminUser } from '../_lib/auth.js';
 
 interface NeonAuthUser {
   id: string;

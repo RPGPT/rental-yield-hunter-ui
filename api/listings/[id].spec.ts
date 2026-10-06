@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import handler from './[id]';
-import { MockRes } from '../test/mock-res';
+import { MockRes } from '../_test/mock-res';
 
 let queryIndex = 0;
 let queryResults: unknown[][] = [];
@@ -35,7 +35,7 @@ let mockUser: {
   role: 'admin',
 };
 
-vi.mock('../lib/auth', () => ({
+vi.mock('../_lib/auth', () => ({
   getUserFromRequest: async () => mockUser,
 }));
 

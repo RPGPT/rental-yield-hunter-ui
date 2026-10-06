@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MockRes } from '../test/mock-res';
+import { MockRes } from '../_test/mock-res';
 
 // fetchMock is reassigned per-test; the global stub delegates to it
 let fetchMock: ReturnType<typeof vi.fn>;
