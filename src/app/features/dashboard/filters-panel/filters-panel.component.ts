@@ -1,3 +1,4 @@
+import { SavedSearchesComponent } from '../saved-searches/saved-searches.component';
 import {
   Component,
   ChangeDetectionStrategy,
@@ -30,6 +31,7 @@ import { AuthService } from '../../../core/services/auth.service';
   selector: 'app-filters-panel',
   standalone: true,
   imports: [
+    SavedSearchesComponent,
     FormsModule,
     MatExpansionModule,
     MatFormFieldModule,

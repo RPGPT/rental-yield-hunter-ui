@@ -152,6 +152,9 @@
 .filters-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   padding-top: $size-16;
   border-top: $size-1 solid var(--mat-sys-outline-variant, #{$color-grey-light});
   margin-top: $size-16;

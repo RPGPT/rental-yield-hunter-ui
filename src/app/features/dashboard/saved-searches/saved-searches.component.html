@@ -1,7 +1,11 @@
 <div class="saved-searches">
-  <button mat-stroked-button (click)="save()" aria-label="Save current search">
+  <button
+    mat-icon-button
+    (click)="save()"
+    aria-label="Save current search"
+    title="Save current search"
+  >
     <mat-icon>bookmark_add</mat-icon>
-    Save search
   </button>
   @for (s of searches(); track s.id) {
     <span class="saved-search">

@@ -6,7 +6,6 @@ import { RentalFilterStateService } from '../../core/services/rental-filter-stat
 import { FilterOptions } from '../../core/models/filter.model';
 import { Listing, RentalListing } from '../../core/models/listing.model';
 import { FiltersPanelComponent } from './filters-panel/filters-panel.component';
-import { SavedSearchesComponent } from './saved-searches/saved-searches.component';
 import { ListingsTableComponent } from './listings-table/listings-table.component';
 import { MatDialog } from '@angular/material/dialog';
 import { CreateManualListing } from '../create-manual-listing/create-manual-listing';
@@ -17,13 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [
-    SavedSearchesComponent,
-    FiltersPanelComponent,
-    ListingsTableComponent,
-    MatIconButton,
-    MatIcon,
-  ],
+  imports: [FiltersPanelComponent, ListingsTableComponent, MatIconButton, MatIcon],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
