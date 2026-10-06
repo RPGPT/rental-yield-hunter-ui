@@ -157,7 +157,10 @@ export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUs
     if (verified.role) return verified;
     // JWT valid but no role claim — look it up in the DB
     const role = await getRoleFromDb(verified.id);
-    return { ...verified, role };
+    if (role) return { ...verified, role };
+    // DB lookup failed — the session endpoint is what the client uses for role
+    const session = await verifyNeonAuthSession(token);
+    return { ...verified, role: session?.role ?? null };
   }
   return verifyNeonAuthSession(token);
 }
