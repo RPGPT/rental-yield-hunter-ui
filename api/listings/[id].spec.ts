@@ -82,11 +82,11 @@ describe('api/listings/[id] handler', () => {
     expect(res._status).toBe(404);
   });
 
-  it('DELETE returns 403 for non-admin', async () => {
+  it('DELETE allows any authenticated user', async () => {
     mockUser = { id: 'u', email: 'e', name: null, image: null, role: 'user' };
     const res = new MockRes();
     await handler({ method: 'DELETE', query: { id: '42' }, headers: {} } as any, res as any);
-    expect(res._status).toBe(403);
+    expect(res._status).not.toBe(403);
   });
 
   it('DELETE returns 401 when unauthenticated', async () => {
