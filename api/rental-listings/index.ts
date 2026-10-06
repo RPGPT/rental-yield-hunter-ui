@@ -67,7 +67,7 @@ async function rentalListingsHandler(req: VercelRequest, res: VercelResponse) {
     offset = '0',
   } = req.query as Record<string, string | undefined>;
 
-  const conditions: string[] = [];
+  const conditions: string[] = [`COALESCE(l.is_deleted, false) = false`];
   const params: unknown[] = [];
   let paramIndex = 1;
 

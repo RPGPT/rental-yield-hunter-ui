@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               l.location, l.city, l.neighborhood, l.typology, l.floor,
               ${isFavoriteSelect}, l.active, l.inactive_since, l.first_seen, l.last_seen
        FROM rental_listings l ${joinClause}
-       WHERE l.id = $1`,
+       WHERE l.id = $1 AND COALESCE(l.is_deleted, false) = false`,
       listingParams,
     );
 

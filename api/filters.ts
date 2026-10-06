@@ -6,10 +6,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
 
   try {
     const [cities, typologies, propertyTypes, neighborhoods] = await Promise.all([
-      sql`SELECT DISTINCT city FROM listings WHERE city IS NOT NULL ORDER BY city`,
-      sql`SELECT DISTINCT typology FROM listings WHERE typology IS NOT NULL ORDER BY typology`,
-      sql`SELECT DISTINCT property_type FROM listings WHERE property_type IS NOT NULL ORDER BY property_type`,
-      sql`SELECT DISTINCT city, neighborhood FROM listings WHERE city IS NOT NULL AND neighborhood IS NOT NULL ORDER BY city, neighborhood`,
+      sql`SELECT DISTINCT city FROM listings WHERE COALESCE(is_deleted, false) = false AND city IS NOT NULL ORDER BY city`,
+      sql`SELECT DISTINCT typology FROM listings WHERE COALESCE(is_deleted, false) = false AND typology IS NOT NULL ORDER BY typology`,
+      sql`SELECT DISTINCT property_type FROM listings WHERE COALESCE(is_deleted, false) = false AND property_type IS NOT NULL ORDER BY property_type`,
+      sql`SELECT DISTINCT city, neighborhood FROM listings WHERE COALESCE(is_deleted, false) = false AND city IS NOT NULL AND neighborhood IS NOT NULL ORDER BY city, neighborhood`,
     ]);
 
     const neighborhoodsByCity: Record<string, string[]> = {};
