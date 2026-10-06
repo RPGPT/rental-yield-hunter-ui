@@ -19,6 +19,7 @@ export interface FilterQueryParams {
   is_new?: string;
   price_change?: string;
   active?: string;
+  deleted?: string;
   sort?: string;
   order?: string;
   limit?: string;
@@ -42,6 +43,7 @@ export class FilterStateService {
   readonly isNew = signal<boolean | null>(null);
   readonly priceChange = signal<'reduced' | 'increased' | null>(null);
   readonly active = signal<boolean | null>(true);
+  readonly deleted = signal<boolean>(false);
   readonly sort = signal<string>('price');
   readonly order = signal<'asc' | 'desc'>('asc');
   readonly limit = signal<number>(50);
@@ -64,6 +66,7 @@ export class FilterStateService {
     is_new: this.isNew(),
     price_change: this.priceChange(),
     active: this.active(),
+    deleted: this.deleted(),
     sort: this.sort(),
     order: this.order(),
     limit: this.limit(),
@@ -87,6 +90,7 @@ export class FilterStateService {
     this.isNew.set(null);
     this.priceChange.set(null);
     this.active.set(true);
+    this.deleted.set(false);
     this.sort.set('price');
     this.order.set('asc');
     this.limit.set(50);
@@ -128,6 +132,7 @@ export class FilterStateService {
       this.active.set(
         params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
       );
+    this.deleted.set(params['deleted'] === 'true');
     if (params['sort']) this.sort.set(params['sort']);
     if (params['order'] === 'desc') this.order.set('desc');
     if (params['limit']) this.limit.set(Math.min(100, Math.max(1, Number(params['limit']))));
@@ -152,6 +157,7 @@ export class FilterStateService {
     if (s.is_new != null) p.is_new = String(s.is_new);
     if (s.price_change != null) p.price_change = s.price_change;
     if (s.active !== true) p.active = s.active === null ? 'all' : 'false';
+    if (s.deleted) p.deleted = 'true';
     if (s.sort !== 'price') p.sort = s.sort;
     if (s.order !== 'asc') p.order = s.order;
     if (s.limit !== 50) p.limit = String(s.limit);

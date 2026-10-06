@@ -241,6 +241,15 @@ export class FiltersPanelComponent implements OnInit {
     this.resetOffset();
   }
 
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
+  }
+
+  toggleDeleted(): void {
+    this.buyFilterState.deleted.update((v) => !v);
+    this.resetOffset();
+  }
+
   hiddenIcon(): string {
     // null = showing all (including hidden) → eye open highlighted
     // false = hiding hidden listings → eye with slash

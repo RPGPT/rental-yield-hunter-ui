@@ -191,6 +191,21 @@ export class ListingsTableComponent {
     });
   }
 
+  isTrashView(): boolean {
+    return this.mode() !== 'rent' && this.filterState.deleted();
+  }
+
+  onRestoreClick(event: Event, row: Listing | RentalListing): void {
+    event.stopPropagation();
+    this.api.restoreListing(row.id).subscribe({
+      next: () => {
+        this.hiddenFromFilter.update((s) => new Set([...s, row.id]));
+        this.snackBar.open('Listing restored', undefined, { duration: 3000 });
+      },
+      error: () => this.snackBar.open('Failed to restore', undefined, { duration: 3000 }),
+    });
+  }
+
   trackById(_index: number, item: Listing | RentalListing): string {
     return item.id;
   }

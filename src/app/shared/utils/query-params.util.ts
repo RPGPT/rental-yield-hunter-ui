@@ -32,6 +32,7 @@ export function buildQueryParams(state: FilterState): QueryParams {
   if (state.is_new != null) params.is_new = String(state.is_new);
   if (state.price_change != null) params.price_change = state.price_change;
   if (state.active != null) params.active = String(state.active);
+  if (state.deleted) params.deleted = 'true';
   if (state.sort) params.sort = state.sort;
   if (state.order) params.order = state.order;
   params.limit = String(state.limit);

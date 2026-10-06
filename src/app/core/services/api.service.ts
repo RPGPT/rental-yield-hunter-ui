@@ -95,6 +95,10 @@ export class ApiService {
     return this.http.patch<void>(`${this.baseUrl}/listings/${id}`, flags);
   }
 
+  restoreListing(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.baseUrl}/listings/${id}`, { is_deleted: false });
+  }
+
   deleteListing(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/listings/${id}`);
   }

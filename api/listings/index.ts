@@ -149,13 +149,17 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       is_new,
       price_change,
       active,
+      deleted,
       sort = 'price',
       order = 'asc',
       limit = '50',
       offset = '0',
     } = req.query as Record<string, string | undefined>;
 
-    const conditions: string[] = [`COALESCE(l.is_deleted, false) = false`];
+    if (deleted === 'true' && !userId) return res.status(401).json({ error: 'Unauthorized' });
+    const conditions: string[] = [
+      deleted === 'true' ? `l.is_deleted = true` : `COALESCE(l.is_deleted, false) = false`,
+    ];
     const params: unknown[] = [];
     let paramIndex = 1;
 

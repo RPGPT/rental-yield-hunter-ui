@@ -46,6 +46,16 @@
   }
 }
 
+.deleted-filter-btn {
+  color: $color-grey;
+  width: $size-40;
+  height: $size-40;
+
+  &--active {
+    color: $color-danger;
+  }
+}
+
 .new-filter-btn {
   color: inherit;
   width: $size-40;

@@ -21,6 +21,7 @@ export interface FilterState {
   is_new: boolean | null;
   price_change: 'reduced' | 'increased' | null;
   active: boolean | null;
+  deleted: boolean;
   sort: string;
   order: 'asc' | 'desc';
   limit: number;

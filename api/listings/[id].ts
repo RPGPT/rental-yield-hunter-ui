@@ -51,6 +51,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       patchParams.push(body['lifetime_rent']);
     }
 
+    if ('is_deleted' in body && body['is_deleted'] === false) {
+      updates.push(`is_deleted = $${pIdx++}`);
+      patchParams.push(false);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }

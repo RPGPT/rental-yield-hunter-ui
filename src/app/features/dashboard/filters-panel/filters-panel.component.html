@@ -197,6 +197,17 @@
           <mat-icon>{{ hiddenIcon() }}</mat-icon>
         </button>
       }
+      @if (isBuyMode && isAdmin()) {
+        <button
+          mat-icon-button
+          class="deleted-filter-btn"
+          [class.deleted-filter-btn--active]="buyFilterState.deleted()"
+          (click)="toggleDeleted()"
+          matTooltip="Show deleted listings (admin)"
+        >
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      }
       <button
         mat-icon-button
         class="price-change-filter-btn"
