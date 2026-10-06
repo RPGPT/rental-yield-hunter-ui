@@ -105,7 +105,7 @@ async function getRoleFromDb(userId: string): Promise<string | null> {
   if (!dbUrl) return null;
   try {
     const sql = neon(dbUrl);
-    const rows = await sql`SELECT role FROM neon_auth.users_sync WHERE id = ${userId} LIMIT 1`;
+    const rows = await sql`SELECT role FROM neon_auth."user" WHERE id = ${userId} LIMIT 1`;
     return (rows[0] as { role?: string } | undefined)?.role ?? null;
   } catch (err) {
     console.error('[auth] DB role lookup failed:', err instanceof Error ? err.message : err);
