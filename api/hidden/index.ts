@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-import { handleSavedSearches } from '../_lib/saved-searches';
+import { handleSavedSearches } from '../_lib/saved-searches.js';
 
 interface NeonAuthUser {
   id: string;

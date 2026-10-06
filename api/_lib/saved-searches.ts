@@ -1,5 +1,5 @@
 import type { VercelResponse } from '../_types';
-import { sendError } from './errors';
+import { sendError } from './errors.js';
 
 type Sql = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown[]>;
 type SqlQuery = { query: (text: string, params?: unknown[]) => Promise<unknown[]> };
