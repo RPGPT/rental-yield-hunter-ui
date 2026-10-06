@@ -32,6 +32,9 @@ export interface Listing {
   // Rent contract details (from rent_contract_details table, only when is_rented=true)
   rent_current_rent: number | null;
   rent_contract_expiry: string | null;
+  rent_contract_confidence?: number | null;
+  rent_contract_raw_rent?: string | null;
+  rent_contract_raw_expiry?: string | null;
 }
 
 export interface RentalListing {

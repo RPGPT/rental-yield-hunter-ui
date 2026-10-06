@@ -19,7 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ListingDetail } from '../../core/models/listing.model';
 import { ApiService } from '../../core/services/api.service';
@@ -44,6 +44,8 @@ import { MarkAsRentedDialogComponent, MarkAsRentedResult } from './mark-as-rente
     MatProgressSpinnerModule,
     MatTooltipModule,
     DatePipe,
+    CurrencyPipe,
+    DecimalPipe,
     EurPipe,
     RelativeDatePipe,
     BadgeComponent,
@@ -137,6 +139,11 @@ export class DetailComponent implements OnInit {
     const listing = this.listing();
     if (!listing) return false;
     return listing.price_history.some((h) => h.price > listing.price);
+  }
+
+  contractExpiringSoon(expiry: string): boolean {
+    const days = (new Date(expiry).getTime() - Date.now()) / 86_400_000;
+    return days <= 180;
   }
 
   scrollToPriceChart(): void {

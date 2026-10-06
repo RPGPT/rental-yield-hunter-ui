@@ -122,7 +122,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
               l.inactive_since, l.first_seen, l.last_seen,
               re.estimated_rent, re.avg_rent_per_m2, re.sample_count, re.confidence, re.match_level, re.rental_yield,
-              rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+              rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry,
+              rcd.confidence::float AS rent_contract_confidence, rcd.raw_rent_text AS rent_contract_raw_rent,
+              rcd.raw_expiry_text AS rent_contract_raw_expiry
        FROM listings l
        ${joinClause}
        LEFT JOIN rental_estimates re ON re.listing_id = l.id

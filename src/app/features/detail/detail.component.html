@@ -268,10 +268,29 @@
               @if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
                 <mat-divider></mat-divider>
                 <mat-list-item>
+                  <span matListItemTitle>Contract Rent</span>
+                  <span matListItemLine>
+                    {{ l.rent_current_rent | currency: 'EUR' : 'symbol' : '1.0-0' }}/mo
+                    @if (l.rent_contract_confidence != null) {
+                      <span class="contract-unknown">
+                        ({{ l.rent_contract_confidence * 100 | number: '1.0-0' }}% confidence)
+                      </span>
+                    }
+                  </span>
+                  @if (l.rent_contract_raw_rent) {
+                    <span matListItemLine class="contract-unknown">
+                      "{{ l.rent_contract_raw_rent }}"
+                    </span>
+                  }
+                </mat-list-item>
+                <mat-list-item>
                   <span matListItemTitle>Contract Expiry</span>
                   <span matListItemLine>
                     @if (l.rent_contract_expiry) {
                       {{ l.rent_contract_expiry | date: 'MMM y' }}
+                      @if (contractExpiringSoon(l.rent_contract_expiry)) {
+                        <app-badge label="Expiring soon" color="amber" />
+                      }
                     } @else {
                       <span class="contract-unknown">Not available</span>
                     }
