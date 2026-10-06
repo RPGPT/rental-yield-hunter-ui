@@ -1,3 +1,4 @@
+import { SavedSearch } from '../models/saved-search.model';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, shareReplay } from 'rxjs';
@@ -117,6 +118,25 @@ export class ApiService {
     } else {
       return this.http.delete<void>(`${this.baseUrl}/hidden?id=${id}`);
     }
+  }
+
+  getSavedSearches(): Observable<SavedSearch[]> {
+    return this.http.get<SavedSearch[]>(`${this.baseUrl}/hidden?resource=saved-searches`);
+  }
+
+  createSavedSearch(name: string, filters: Record<string, string>): Observable<SavedSearch> {
+    return this.http.post<SavedSearch>(`${this.baseUrl}/hidden?resource=saved-searches`, {
+      name,
+      filters,
+    });
+  }
+
+  markSavedSearchChecked(id: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/hidden?resource=saved-searches&id=${id}`, null);
+  }
+
+  deleteSavedSearch(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/hidden?resource=saved-searches&id=${id}`);
   }
 
   checkSnapshot(id: string, source?: 'rental'): Observable<{ exists: boolean; url?: string }> {

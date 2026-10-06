@@ -1,0 +1,12 @@
+.saved-searches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.saved-search {
+  display: inline-flex;
+  align-items: center;
+}

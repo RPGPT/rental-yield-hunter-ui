@@ -1,0 +1,22 @@
+<div class="saved-searches">
+  <button mat-stroked-button (click)="save()" aria-label="Save current search">
+    <mat-icon>bookmark_add</mat-icon>
+    Save search
+  </button>
+  @for (s of searches(); track s.id) {
+    <span class="saved-search">
+      <button mat-button class="saved-search__apply" (click)="apply(s)">
+        {{ s.name }}
+        @if (s.new_matches > 0) {
+          <app-badge [label]="s.new_matches + ' new'" color="green" />
+        }
+        @if (s.price_drops > 0) {
+          <app-badge [label]="s.price_drops + ' drops'" color="blue" />
+        }
+      </button>
+      <button mat-icon-button (click)="remove(s)" [attr.aria-label]="'Delete search ' + s.name">
+        <mat-icon>close</mat-icon>
+      </button>
+    </span>
+  }
+</div>

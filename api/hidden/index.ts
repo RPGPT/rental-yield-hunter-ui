@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
+import { handleSavedSearches } from '../_lib/saved-searches';
 
 interface NeonAuthUser {
   id: string;
@@ -49,6 +50,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sql = neon(process.env['DATABASE_URL']!);
   const { id } = req.query as Record<string, string | undefined>;
+
+  if (req.query['resource'] === 'saved-searches') {
+    return handleSavedSearches(req, res, sql as never, user.id);
+  }
 
   if (req.method === 'GET') {
     try {
