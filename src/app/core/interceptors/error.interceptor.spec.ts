@@ -7,6 +7,7 @@ import { provideRouter } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { errorInterceptor } from './error.interceptor';
+import { AuthService } from '../services/auth.service';
 
 describe('errorInterceptor', () => {
   let http: HttpClient;
@@ -112,6 +113,36 @@ describe('errorInterceptor', () => {
       expect.any(Object),
     );
     expect(navSpy).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('refreshes an expired token and retries the failed API request once', async () => {
+    const auth = TestBed.inject(AuthService);
+    vi.spyOn(auth, 'getToken').mockReturnValue('expired-token');
+    const refreshSpy = vi.spyOn(auth, 'refreshSession').mockResolvedValue('fresh-token');
+    const openSpy = vi.spyOn(snackBar, 'open');
+    const navSpy = vi.spyOn(router, 'navigate');
+    let result: unknown;
+
+    http
+      .get('/api/listings', { headers: { Authorization: 'Bearer expired-token' } })
+      .subscribe((value) => (result = value));
+
+    const initialRequest = httpMock.expectOne('/api/listings');
+    initialRequest.flush(null, { status: 401, statusText: 'Unauthorized' });
+    await Promise.resolve();
+
+    const retriedRequest = httpMock.expectOne('/api/listings');
+    expect(retriedRequest.request.headers.get('Authorization')).toBe('Bearer fresh-token');
+    retriedRequest.flush({ listings: [] });
+
+    expect(refreshSpy).toHaveBeenCalledOnce();
+    expect(result).toEqual({ listings: [] });
+    expect(openSpy).not.toHaveBeenCalledWith(
+      'Session expired. Please sign in again.',
+      'Close',
+      expect.any(Object),
+    );
+    expect(navSpy).not.toHaveBeenCalledWith(['/login']);
   });
 
   it('does NOT show session-expired message for 401 on /auth/ URL', () => {

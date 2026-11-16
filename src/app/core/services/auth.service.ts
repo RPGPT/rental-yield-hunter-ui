@@ -33,6 +33,7 @@ export class AuthService {
 
   private sessionInitialized = false;
   private sessionPromise: Promise<void> | null = null;
+  private refreshPromise: Promise<string | null> | null = null;
 
   initSession(): Promise<void> {
     if (this.sessionInitialized) return Promise.resolve();
@@ -57,7 +58,10 @@ export class AuthService {
       const timeout = new Promise<{ data: null }>((resolve) =>
         setTimeout(() => resolve({ data: null }), 3000),
       );
-      const { data } = await Promise.race([this.authClient.getSession(), timeout]);
+      const { data } = await Promise.race([
+        this.authClient.getSession({ query: { disableCookieCache: true } }),
+        timeout,
+      ]);
       if (data?.user && data?.session) {
         this.storeSession(data.user, (data.session as { token: string }).token);
       } else {
@@ -98,11 +102,22 @@ export class AuthService {
     void this.router.navigate(['/login']);
   }
 
-  private async refreshSession(): Promise<void> {
-    const { data } = await this.authClient.getSession();
-    if (data?.user && data?.session) {
-      this.storeSession(data.user, (data.session as { token: string }).token);
-    }
+  refreshSession(): Promise<string | null> {
+    if (this.refreshPromise) return this.refreshPromise;
+
+    this.refreshPromise = this._refreshSession().finally(() => {
+      this.refreshPromise = null;
+    });
+    return this.refreshPromise;
+  }
+
+  private async _refreshSession(): Promise<string | null> {
+    const { data } = await this.authClient.getSession({ query: { disableCookieCache: true } });
+    if (!data?.user || !data.session) return null;
+
+    const token = (data.session as { token: string }).token;
+    this.storeSession(data.user, token);
+    return token;
   }
 
   private storeSession(

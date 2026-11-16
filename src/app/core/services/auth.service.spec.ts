@@ -115,6 +115,37 @@ describe('AuthService', () => {
     expect(localStorage.getItem('auth_token')).toBe(MOCK_TOKEN);
   });
 
+  it('refreshSession fetches an uncached session and stores its token', async () => {
+    mockAuthClient.getSession.mockResolvedValue({
+      data: { user: MOCK_USER, session: { token: 'fresh-token' } },
+    });
+    const svc = setup();
+
+    await expect(svc.refreshSession()).resolves.toBe('fresh-token');
+    expect(mockAuthClient.getSession).toHaveBeenCalledWith({
+      query: { disableCookieCache: true },
+    });
+    expect(localStorage.getItem('auth_token')).toBe('fresh-token');
+  });
+
+  it('shares an in-flight session refresh between concurrent callers', async () => {
+    let resolve!: (value: { data: { user: typeof MOCK_USER; session: { token: string } } }) => void;
+    mockAuthClient.getSession.mockReturnValue(
+      new Promise((res) => {
+        resolve = res;
+      }),
+    );
+    const svc = setup();
+
+    const first = svc.refreshSession();
+    const second = svc.refreshSession();
+    expect(first).toBe(second);
+
+    resolve({ data: { user: MOCK_USER, session: { token: 'fresh-token' } } });
+    await expect(first).resolves.toBe('fresh-token');
+    expect(mockAuthClient.getSession).toHaveBeenCalledTimes(1);
+  });
+
   it('initSession clears session when getSession returns no user', async () => {
     mockAuthClient.getSession.mockResolvedValue({ data: null });
     localStorage.setItem('auth_user', JSON.stringify(MOCK_AUTH_USER));
