@@ -295,6 +295,27 @@ describe('api/listings/description handler', () => {
       expect((res._body as { images: unknown[] }).images).toHaveLength(0);
     });
 
+    it('normalizes Imovirtual { url } image objects when large/medium are absent', async () => {
+      const adWithUrlOnly = {
+        description: 'OLX CDN format',
+        images: [{ url: 'https://ireland.apollo.olxcdn.com/v1/files/abc/image' }],
+      };
+      fetchMock
+        .mockResolvedValueOnce(okTextResponse('"buildId":"bid"'))
+        .mockResolvedValueOnce(okJsonResponse({ pageProps: { ad: adWithUrlOnly } }));
+
+      const res = new MockRes();
+      await handler({ query: { url: IMOVIRTUAL_URL } } as never, res as never);
+
+      expect(res._status).toBe(200);
+      expect((res._body as { images: unknown[] }).images).toEqual([
+        {
+          large: 'https://ireland.apollo.olxcdn.com/v1/files/abc/image',
+          medium: 'https://ireland.apollo.olxcdn.com/v1/files/abc/image',
+        },
+      ]);
+    });
+
     it('handles buildId homepage fetch throwing (covers fetchFreshBuildId catch)', async () => {
       fetchMock
         .mockRejectedValueOnce(new Error('network error')) // first homepage → throws

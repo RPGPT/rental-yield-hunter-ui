@@ -4,6 +4,7 @@ import {
   fetchEraData,
   fetchImovirtualAd,
   imovirtualSlugFromUrl,
+  normalizeImovirtualImages,
 } from '../_lib/portals.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -44,10 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(200).json({
     description: ad.description ?? null,
-    images: (ad.images ?? []).map((img) => ({
-      medium: img.medium ?? '',
-      large: img.large ?? '',
-    })),
+    images: normalizeImovirtualImages(ad.images),
     characteristics: ad.characteristics ?? [],
     topInformation: ad.topInformation ?? [],
     additionalInformation: ad.additionalInformation ?? [],

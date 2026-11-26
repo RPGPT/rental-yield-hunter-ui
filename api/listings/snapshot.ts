@@ -254,9 +254,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `SELECT raw_json->'images' AS images FROM ${rawDataTable} WHERE listing_id = $1 LIMIT 1`,
         [id],
       );
-      const rawImages: Array<{ large?: string; medium?: string }> =
+      const rawImages: Array<{ large?: string; medium?: string; url?: string }> =
         rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
-          ? (rawDataResult[0]['images'] as Array<{ large?: string; medium?: string }>)
+          ? (rawDataResult[0]['images'] as Array<{
+              large?: string;
+              medium?: string;
+              url?: string;
+            }>)
           : [];
 
       let resolvedImages = rawImages;
@@ -265,7 +269,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (liveImages.length > 0) resolvedImages = liveImages;
       }
 
-      const imageUrls = resolvedImages.map((img) => img.large ?? img.medium ?? '').filter(Boolean);
+      const imageUrls = resolvedImages
+        .map((img) => img.large ?? img.url ?? img.medium ?? '')
+        .filter(Boolean);
 
       if (isVercel) {
         const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;

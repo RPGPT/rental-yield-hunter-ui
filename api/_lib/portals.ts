@@ -12,12 +12,30 @@ export interface PortalImage {
   medium: string;
 }
 
+export interface ImovirtualAdImage {
+  url?: string;
+  thumbnail?: string;
+  small?: string;
+  medium?: string;
+  large?: string;
+}
+
 export interface ImovirtualAdData {
   description?: string;
-  images?: { thumbnail?: string; small?: string; medium?: string; large?: string }[];
+  images?: ImovirtualAdImage[];
   characteristics?: unknown[];
   topInformation?: unknown[];
   additionalInformation?: unknown[];
+}
+
+export function normalizeImovirtualImages(images?: ImovirtualAdImage[]): PortalImage[] {
+  return (images ?? [])
+    .map((img) => {
+      const large = img.large || img.url || img.medium || '';
+      const medium = img.medium || img.url || img.large || '';
+      return { large, medium };
+    })
+    .filter((img) => Boolean(img.large));
 }
 
 export function imovirtualSlugFromUrl(url: string): string | null {
@@ -147,10 +165,7 @@ export async function fetchImovirtualImages(listingUrl: string): Promise<PortalI
     cachedBuildId = null;
     return [];
   }
-  return (ad.images ?? []).map((img) => ({
-    large: img.large ?? '',
-    medium: img.medium ?? '',
-  }));
+  return normalizeImovirtualImages(ad.images);
 }
 
 function eraReferenceFromUrl(url: string): string | null {

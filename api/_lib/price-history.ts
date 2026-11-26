@@ -45,8 +45,8 @@ export function buildPriceHistory(
 }
 
 /**
- * Extracts gallery images from `raw_data` / `rental_raw_data` rows, supporting JSON-LD
- * `mainEntity.image` single-image fallback when `images` array is absent.
+ * Extracts gallery images from `raw_data` / `rental_raw_data` rows, normalizing `{ large, medium }`,
+ * `{ url }` (Imovirtual/OLX CDN), plain URL strings, and JSON-LD `mainEntity.image` fallback.
  */
 export function extractRawImages(
   rawDataRows: Array<Record<string, unknown>>,
@@ -55,7 +55,18 @@ export function extractRawImages(
   if (rawDataRows.length === 0) return [];
   const first = rawDataRows[0];
   if (Array.isArray(first['images'])) {
-    return first['images'] as ImageDto[];
+    return (first['images'] as unknown[])
+      .map((item): ImageDto | null => {
+        if (typeof item === 'string' && item) return { large: item, medium: item };
+        if (item && typeof item === 'object') {
+          const obj = item as { large?: string; medium?: string; url?: string };
+          const large = obj.large || obj.url || obj.medium || '';
+          const medium = obj.medium || obj.url || obj.large || '';
+          return large ? { large, medium } : null;
+        }
+        return null;
+      })
+      .filter((x): x is ImageDto => x !== null);
   }
   if (allowLdFallback && typeof first['ld_image'] === 'string' && first['ld_image']) {
     const img = first['ld_image'];
