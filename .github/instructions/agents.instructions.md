@@ -1,144 +1,34 @@
 # Agents Guide — rental-yield-hunter-ui
 
-Context for AI coding agents working in this repository.
+> **Primary Agent Context:** See [`AGENTS.md`](../../AGENTS.md) at the repository root for complete rules, architectural invariants, and links to [`docs/`](../../docs/). Keep this file aligned with `AGENTS.md`.
 
 ---
 
-## Project Overview
+## Quick Reference
 
-A full-stack Angular application for tracking property listings and analysing rental yield opportunities. Users can browse buy and rent listings scraped from external sources, monitor price history, snapshot listing pages, and identify investment opportunities.
-
----
-
-## Tech Stack
-
-| Layer       | Technology                                                              |
-| ----------- | ----------------------------------------------------------------------- |
-| Frontend    | Angular 21, Angular Material, Chart.js / ng2-charts                     |
-| Backend     | Node.js HTTP server (`server.ts`), Vercel serverless functions (`api/`) |
-| Database    | NeonDB (PostgreSQL serverless) via `@neondatabase/serverless`           |
-| Auth        | NeonDB Auth (`NEON_AUTH_URL`) + Angular route guards                    |
-| Storage     | Vercel Blob (`@vercel/blob`) for snapshots                              |
-| Scraping    | Playwright + `@sparticuz/chromium-min`                                  |
-| Testing     | Vitest + ng-mocks + jsdom                                               |
-| Package mgr | pnpm (v10)                                                              |
-| Deployment  | Vercel                                                                  |
+- **Stack**: Angular 21 (zoneless, standalone, signals, `OnPush`), Angular Material 21, Chart.js (`ng2-charts`), Vercel Serverless Functions (`api/`), Neon Serverless Postgres, Neon Auth, Vercel Blob, Playwright + `@sparticuz/chromium-min`, Vitest + `ng-mocks`, `pnpm` 10.
+- **Portals**: `imovirtual` (Imovirtual), `era` (ERA), `casasapo` (Casa Sapo), plus `manual` (admin-created listings).
+- **Commands**:
+  - `pnpm start` — Concurrent local dev (`tsx watch server.ts` on `:3000` + `ng serve` on `:4200`).
+  - `pnpm test` — Vitest single run (`angular` jsdom + `api` node projects).
+  - `pnpm build` — Production build + bundle/style budget verification.
 
 ---
 
-## Repository Layout
+## Non-Negotiable Constraints
 
-```
-src/
-  app/
-    core/
-      guards/         # Auth guard (authGuard)
-      interceptors/   # HTTP interceptors
-      models/         # TypeScript interfaces (Listing, RentalListing, FilterState, Stats, …)
-      services/       # ApiService, AuthService, FilterStateService, RentalFilterStateService
-    features/
-      dashboard/      # Buy / rent listings grid (mode driven by route data)
-      detail/         # Buy listing detail + price history chart
-      rental-detail/  # Rental listing detail + price history chart
-      snapshot/       # Embedded snapshot viewer
-      login/          # Login page
-    shared/           # Reusable components / pipes / directives
-api/
-  listings/           # GET /api/listings, GET /api/listings/:id, description, snapshot, snapshot-download
-  rental-listings/    # GET /api/rental-listings, GET /api/rental-listings/:id
-  favorites/          # PATCH /api/favorites
-  filters.ts          # GET /api/filters
-  rental-filters.ts   # GET /api/rental-filters
-  stats.ts            # GET /api/stats
-  lib/
-    auth.ts           # Session validation helper
-    errors.ts         # Shared error helpers
-server.ts             # Local dev API server (mirrors Vercel routing)
-```
+1. **Vercel Hobby 12-Function Limit (12/12 Full)**: Do **not** create new endpoint `.ts` files under `api/`. Place shared logic in `api/_lib/`, test utilities in `api/_test/`, and multiplex new resources onto existing handlers (e.g. `/api/hidden?resource=saved-searches` -> `api/_lib/saved-searches.ts`).
+2. **ESM Imports in `api/`**: Relative runtime imports in `api/` must use explicit `.js` extensions (e.g. `../_lib/auth.js`).
+3. **Local Server Parity**: Update `server.ts` whenever adding methods or query routing to `api/`.
+4. **Zoneless Signals**: `provideZonelessChangeDetection()` is active — drive all UI state via Angular signals (`signal`, `computed`, `input`) or observables/pipes.
+5. **SCSS Budget**: Component styles fail production build above `8kB` (`5kB` warning).
+6. **Database**: Migrations live in the companion `rental-yield-hunter` repo. Exclude soft-deleted rows with `COALESCE(l.is_deleted, false) = false` except in Trash view (`deleted=true`).
 
 ---
 
-## Key Domain Concepts
+## Detailed Documentation
 
-- **Sources** — scraped daily by the companion `rental-yield-hunter` Python pipeline from `imovirtual` (imovirtual.com), `era` (era.pt), and `casasapo` (casa.sapo.pt).
-- **Listing** — a property for sale (`listings`). Tracks `price`, `initial_price`, `price_drop_amount`, `price_drop_pct`, `price_change_count`, `area`, `price_per_m2`, `typology`, `is_rented`, `lifetime_rent`, `active`, `is_deleted`, and `listing_price_history` (with `previous_price`).
-- **RentalListing** — a property for rent (`rental_listings`). Tracks `price`, `initial_price`, `price_drop_amount`, `area`, `rent_price_per_m2`, and `rental_listing_price_history`.
-- **Rental yield & lease upside** — non-linear size-curved (`area^0.30`) market rent estimates (`rental_estimates`) plus tenanted contract extraction & reversion upside (`rent_contract_details`: `current_yield`, `reversion_yield`, `rent_upside_pct`, `months_to_expiry`).
-- **Listing clusters** — physical-apartment deduplication across agencies/sources (`listing_clusters`: `cluster_id`, `cluster_size`, `cluster_min_price`, `cluster_max_price`, `price_spread`, `is_cheapest`, `sources`). Filtered via `deduplicate=true` on `GET /api/listings`.
-- **Saved searches & alerts** — stored in `saved_searches` (`filters` JSONB mirrors `FilterQueryParams`); backend dispatches deduplicated deal alerts recorded in `alert_notifications`.
-- **Snapshot** — a saved HTML/MHTML capture of a listing's source page, stored in Vercel Blob and served via `/api/listings/snapshot` and `/api/snapshots/:id`.
-- **Vercel Hobby function limit** — keep shared server helpers in `api/_lib/` and test helpers in `api/_test/` so top-level `api/` files stay within Vercel Hobby's 12 serverless function limit.
-
----
-
-## Routes
-
-| Path                    | Component / Guard              |
-| ----------------------- | ------------------------------ |
-| `/`                     | → `/buy`                       |
-| `/buy`                  | DashboardComponent (buy mode)  |
-| `/rent`                 | DashboardComponent (rent mode) |
-| `/listing/:id`          | DetailComponent (lazy)         |
-| `/listing/:id/snapshot` | SnapshotViewerComponent (lazy) |
-| `/rental/:id`           | RentalDetailComponent (lazy)   |
-| `/rental/:id/snapshot`  | SnapshotViewerComponent (lazy) |
-| `/login`                | LoginComponent (lazy)          |
-| `**`                    | → `/login`                     |
-
-All routes except `/login` are protected by `authGuard`.
-
----
-
-## API Endpoints (local dev on port 3000)
-
-| Method | Path                              | Description                            |
-| ------ | --------------------------------- | -------------------------------------- |
-| GET    | `/api/listings`                   | Paginated buy listings with filters    |
-| GET    | `/api/listings/:id`               | Buy listing detail + price history     |
-| GET    | `/api/listings/description`       | AI-generated description for a listing |
-| GET    | `/api/listings/snapshot`          | Trigger snapshot capture               |
-| GET    | `/api/listings/snapshot-download` | Download snapshot file                 |
-| GET    | `/api/rental-listings`            | Paginated rental listings with filters |
-| GET    | `/api/rental-listings/:id`        | Rental listing detail + price history  |
-| PATCH  | `/api/favorites`                  | Toggle favourite on a listing          |
-| GET    | `/api/filters`                    | Available filter options for buy       |
-| GET    | `/api/rental-filters`             | Available filter options for rent      |
-| GET    | `/api/stats`                      | Aggregate stats (totals, averages, …)  |
-| GET    | `/api/snapshots/:id`              | Serve saved snapshot HTML/MHTML        |
-
----
-
-## Development Workflow
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start dev (Angular + API server concurrently)
-pnpm start          # Angular on :4200, API on :3000
-
-# Run tests
-pnpm test           # Vitest single run
-pnpm test:watch     # Vitest watch mode
-
-# Build for production
-pnpm build
-```
-
-Required environment variables (copy `.env.example` → `.env`):
-
-| Variable        | Purpose                           |
-| --------------- | --------------------------------- |
-| `DATABASE_URL`  | NeonDB connection string          |
-| `NEON_AUTH_URL` | NeonDB Auth endpoint for sessions |
-
----
-
-## Coding Conventions
-
-- **Angular standalone components** throughout (no NgModules).
-- Services use **RxJS** for async data; prefer `Observable` over `Promise`.
-- FilterState is managed centrally via `FilterStateService` / `RentalFilterStateService`.
-- API handlers follow a Vercel-compatible signature: `(req, res) => Promise<void>`.
-- Tests live alongside source files (`*.spec.ts`) and use Vitest + ng-mocks.
-- Formatting enforced by Prettier on commit (husky + lint-staged).
+- [`AGENTS.md`](../../AGENTS.md) — Root agent instructions and file map
+- [`docs/architecture.md`](../../docs/architecture.md) — Domain model, yield/reversion math, apartment clustering, snapshots
+- [`docs/api-and-database.md`](../../docs/api-and-database.md) — Endpoints, auth tiers, and Neon Postgres schema
+- [`docs/frontend-guide.md`](../../docs/frontend-guide.md) — Angular 21 patterns, state/URL sync, interceptors, and testing
