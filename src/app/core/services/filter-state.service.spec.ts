@@ -518,5 +518,20 @@ describe('FilterStateService', () => {
       svc.isHidden.set(false);
       expect(svc.toQueryParams().is_hidden).toBeUndefined();
     });
+
+    it('round-trips source and deduplicate through query params and reset()', () => {
+      const svc = new FilterStateService();
+      svc.initFromParams({ source: 'imovirtual,casasapo', deduplicate: 'true' });
+      expect(svc.source()).toEqual(['imovirtual', 'casasapo']);
+      expect(svc.deduplicate()).toBe(true);
+      expect(svc.toQueryParams().source).toBe('imovirtual,casasapo');
+      expect(svc.toQueryParams().deduplicate).toBe('true');
+
+      svc.reset();
+      expect(svc.source()).toEqual([]);
+      expect(svc.deduplicate()).toBeNull();
+      expect(svc.toQueryParams().source).toBeUndefined();
+      expect(svc.toQueryParams().deduplicate).toBeUndefined();
+    });
   });
 });

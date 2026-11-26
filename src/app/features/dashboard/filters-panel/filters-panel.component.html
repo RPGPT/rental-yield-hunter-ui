@@ -110,6 +110,24 @@
           </mat-select>
         </mat-form-field>
       </div>
+
+      @if (isBuyMode && opts.sources?.length) {
+        <div class="filter-group">
+          <label class="filter-label">Source</label>
+          <mat-form-field appearance="outline" class="filter-field--full">
+            <mat-label>All sources</mat-label>
+            <mat-select
+              [multiple]="true"
+              [value]="selectedSources"
+              (selectionChange)="onSourceChange($event.value)"
+            >
+              @for (s of opts.sources; track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      }
     }
   </div>
 
@@ -236,6 +254,15 @@
           matTooltip="Show only rented (non-lifetime) listings with known contract details"
         >
           <mat-icon>assignment</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          class="contract-filter-btn"
+          [class.contract-filter-btn--active]="buyFilterState.deduplicate() === true"
+          (click)="cycleDeduplicate()"
+          matTooltip="Deduplicate multi-agency ads (show cheapest per apartment)"
+        >
+          <mat-icon>layers</mat-icon>
         </button>
       }
     </div>

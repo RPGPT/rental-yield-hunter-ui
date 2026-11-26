@@ -83,6 +83,9 @@ export class FiltersPanelComponent implements OnInit {
   get selectedNeighborhoods(): string[] {
     return this.filterState.neighborhood();
   }
+  get selectedSources(): string[] {
+    return this.isBuyMode ? this.buyFilterState.source() : [];
+  }
 
   get availableNeighborhoods(): string[] {
     const opts = this.filterOptions();
@@ -210,6 +213,17 @@ export class FiltersPanelComponent implements OnInit {
 
   onNeighborhoodChange(values: string[]): void {
     this.filterState.neighborhood.set(values);
+    this.resetOffset();
+  }
+
+  onSourceChange(values: string[]): void {
+    this.buyFilterState.source.set(values);
+    this.resetOffset();
+  }
+
+  cycleDeduplicate(): void {
+    const current = this.buyFilterState.deduplicate();
+    this.buyFilterState.deduplicate.set(current === true ? null : true);
     this.resetOffset();
   }
 

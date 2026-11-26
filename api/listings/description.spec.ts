@@ -352,4 +352,43 @@ describe('api/listings/description handler', () => {
       expect(fetchMock).toHaveBeenCalledTimes(3);
     });
   });
+
+  // ── Casa Sapo ──────────────────────────────────────────────────────────────
+
+  describe('Casa Sapo listings', () => {
+    const CS_URL =
+      'https://casa.sapo.pt/comprar-apartamento-t2-porto-paranhos-a1b2c3d4-e5f6-7890-abcd-ef1234567890.html';
+
+    it('extracts description and deduplicated high-res media.casasapo.pt photos', async () => {
+      const html = `
+        <html><body>
+          <div class="detail-description-text"><p>Excelente T2 arrendado por 850€/mês.</p></div>
+          <img src="https://media.casasapo.pt/Z640x480/photo1.jpg" />
+          <img src="https://media.casasapo.pt/Z1440x1080/photo1.jpg" />
+          <img src="https://media.casasapo.pt/Z320x240/photo2.webp" />
+        </body></html>
+      `;
+      fetchMock.mockResolvedValueOnce(okTextResponse(html));
+
+      const res = new MockRes();
+      await handler({ query: { url: CS_URL } } as never, res as never);
+
+      expect(res._status).toBe(200);
+      const body = res._body as {
+        description: string;
+        images: Array<{ large: string; medium: string }>;
+      };
+      expect(body.description).toContain('Excelente T2 arrendado');
+      expect(body.images).toEqual([
+        {
+          large: 'https://media.casasapo.pt/Z1440x1080/photo1.jpg',
+          medium: 'https://media.casasapo.pt/Z720x540/photo1.jpg',
+        },
+        {
+          large: 'https://media.casasapo.pt/Z1440x1080/photo2',
+          medium: 'https://media.casasapo.pt/Z720x540/photo2',
+        },
+      ]);
+    });
+  });
 });

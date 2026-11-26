@@ -624,5 +624,64 @@ describe('ListingsTableComponent', () => {
         component.rentedTooltip({ ...MOCK_LISTING, is_rented: true, rent_current_rent: null }),
       ).toBe('Rented — no contract details');
     });
+
+    it('appends months left and reversion upside when available', () => {
+      const { component } = setup('buy');
+      const tooltip = component.rentedTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 600,
+        rent_contract_expiry: '2027-03-01',
+        rent_months_to_expiry: 8,
+        rent_upside_pct: 0.45,
+      });
+      expect(tooltip).toContain('8 mo left');
+      expect(tooltip).toContain('+45% reversion upside');
+    });
+  });
+
+  describe('priceChangePct(), clusterBadgeText(), and sourceLabel()', () => {
+    it('computes 1-cut price drop percentage from initial_price fallback', () => {
+      const { component } = setup('buy');
+      expect(
+        component.priceChangePct({
+          ...MOCK_LISTING,
+          price: 180000,
+          previous_price: null,
+          initial_price: 200000,
+        }),
+      ).toBe(-10);
+    });
+
+    it('formats cluster badge and tooltip for multi-agency arbitrage', () => {
+      const { component } = setup('buy');
+      const row: Listing = {
+        ...MOCK_LISTING,
+        cluster_size: 3,
+        is_cheapest: true,
+        price_spread: 15000,
+        cluster_min_price: 185000,
+        cluster_max_price: 200000,
+        cluster_sources: ['casasapo', 'era'],
+      };
+      expect(component.clusterBadgeText(row)).toContain('3 ads');
+      expect(component.clusterBadgeText(row)).toContain('-');
+      expect(component.clusterTooltip(row)).toContain('Casa Sapo, ERA');
+      expect(component.sourceLabel('casasapo')).toBe('Casa Sapo');
+    });
+
+    it('appends reversion yield to yieldTooltip when present', () => {
+      const { component } = setup('buy');
+      const tip = component.yieldTooltip({
+        ...MOCK_LISTING,
+        is_rented: true,
+        rent_current_rent: 600,
+        price: 180000,
+        rental_yield: 0.065,
+        rent_reversion_yield: 0.065,
+        rent_upside_pct: 0.625,
+      });
+      expect(tip).toContain('Reversion yield: 6.50% (+63% upside)');
+    });
   });
 });

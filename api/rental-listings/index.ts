@@ -114,11 +114,11 @@ async function rentalListingsHandler(req: VercelRequest, res: VercelResponse) {
   if (is_new === 'true') conditions.push(`l.first_seen >= NOW() - INTERVAL '2 days'`);
   if (price_change === 'reduced') {
     conditions.push(
-      `EXISTS (SELECT 1 FROM rental_listing_price_history rph WHERE rph.listing_id = l.id AND rph.price > l.price)`,
+      `(COALESCE(l.price_drop_amount, 0) > 0 OR EXISTS (SELECT 1 FROM rental_listing_price_history rph WHERE rph.listing_id = l.id AND COALESCE(rph.previous_price, rph.price) > l.price))`,
     );
   } else if (price_change === 'increased') {
     conditions.push(
-      `EXISTS (SELECT 1 FROM rental_listing_price_history rph WHERE rph.listing_id = l.id AND rph.price < l.price)`,
+      `(COALESCE(l.price_drop_amount, 0) < 0 OR EXISTS (SELECT 1 FROM rental_listing_price_history rph WHERE rph.listing_id = l.id AND COALESCE(rph.previous_price, rph.price) < l.price))`,
     );
   }
   if (active !== undefined) {

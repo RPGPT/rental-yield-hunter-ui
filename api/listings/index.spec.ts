@@ -501,4 +501,49 @@ describe('api/listings/index handler', () => {
     );
     expect(res._status).toBe(200);
   });
+
+  it('filters by neighborhood, source, and deduplicate=true', async () => {
+    queryResults = [[], [{ total: 0 }]];
+    const res = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: {
+          neighborhood: 'Bonfim,Paranhos',
+          source: 'imovirtual,casasapo',
+          deduplicate: 'true',
+          sort: 'price_spread',
+          order: 'desc',
+        },
+        headers: {},
+      } as any,
+      res as any,
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('sorts by reversion_yield and rent_upside_pct with auth', async () => {
+    queryResults = [[], [{ total: 0 }], [], [{ total: 0 }]];
+    const res1 = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { sort: 'reversion_yield', order: 'desc', deduplicate: 'true' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res1 as any,
+    );
+    expect(res1._status).toBe(200);
+
+    const res2 = new MockRes();
+    await handler(
+      {
+        method: 'GET',
+        query: { sort: 'rent_upside_pct', order: 'desc' },
+        headers: { authorization: 'Bearer dev-token' },
+      } as any,
+      res2 as any,
+    );
+    expect(res2._status).toBe(200);
+  });
 });

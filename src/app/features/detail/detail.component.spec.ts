@@ -515,6 +515,17 @@ describe('DetailComponent', () => {
       });
       expect(component.priceWentDown()).toBe(true);
     });
+
+    it('priceWentDown() returns true when price_drop_amount > 0 even with 1-cut history', () => {
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.listing.set({
+        ...MOCK_LISTING,
+        price: 185000,
+        price_drop_amount: 15000,
+        price_history: [{ price: 185000, captured_at: '2026-02-01' }],
+      });
+      expect(component.priceWentDown()).toBe(true);
+    });
   });
 
   describe('isAdmin()', () => {
@@ -672,6 +683,33 @@ describe('DetailComponent', () => {
       expect(getListingDescription).toHaveBeenCalledWith(
         'https://www.era.pt/comprar/apartamento-t3-423260032',
       );
+    });
+
+    it('calls getListingDescription for casa.sapo.pt URLs', () => {
+      getListing.mockReturnValue(
+        of({
+          ...MOCK_LISTING,
+          source: 'casasapo',
+          url: 'https://casa.sapo.pt/comprar-apartamento-t2-porto-123.html',
+        }),
+      );
+      TestBed.overrideProvider(ApiService, {
+        useValue: {
+          getListing,
+          setFavorite,
+          setHidden,
+          checkSnapshot,
+          triggerSnapshot,
+          updateListingStatus,
+          getListingDescription,
+        },
+      });
+      const component = TestBed.runInInjectionContext(() => new DetailComponent());
+      component.ngOnInit();
+      expect(getListingDescription).toHaveBeenCalledWith(
+        'https://casa.sapo.pt/comprar-apartamento-t2-porto-123.html',
+      );
+      expect(component.sourceLabel('casasapo')).toBe('Casa Sapo');
     });
 
     it('calls getListingDescription for imovirtual URLs', () => {

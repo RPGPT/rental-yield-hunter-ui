@@ -2,6 +2,7 @@ export interface FilterOptions {
   cities: string[];
   typologies: string[];
   neighborhoods: Record<string, string[]>;
+  sources?: string[];
 }
 
 export interface FilterState {
@@ -12,16 +13,18 @@ export interface FilterState {
   typology: string[];
   city: string[];
   neighborhood: string[];
-  rental_yield_min: number | null;
+  source?: string[];
+  rental_yield_min?: number | null;
   is_rented: boolean | null;
   lifetime_rent: boolean | null;
-  has_contract_details: boolean | null;
+  has_contract_details?: boolean | null;
   is_favorite: boolean | null;
-  is_hidden: boolean | null;
+  is_hidden?: boolean | null;
   is_new: boolean | null;
   price_change: 'reduced' | 'increased' | null;
+  deduplicate?: boolean | null;
   active: boolean | null;
-  deleted: boolean;
+  deleted?: boolean;
   sort: string;
   order: 'asc' | 'desc';
   limit: number;

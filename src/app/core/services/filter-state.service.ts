@@ -10,6 +10,7 @@ export interface FilterQueryParams {
   typology?: string;
   city?: string;
   neighborhood?: string;
+  source?: string;
   rental_yield_min?: string;
   is_rented?: string;
   lifetime_rent?: string;
@@ -18,6 +19,7 @@ export interface FilterQueryParams {
   is_hidden?: string;
   is_new?: string;
   price_change?: string;
+  deduplicate?: string;
   active?: string;
   deleted?: string;
   sort?: string;
@@ -34,6 +36,7 @@ export class FilterStateService {
   readonly typology = signal<string[]>([]);
   readonly city = signal<string[]>([]);
   readonly neighborhood = signal<string[]>([]);
+  readonly source = signal<string[]>([]);
   readonly isRented = signal<boolean | null>(null);
   readonly lifetimeRent = signal<boolean | null>(null);
   readonly hasContractDetails = signal<boolean | null>(null);
@@ -42,6 +45,7 @@ export class FilterStateService {
   readonly isHidden = signal<boolean | null>(false);
   readonly isNew = signal<boolean | null>(null);
   readonly priceChange = signal<'reduced' | 'increased' | null>(null);
+  readonly deduplicate = signal<boolean | null>(null);
   readonly active = signal<boolean | null>(true);
   readonly deleted = signal<boolean>(false);
   readonly sort = signal<string>('price');
@@ -57,6 +61,7 @@ export class FilterStateService {
     typology: this.typology(),
     city: this.city(),
     neighborhood: this.neighborhood(),
+    source: this.source(),
     is_rented: this.isRented(),
     lifetime_rent: this.lifetimeRent(),
     has_contract_details: this.hasContractDetails(),
@@ -65,6 +70,7 @@ export class FilterStateService {
     is_hidden: this.isHidden(),
     is_new: this.isNew(),
     price_change: this.priceChange(),
+    deduplicate: this.deduplicate(),
     active: this.active(),
     deleted: this.deleted(),
     sort: this.sort(),
@@ -81,6 +87,7 @@ export class FilterStateService {
     this.typology.set([]);
     this.city.set([]);
     this.neighborhood.set([]);
+    this.source.set([]);
     this.isRented.set(null);
     this.lifetimeRent.set(null);
     this.hasContractDetails.set(null);
@@ -89,6 +96,7 @@ export class FilterStateService {
     this.isHidden.set(false);
     this.isNew.set(null);
     this.priceChange.set(null);
+    this.deduplicate.set(null);
     this.active.set(true);
     this.deleted.set(false);
     this.sort.set('price');
@@ -105,6 +113,7 @@ export class FilterStateService {
     if (params['typology']) this.typology.set(String(params['typology']).split(','));
     if (params['city']) this.city.set(String(params['city']).split(','));
     if (params['neighborhood']) this.neighborhood.set(String(params['neighborhood']).split(','));
+    if (params['source']) this.source.set(String(params['source']).split(','));
     if (params['rental_yield_min']) this.rentalYieldMin.set(Number(params['rental_yield_min']));
     if (params['is_rented'] != null)
       this.isRented.set(
@@ -128,6 +137,7 @@ export class FilterStateService {
     if (params['price_change'] === 'reduced' || params['price_change'] === 'increased') {
       this.priceChange.set(params['price_change']);
     }
+    if (params['deduplicate'] === 'true') this.deduplicate.set(true);
     if (params['active'] != null)
       this.active.set(
         params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
@@ -148,14 +158,16 @@ export class FilterStateService {
     if (s.typology.length) p.typology = s.typology.join(',');
     if (s.city.length) p.city = s.city.join(',');
     if (s.neighborhood.length) p.neighborhood = s.neighborhood.join(',');
+    if (s.source?.length) p.source = s.source.join(',');
     if (s.rental_yield_min != null) p.rental_yield_min = String(s.rental_yield_min);
     if (s.is_rented != null) p.is_rented = String(s.is_rented);
     if (s.lifetime_rent != null) p.lifetime_rent = String(s.lifetime_rent);
     if (s.has_contract_details != null) p.has_contract_details = String(s.has_contract_details);
     if (s.is_favorite != null) p.is_favorite = String(s.is_favorite);
-    if (s.is_hidden === null) p.is_hidden = 'all'; // false is default — omit from URL
+    if (s.is_hidden === null) p.is_hidden = 'all';
     if (s.is_new != null) p.is_new = String(s.is_new);
     if (s.price_change != null) p.price_change = s.price_change;
+    if (s.deduplicate) p.deduplicate = 'true';
     if (s.active !== true) p.active = s.active === null ? 'all' : 'false';
     if (s.deleted) p.deleted = 'true';
     if (s.sort !== 'price') p.sort = s.sort;

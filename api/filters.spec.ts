@@ -40,6 +40,7 @@ describe('api/filters handler', () => {
         { city: 'Porto', neighborhood: 'Paranhos' },
         { city: 'Lisboa', neighborhood: 'Alfama' },
       ],
+      [{ source: 'casasapo' }, { source: 'era' }, { source: 'imovirtual' }],
     ];
     const res = new MockRes();
     await handler({} as any, res as any);
@@ -47,6 +48,7 @@ describe('api/filters handler', () => {
     expect((res._body as any).cities).toEqual(['Porto', 'Lisboa']);
     expect((res._body as any).typologies).toEqual(['T2', 'T3']);
     expect((res._body as any).property_types).toEqual(['Apartment']);
+    expect((res._body as any).sources).toEqual(['casasapo', 'era', 'imovirtual']);
     expect((res._body as any).neighborhoods).toEqual({
       Porto: ['Bonfim', 'Paranhos'],
       Lisboa: ['Alfama'],

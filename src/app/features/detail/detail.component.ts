@@ -99,7 +99,11 @@ export class DetailComponent implements OnInit {
           this.activeSlot.set('a');
         }
         this.loading.set(false);
-        if (data.url?.includes('imovirtual.com') || data.url?.includes('era.pt')) {
+        if (
+          data.url?.includes('imovirtual.com') ||
+          data.url?.includes('era.pt') ||
+          data.url?.includes('casa.sapo.pt')
+        ) {
           this.descriptionLoading.set(true);
           this.api.getListingDescription(data.url).subscribe({
             next: (res) => {
@@ -132,13 +136,26 @@ export class DetailComponent implements OnInit {
   priceWentUp(): boolean {
     const listing = this.listing();
     if (!listing) return false;
-    return listing.price_history.some((h) => h.price < listing.price);
+    return (
+      listing.price_history.some((h) => h.price < listing.price) ||
+      (listing.price_drop_amount != null && listing.price_drop_amount < 0)
+    );
   }
 
   priceWentDown(): boolean {
     const listing = this.listing();
     if (!listing) return false;
-    return listing.price_history.some((h) => h.price > listing.price);
+    return (
+      listing.price_history.some((h) => h.price > listing.price) ||
+      (listing.price_drop_amount != null && listing.price_drop_amount > 0)
+    );
+  }
+
+  sourceLabel(source: string | null | undefined): string {
+    if (source === 'imovirtual') return 'Imovirtual';
+    if (source === 'era') return 'ERA';
+    if (source === 'casasapo') return 'Casa Sapo';
+    return source || '—';
   }
 
   contractExpiringSoon(expiry: string): boolean {

@@ -60,10 +60,14 @@ server.ts             # Local dev API server (mirrors Vercel routing)
 
 ## Key Domain Concepts
 
-- **Listing** — a property for sale. Has `price`, `area`, `price_per_m2`, `typology`, `is_rented`, `lifetime_rent`, `active` flags, and `price_history`.
-- **RentalListing** — a property for rent. Has `price`, `area`, `rent_price_per_m2`, and `price_history`.
+- **Sources** — scraped daily by the companion `rental-yield-hunter` Python pipeline from `imovirtual` (imovirtual.com), `era` (era.pt), and `casasapo` (casa.sapo.pt).
+- **Listing** — a property for sale (`listings`). Tracks `price`, `initial_price`, `price_drop_amount`, `price_drop_pct`, `price_change_count`, `area`, `price_per_m2`, `typology`, `is_rented`, `lifetime_rent`, `active`, `is_deleted`, and `listing_price_history` (with `previous_price`).
+- **RentalListing** — a property for rent (`rental_listings`). Tracks `price`, `initial_price`, `price_drop_amount`, `area`, `rent_price_per_m2`, and `rental_listing_price_history`.
+- **Rental yield & lease upside** — non-linear size-curved (`area^0.30`) market rent estimates (`rental_estimates`) plus tenanted contract extraction & reversion upside (`rent_contract_details`: `current_yield`, `reversion_yield`, `rent_upside_pct`, `months_to_expiry`).
+- **Listing clusters** — physical-apartment deduplication across agencies/sources (`listing_clusters`: `cluster_id`, `cluster_size`, `cluster_min_price`, `cluster_max_price`, `price_spread`, `is_cheapest`, `sources`). Filtered via `deduplicate=true` on `GET /api/listings`.
+- **Saved searches & alerts** — stored in `saved_searches` (`filters` JSONB mirrors `FilterQueryParams`); backend dispatches deduplicated deal alerts recorded in `alert_notifications`.
 - **Snapshot** — a saved HTML/MHTML capture of a listing's source page, stored in Vercel Blob and served via `/api/listings/snapshot` and `/api/snapshots/:id`.
-- **Rental yield** — inferred by comparing buy-listing prices against rental-listing prices in the same area.
+- **Vercel Hobby function limit** — keep shared server helpers in `api/_lib/` and test helpers in `api/_test/` so top-level `api/` files stay within Vercel Hobby's 12 serverless function limit.
 
 ---
 

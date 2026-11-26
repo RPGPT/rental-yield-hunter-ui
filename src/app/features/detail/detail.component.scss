@@ -378,3 +378,47 @@
   color: var(--mdc-list-list-item-supporting-text-color, rgba(0, 0, 0, 0.54));
   font-style: italic;
 }
+
+// ── Multi-agency siblings ───────────────────────────
+.siblings-list {
+  display: flex;
+  flex-direction: column;
+}
+.sibling-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $size-8;
+  padding: $size-4 0;
+}
+.sibling-info,
+.sibling-price-actions {
+  display: flex;
+  align-items: center;
+  gap: $size-8;
+}
+.sibling-info {
+  min-width: 0;
+  flex: 1;
+}
+.sibling-title {
+  color: $color-primary;
+  text-decoration: none;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sibling-price {
+  font-weight: 600;
+}
+.sibling-delta {
+  font-size: $size-12;
+  font-weight: 600;
+  &--cheaper {
+    color: #2e7d32;
+  }
+  &--higher {
+    color: $color-grey;
+  }
+}

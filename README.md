@@ -4,8 +4,12 @@ A personal tool for tracking and analysing real estate listings for rental yield
 
 ## Features
 
-- Filterable, sortable, paginated listings table
-- Price history chart per listing
+- Filterable, sortable, paginated listings table across **Imovirtual**, **ERA**, and **Casa Sapo** (`casasapo`)
+- Size-curved (`area^0.30`) non-linear market rent & gross yield estimates
+- **Multi-agency & cross-source deduplication** (`deduplicate=true`) exposing price spreads and sibling agency links
+- **Price-drop & initial-price signals** (including single-cut drops) with interactive price history charts
+- **Lease-expiry reversion upside** (`reversion_yield`, `rent_upside_pct`, `months_to_expiry`) for tenanted apartments
+- Saved searches with badge counts and automated backend deal alerts (`alert_notifications`)
 - Favourite listings with automatic page snapshot (saved to Vercel Blob in production, local file in dev)
 - Hidden listings — hide a listing from the default view with the eye icon; toggle the filter to show all or only hidden listings
 - Dark / light theme toggle

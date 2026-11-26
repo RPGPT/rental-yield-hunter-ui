@@ -133,10 +133,50 @@ export class ListingsTableComponent {
     return row.id in overrides ? overrides[row.id] : row.is_favorite;
   }
 
+  previousPrice(row: Listing | RentalListing): number | null {
+    return (row as Listing).previous_price ?? (row as Listing).initial_price ?? null;
+  }
+
   priceChangePct(row: Listing | RentalListing): number | null {
-    const prev = (row as Listing).previous_price;
+    const prev = this.previousPrice(row);
     if (!prev || prev === row.price) return null;
     return Math.round(((row.price - prev) / prev) * 100) || null;
+  }
+
+  sourceLabel(source: string | null | undefined): string {
+    if (source === 'imovirtual') return 'Imovirtual';
+    if (source === 'era') return 'ERA';
+    if (source === 'casasapo') return 'Casa Sapo';
+    return source || '—';
+  }
+
+  clusterBadgeText(row: Listing | RentalListing): string | null {
+    const l = row as Listing;
+    const size = l.cluster_size ?? 1;
+    if (size <= 1) return null;
+    if (l.is_cheapest && (l.price_spread ?? 0) > 0) {
+      return `-${this.formatEur(l.price_spread ?? null)} · ${size} ads`;
+    }
+    return `${size} ads`;
+  }
+
+  clusterTooltip(row: Listing | RentalListing): string {
+    const l = row as Listing;
+    const size = l.cluster_size ?? 1;
+    if (size <= 1) return '';
+    const parts = [`Same apartment listed in ${size} ads`];
+    if (l.cluster_sources?.length) {
+      parts.push(`Sources: ${l.cluster_sources.map((s) => this.sourceLabel(s)).join(', ')}`);
+    }
+    if (l.cluster_min_price != null && l.cluster_max_price != null) {
+      parts.push(
+        `Range: ${this.formatEur(l.cluster_min_price)} – ${this.formatEur(l.cluster_max_price)}`,
+      );
+    }
+    if ((l.price_spread ?? 0) > 0) {
+      parts.push(`Spread: ${this.formatEur(l.price_spread ?? null)}`);
+    }
+    return parts.join(' · ');
   }
 
   isHidden(row: Listing | RentalListing): boolean {
@@ -261,10 +301,20 @@ export class ListingsTableComponent {
   yieldTooltip(row: Listing): string {
     if (row.is_rented && !row.lifetime_rent && !!row.rent_current_rent) {
       const contractYield = (((row.rent_current_rent * 12) / row.price) * 100).toFixed(2);
-      const base = `Contract yield: ${this.formatEur(row.rent_current_rent)}/mo × 12 ÷ ${this.formatEur(row.price)} = ${contractYield}%`;
-      return row.rental_yield != null
-        ? `${base}\nEst. yield: ${(row.rental_yield * 100).toFixed(2)}%`
-        : base;
+      const lines = [
+        `Contract yield: ${this.formatEur(row.rent_current_rent)}/mo × 12 ÷ ${this.formatEur(row.price)} = ${contractYield}%`,
+      ];
+      if (row.rental_yield != null) {
+        lines.push(`Est. yield: ${(row.rental_yield * 100).toFixed(2)}%`);
+      }
+      if (row.rent_reversion_yield != null) {
+        const upside =
+          row.rent_upside_pct != null && row.rent_upside_pct > 0
+            ? ` (+${Math.round(row.rent_upside_pct * 100)}% upside)`
+            : '';
+        lines.push(`Reversion yield: ${(row.rent_reversion_yield * 100).toFixed(2)}%${upside}`);
+      }
+      return lines.join('\n');
     }
     return '';
   }
@@ -303,7 +353,14 @@ export class ListingsTableComponent {
       const expiry = row.rent_contract_expiry
         ? `Expires ${new Date(row.rent_contract_expiry).toLocaleDateString('en-GB', { year: 'numeric', month: 'short' })}`
         : 'No expiry date';
-      return `Rent: ${rent}/mo · ${expiry}`;
+      let tip = `Rent: ${rent}/mo · ${expiry}`;
+      if (row.rent_months_to_expiry != null) {
+        tip += ` (${row.rent_months_to_expiry} mo left)`;
+      }
+      if (row.rent_upside_pct != null && row.rent_upside_pct > 0) {
+        tip += ` · +${Math.round(row.rent_upside_pct * 100)}% reversion upside`;
+      }
+      return tip;
     }
     return 'Rented — no contract details';
   }

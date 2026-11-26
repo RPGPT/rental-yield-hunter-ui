@@ -307,4 +307,46 @@ describe('api/listings/[id] handler', () => {
     expect(res._status).toBe(200);
     expect((res._body as any)?.title).toBe('T');
   });
+
+  it('GET prepends initial_price to 1-cut price_history and fetches cluster_siblings when cluster_size > 1', async () => {
+    queryResults = [
+      [
+        {
+          id: 'casasapo-1',
+          title: 'T2 Porto',
+          price: 185000,
+          initial_price: 200000,
+          first_seen: '2026-01-01T00:00:00Z',
+          cluster_id: 'cluster-abc',
+          cluster_size: 2,
+        },
+      ],
+      [{ price: 185000, previous_price: 200000, captured_at: '2026-02-01T00:00:00Z' }],
+      [{ images: null, ld_image: 'https://media.casasapo.pt/Z640x480/abc.jpg' }],
+      [
+        {
+          id: 'era-99',
+          source: 'era',
+          url: 'https://www.era.pt/99',
+          title: 'T2 ERA',
+          price: 195000,
+          active: true,
+        },
+      ],
+    ];
+    const res = new MockRes();
+    await handler({ method: 'GET', query: { id: 'casasapo-1' }, headers: {} } as any, res as any);
+    expect(res._status).toBe(200);
+    const body = res._body as any;
+    expect(body.price_history).toHaveLength(2);
+    expect(body.price_history[0].price).toBe(200000);
+    expect(body.images).toEqual([
+      {
+        large: 'https://media.casasapo.pt/Z640x480/abc.jpg',
+        medium: 'https://media.casasapo.pt/Z640x480/abc.jpg',
+      },
+    ]);
+    expect(body.cluster_siblings).toHaveLength(1);
+    expect(body.cluster_siblings[0].id).toBe('era-99');
+  });
 });

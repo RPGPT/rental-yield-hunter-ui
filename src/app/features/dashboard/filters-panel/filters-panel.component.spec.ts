@@ -419,4 +419,23 @@ describe('FiltersPanelComponent', () => {
       expect(() => component.onRentalYieldMinInput('4')).not.toThrow();
     });
   });
+
+  describe('source and deduplicate controls', () => {
+    it('updates source and resets offset on onSourceChange()', () => {
+      const { component } = setup('buy');
+      filterState.offset.set(50);
+      component.onSourceChange(['era', 'casasapo']);
+      expect(filterState.source()).toEqual(['era', 'casasapo']);
+      expect(filterState.offset()).toBe(0);
+    });
+
+    it('toggles deduplicate via cycleDeduplicate()', () => {
+      const { component } = setup('buy');
+      expect(filterState.deduplicate()).toBeNull();
+      component.cycleDeduplicate();
+      expect(filterState.deduplicate()).toBe(true);
+      component.cycleDeduplicate();
+      expect(filterState.deduplicate()).toBeNull();
+    });
+  });
 });

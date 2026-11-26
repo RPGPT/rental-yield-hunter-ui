@@ -12,27 +12,47 @@ interface Filters {
   area_max?: string;
   typology?: string;
   city?: string;
+  neighborhood?: string;
+  source?: string;
+  rental_yield_min?: string;
+  is_rented?: string;
+  lifetime_rent?: string;
+  has_contract_details?: string;
 }
 
 function buildConditions(filters: Filters, sinceParam: number) {
-  const conditions = ['active = true', 'COALESCE(is_deleted, false) = false'];
+  const conditions = ['l.active = true', 'COALESCE(l.is_deleted, false) = false'];
   const params: unknown[] = [];
   let i = sinceParam;
   const add = (cond: string, value: unknown) => {
     conditions.push(cond.replace('$?', `$${i++}`));
     params.push(value);
   };
-  if (filters.price_min) add('price >= $?', Number(filters.price_min));
-  if (filters.price_max) add('price <= $?', Number(filters.price_max));
-  if (filters.area_min) add('area >= $?', Number(filters.area_min));
-  if (filters.area_max) add('area <= $?', Number(filters.area_max));
-  for (const key of ['typology', 'city'] as const) {
+  if (filters.price_min) add('l.price >= $?', Number(filters.price_min));
+  if (filters.price_max) add('l.price <= $?', Number(filters.price_max));
+  if (filters.area_min) add('l.area >= $?', Number(filters.area_min));
+  if (filters.area_max) add('l.area <= $?', Number(filters.area_max));
+  for (const key of ['typology', 'city', 'neighborhood', 'source'] as const) {
     const values = filters[key]?.split(',').filter(Boolean);
     if (values?.length) {
       const ph = values.map(() => `$${i++}`);
-      conditions.push(`${key} IN (${ph.join(',')})`);
+      conditions.push(`l.${key} IN (${ph.join(',')})`);
       params.push(...values);
     }
+  }
+  if (filters.rental_yield_min) add('re.rental_yield >= $?', Number(filters.rental_yield_min));
+  if (filters.is_rented === 'true' || filters.is_rented === 'false') {
+    add('l.is_rented = $?', filters.is_rented === 'true');
+  }
+  if (filters.lifetime_rent === 'true' || filters.lifetime_rent === 'false') {
+    add('l.lifetime_rent = $?', filters.lifetime_rent === 'true');
+  }
+  if (filters.has_contract_details === 'true') {
+    conditions.push(
+      'l.is_rented = true',
+      'l.lifetime_rent = false',
+      'rcd.current_rent IS NOT NULL',
+    );
   }
   return { where: conditions.join(' AND '), params };
 }
@@ -42,15 +62,16 @@ async function withAlerts(sql: Sql & SqlQuery, row: Record<string, unknown>) {
   if (filters.mode === 'rent') return { ...row, new_matches: 0, price_drops: 0 };
   const { where, params } = buildConditions(filters, 2);
   const since = row['last_checked_at'];
+  const joins = `LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id`;
   const [fresh, drops] = await Promise.all([
-    sql.query(`SELECT COUNT(*)::int AS n FROM listings WHERE ${where} AND first_seen > $1`, [
-      since,
-      ...params,
-    ]),
     sql.query(
-      `SELECT COUNT(*)::int AS n FROM listings l WHERE ${where.replace(/\b(price|area|typology|city|active|is_deleted)\b/g, 'l.$1')}
+      `SELECT COUNT(*)::int AS n FROM listings l ${joins} WHERE ${where} AND l.first_seen > $1`,
+      [since, ...params],
+    ),
+    sql.query(
+      `SELECT COUNT(*)::int AS n FROM listings l ${joins} WHERE ${where}
        AND EXISTS (SELECT 1 FROM listing_price_history lph
-                   WHERE lph.listing_id = l.id AND lph.price > l.price AND lph.captured_at > $1)`,
+                   WHERE lph.listing_id = l.id AND COALESCE(lph.previous_price, lph.price) > l.price AND lph.captured_at > $1)`,
       [since, ...params],
     ),
   ]);

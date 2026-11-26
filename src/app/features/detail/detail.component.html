@@ -10,7 +10,7 @@
       </a>
       <div class="title-with-tags">
         <h1 class="detail-title">{{ l.title }}</h1>
-        @if (l.price_history.length > 0) {
+        @if (l.price_history.length > 0 || (l.price_drop_amount ?? 0) !== 0) {
           @if (priceWentDown()) {
             <button
               class="price-tag price-tag-down"
@@ -157,6 +157,24 @@
                 <span matListItemTitle>Price</span>
                 <span matListItemLine>{{ l.price | eur }}</span>
               </mat-list-item>
+              @if (l.initial_price != null && l.initial_price !== l.price) {
+                <mat-list-item>
+                  <span matListItemTitle>Initial Price</span>
+                  <span matListItemLine>
+                    {{ l.initial_price | eur }}
+                    @if ((l.price_drop_amount ?? 0) > 0) {
+                      <span class="yield-value">
+                        (−{{ l.price_drop_amount | eur }} ·
+                        {{ ((l.price_drop_pct ?? 0) * 100).toFixed(1) }}%)
+                      </span>
+                    }
+                  </span>
+                </mat-list-item>
+              }
+              <mat-list-item>
+                <span matListItemTitle>Source</span>
+                <span matListItemLine>{{ sourceLabel(l.source) }}</span>
+              </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Area</span>
                 <span matListItemLine>{{ l.area ? l.area + ' m²' : '—' }}</span>
@@ -288,6 +306,9 @@
                   <span matListItemLine>
                     @if (l.rent_contract_expiry) {
                       {{ l.rent_contract_expiry | date: 'MMM y' }}
+                      @if (l.rent_months_to_expiry != null) {
+                        <span class="contract-unknown">({{ l.rent_months_to_expiry }} mo)</span>
+                      }
                       @if (contractExpiringSoon(l.rent_contract_expiry)) {
                         <app-badge label="Expiring soon" color="amber" />
                       }
@@ -296,6 +317,19 @@
                     }
                   </span>
                 </mat-list-item>
+                @if (l.rent_reversion_yield != null) {
+                  <mat-list-item>
+                    <span matListItemTitle>Reversion Yield</span>
+                    <span matListItemLine class="yield-value">
+                      {{ (l.rent_reversion_yield * 100).toFixed(2) }}%
+                      @if ((l.rent_upside_pct ?? 0) > 0) {
+                        <span
+                          >(+{{ ((l.rent_upside_pct ?? 0) * 100).toFixed(0) }}% rent upside)</span
+                        >
+                      }
+                    </span>
+                  </mat-list-item>
+                }
               }
               <mat-list-item>
                 <span matListItemTitle>Status</span>
@@ -415,6 +449,58 @@
             <app-price-chart [priceHistory]="l.price_history" [currentPrice]="l.price" />
           </mat-card-content>
         </mat-card>
+
+        @if (l.cluster_siblings?.length) {
+          <mat-card class="siblings-card">
+            <mat-card-header>
+              <mat-card-title>
+                Also Listed On ({{ l.cluster_siblings!.length }}
+                {{ l.cluster_siblings!.length === 1 ? 'other ad' : 'other ads' }})
+              </mat-card-title>
+              @if ((l.price_spread ?? 0) > 0) {
+                <mat-card-subtitle>
+                  Cluster range: {{ l.cluster_min_price | eur }} –
+                  {{ l.cluster_max_price | eur }} (spread: {{ l.price_spread | eur }})
+                </mat-card-subtitle>
+              }
+            </mat-card-header>
+            <mat-card-content>
+              <div class="siblings-list">
+                @for (sib of l.cluster_siblings!; track sib.id) {
+                  <div class="sibling-row">
+                    <div class="sibling-info">
+                      <app-badge [label]="sourceLabel(sib.source)" color="blue" />
+                      <a [routerLink]="['/listing', sib.id]" class="sibling-title">
+                        {{ sib.title || sib.id }}
+                      </a>
+                    </div>
+                    <div class="sibling-price-actions">
+                      <span class="sibling-price">{{ sib.price | eur }}</span>
+                      @if (sib.price < l.price) {
+                        <span class="sibling-delta sibling-delta--cheaper">
+                          −{{ l.price - sib.price | eur }} cheaper
+                        </span>
+                      } @else if (sib.price > l.price) {
+                        <span class="sibling-delta sibling-delta--higher">
+                          +{{ sib.price - l.price | eur }}
+                        </span>
+                      }
+                      <a
+                        mat-icon-button
+                        [href]="sib.url"
+                        target="_blank"
+                        rel="noopener"
+                        matTooltip="Open agency ad"
+                      >
+                        <mat-icon>open_in_new</mat-icon>
+                      </a>
+                    </div>
+                  </div>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
       </div>
     </div>
   </div>

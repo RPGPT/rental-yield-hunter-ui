@@ -12,10 +12,14 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
         count(*) FILTER (WHERE active AND lifetime_rent)::int AS lifetime_rent,
         COALESCE(round(avg(price) FILTER (WHERE active))::int, 0) AS avg_price,
         COALESCE(round(avg(price_per_m2) FILTER (WHERE active))::int, 0) AS avg_price_per_m2,
-        (SELECT count(DISTINCT lph.listing_id)::int
-          FROM listing_price_history lph
-          JOIN listings l ON l.id = lph.listing_id
-          WHERE lph.price > l.price AND COALESCE(l.is_deleted, false) = false
+        (SELECT count(DISTINCT l.id)::int
+          FROM listings l
+          LEFT JOIN listing_price_history lph ON lph.listing_id = l.id
+          WHERE COALESCE(l.is_deleted, false) = false
+            AND (
+              COALESCE(l.price_drop_amount, 0) > 0
+              OR COALESCE(lph.previous_price, lph.price) > l.price
+            )
         ) AS price_drops
       FROM listings
       WHERE COALESCE(is_deleted, false) = false

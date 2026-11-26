@@ -48,22 +48,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '';
     const listingParams: unknown[] = userId ? [id, userId] : [id];
 
-    const listingResult = await sql.query(
-      `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.rent_price_per_m2,
+    const listingResult = (await sql.query(
+      `SELECT l.id, l.source, l.url, l.title, l.description, l.price,
+              l.initial_price, l.price_drop_amount, l.price_drop_pct::float AS price_drop_pct, l.price_change_count,
+              l.area, l.rent_price_per_m2,
               l.location, l.city, l.neighborhood, l.typology, l.floor,
               ${isFavoriteSelect}, l.active, l.inactive_since, l.first_seen, l.last_seen
        FROM rental_listings l ${joinClause}
        WHERE l.id = $1 AND COALESCE(l.is_deleted, false) = false`,
       listingParams,
-    );
+    )) as Record<string, unknown>[];
 
     if (listingResult.length === 0)
       return res.status(404).json({ error: 'Rental listing not found' });
 
-    const [priceHistory, rawDataResult] = await Promise.all([
-      sql`SELECT price, captured_at FROM rental_listing_price_history WHERE listing_id = ${id} ORDER BY captured_at ASC`,
+    const [rawPriceHistory, rawDataResult] = (await Promise.all([
+      sql`SELECT price, previous_price, captured_at FROM rental_listing_price_history WHERE listing_id = ${id} ORDER BY captured_at ASC, id ASC`,
       sql`SELECT raw_json->'images' AS images FROM rental_raw_data WHERE listing_id = ${id} LIMIT 1`,
-    ]);
+    ])) as [
+      Array<{ price: number; previous_price?: number | null; captured_at: string }>,
+      Array<Record<string, unknown>>,
+    ];
+
+    const row = listingResult[0];
+    const priceHistory: Array<{ price: number; captured_at: string }> = [];
+    const initPrice =
+      typeof row['initial_price'] === 'number'
+        ? row['initial_price']
+        : (rawPriceHistory[0]?.previous_price ?? null);
+    if (
+      rawPriceHistory.length > 0 &&
+      initPrice != null &&
+      initPrice !== rawPriceHistory[0].price &&
+      row['first_seen']
+    ) {
+      priceHistory.push({ price: initPrice, captured_at: String(row['first_seen']) });
+    }
+    for (const pt of rawPriceHistory) {
+      priceHistory.push({ price: pt.price, captured_at: pt.captured_at });
+    }
 
     const images: Array<{ large: string; medium: string }> =
       rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])

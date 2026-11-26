@@ -5,11 +5,12 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
-    const [cities, typologies, propertyTypes, neighborhoods] = await Promise.all([
+    const [cities, typologies, propertyTypes, neighborhoods, sources] = await Promise.all([
       sql`SELECT DISTINCT city FROM listings WHERE COALESCE(is_deleted, false) = false AND city IS NOT NULL ORDER BY city`,
       sql`SELECT DISTINCT typology FROM listings WHERE COALESCE(is_deleted, false) = false AND typology IS NOT NULL ORDER BY typology`,
       sql`SELECT DISTINCT property_type FROM listings WHERE COALESCE(is_deleted, false) = false AND property_type IS NOT NULL ORDER BY property_type`,
       sql`SELECT DISTINCT city, neighborhood FROM listings WHERE COALESCE(is_deleted, false) = false AND city IS NOT NULL AND neighborhood IS NOT NULL ORDER BY city, neighborhood`,
+      sql`SELECT DISTINCT source FROM listings WHERE COALESCE(is_deleted, false) = false AND source IS NOT NULL ORDER BY source`,
     ]);
 
     const neighborhoodsByCity: Record<string, string[]> = {};
@@ -23,6 +24,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       typologies: typologies.map((r: Record<string, unknown>) => r['typology']),
       property_types: propertyTypes.map((r: Record<string, unknown>) => r['property_type']),
       neighborhoods: neighborhoodsByCity,
+      sources: (sources ?? []).map((r: Record<string, unknown>) => r['source']),
     });
   } catch (error) {
     console.error('Error fetching filters:', error);

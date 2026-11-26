@@ -78,8 +78,8 @@ async function createListing(
   const pricePerM2 = sizeM2 > 0 ? price / sizeM2 : null;
 
   await sql.query(
-    `INSERT INTO listings (id, source, url, title, price, area, price_per_m2, city, neighborhood, is_rented, lifetime_rent, active, first_seen, last_seen)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
+    `INSERT INTO listings (id, source, url, title, price, initial_price, price_drop_amount, price_drop_pct, price_change_count, area, price_per_m2, city, neighborhood, is_rented, lifetime_rent, active, first_seen, last_seen)
+     VALUES ($1, $2, $3, $4, $5, $5, 0, 0, 0, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
     [
       id,
       'manual',
@@ -97,19 +97,24 @@ async function createListing(
   );
 
   if (isRented && currentRentPrice) {
+    const curYield = price > 0 ? Number(((currentRentPrice * 12) / price).toFixed(4)) : null;
     await sql.query(
-      `INSERT INTO rent_contract_details (listing_id, current_rent) VALUES ($1, $2)`,
-      [id, currentRentPrice],
+      `INSERT INTO rent_contract_details (listing_id, current_rent, current_yield) VALUES ($1, $2, $3)`,
+      [id, currentRentPrice, curYield],
     );
   }
 
   const result = await sql.query(
-    `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.area, l.price_per_m2,
+    `SELECT l.id, l.source, l.url, l.title, l.description, l.price, l.initial_price,
+            l.price_drop_amount, l.price_drop_pct::float AS price_drop_pct, l.price_change_count,
+            l.area, l.price_per_m2,
             l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
             l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
             l.inactive_since, l.first_seen, l.last_seen,
             re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
-            rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+            rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry,
+            rcd.current_yield::float AS rent_current_yield, rcd.reversion_yield::float AS rent_reversion_yield,
+            rcd.rent_upside_pct::float AS rent_upside_pct, rcd.months_to_expiry AS rent_months_to_expiry
      FROM listings l
      LEFT JOIN rental_estimates re ON re.listing_id = l.id
      LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
@@ -120,7 +125,13 @@ async function createListing(
   return res.status(201).json((result as Record<string, unknown>[])[0]);
 }
 
-const PREV_PRICE_SQL = `(SELECT lph.price FROM listing_price_history lph WHERE lph.listing_id = l.id AND lph.price <> l.price ORDER BY lph.captured_at DESC LIMIT 1)`;
+const PREV_PRICE_SQL = `COALESCE(
+  (SELECT COALESCE(lph.previous_price, lph.price)
+   FROM listing_price_history lph
+   WHERE lph.listing_id = l.id AND COALESCE(lph.previous_price, lph.price) <> l.price
+   ORDER BY lph.captured_at DESC, lph.id DESC LIMIT 1),
+  CASE WHEN l.initial_price IS NOT NULL AND l.initial_price <> l.price THEN l.initial_price ELSE NULL END
+)`;
 
 async function listingsHandler(req: VercelRequest, res: VercelResponse) {
   console.log('[listings] handler start, hasAuth:', !!req.headers['authorization']);
@@ -140,6 +151,8 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       area_max,
       typology,
       city,
+      neighborhood,
+      source,
       property_type,
       has_garage,
       is_rented,
@@ -150,6 +163,7 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       is_hidden,
       is_new,
       price_change,
+      deduplicate,
       active,
       deleted,
       sort = 'price',
@@ -166,53 +180,77 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
     let paramIndex = 1;
 
     if (price_min) {
-      conditions.push(`price >= $${paramIndex++}`);
+      conditions.push(`l.price >= $${paramIndex++}`);
       params.push(Number(price_min));
     }
     if (price_max) {
-      conditions.push(`price <= $${paramIndex++}`);
+      conditions.push(`l.price <= $${paramIndex++}`);
       params.push(Number(price_max));
     }
     if (area_min) {
-      conditions.push(`area >= $${paramIndex++}`);
+      conditions.push(`l.area >= $${paramIndex++}`);
       params.push(Number(area_min));
     }
     if (area_max) {
-      conditions.push(`area <= $${paramIndex++}`);
+      conditions.push(`l.area <= $${paramIndex++}`);
       params.push(Number(area_max));
     }
 
     if (typology) {
-      const values = (typology as string).split(',');
-      const placeholders = values.map(() => `$${paramIndex++}`);
-      conditions.push(`typology IN (${placeholders.join(',')})`);
-      params.push(...values);
+      const values = typology.split(',').filter(Boolean);
+      if (values.length) {
+        const placeholders = values.map(() => `$${paramIndex++}`);
+        conditions.push(`l.typology IN (${placeholders.join(',')})`);
+        params.push(...values);
+      }
     }
 
     if (city) {
-      const values = (city as string).split(',');
-      const placeholders = values.map(() => `$${paramIndex++}`);
-      conditions.push(`city IN (${placeholders.join(',')})`);
-      params.push(...values);
+      const values = city.split(',').filter(Boolean);
+      if (values.length) {
+        const placeholders = values.map(() => `$${paramIndex++}`);
+        conditions.push(`l.city IN (${placeholders.join(',')})`);
+        params.push(...values);
+      }
+    }
+
+    if (neighborhood) {
+      const values = neighborhood.split(',').filter(Boolean);
+      if (values.length) {
+        const placeholders = values.map(() => `$${paramIndex++}`);
+        conditions.push(`l.neighborhood IN (${placeholders.join(',')})`);
+        params.push(...values);
+      }
+    }
+
+    if (source) {
+      const values = source.split(',').filter(Boolean);
+      if (values.length) {
+        const placeholders = values.map(() => `$${paramIndex++}`);
+        conditions.push(`l.source IN (${placeholders.join(',')})`);
+        params.push(...values);
+      }
     }
 
     if (property_type) {
-      const values = (property_type as string).split(',');
-      const placeholders = values.map(() => `$${paramIndex++}`);
-      conditions.push(`property_type IN (${placeholders.join(',')})`);
-      params.push(...values);
+      const values = property_type.split(',').filter(Boolean);
+      if (values.length) {
+        const placeholders = values.map(() => `$${paramIndex++}`);
+        conditions.push(`l.property_type IN (${placeholders.join(',')})`);
+        params.push(...values);
+      }
     }
 
     if (has_garage !== undefined) {
-      conditions.push(`has_garage = $${paramIndex++}`);
+      conditions.push(`l.has_garage = $${paramIndex++}`);
       params.push(has_garage === 'true');
     }
     if (is_rented !== undefined) {
-      conditions.push(`is_rented = $${paramIndex++}`);
+      conditions.push(`l.is_rented = $${paramIndex++}`);
       params.push(is_rented === 'true');
     }
     if (lifetime_rent !== undefined) {
-      conditions.push(`lifetime_rent = $${paramIndex++}`);
+      conditions.push(`l.lifetime_rent = $${paramIndex++}`);
       params.push(lifetime_rent === 'true');
     }
     if (has_contract_details === 'true') {
@@ -227,27 +265,47 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       params.push(Number(rental_yield_min));
     }
     if (is_new === 'true') {
-      conditions.push(`first_seen >= NOW() - INTERVAL '2 days'`);
+      conditions.push(`l.first_seen >= NOW() - INTERVAL '2 days'`);
     }
     if (price_change === 'reduced') {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM listing_price_history lph
-        WHERE lph.listing_id = l.id AND lph.price > l.price
+      conditions.push(`(
+        COALESCE(l.price_drop_amount, 0) > 0
+        OR EXISTS (
+          SELECT 1 FROM listing_price_history lph
+          WHERE lph.listing_id = l.id AND COALESCE(lph.previous_price, lph.price) > l.price
+        )
       )`);
     } else if (price_change === 'increased') {
-      conditions.push(`EXISTS (
-        SELECT 1 FROM listing_price_history lph
-        WHERE lph.listing_id = l.id AND lph.price < l.price
+      conditions.push(`(
+        COALESCE(l.price_drop_amount, 0) < 0
+        OR EXISTS (
+          SELECT 1 FROM listing_price_history lph
+          WHERE lph.listing_id = l.id AND COALESCE(lph.previous_price, lph.price) < l.price
+        )
+      )`);
+    }
+    if (deduplicate === 'true') {
+      conditions.push(`(
+        lc.cluster_id IS NULL
+        OR l.id = (
+          SELECT lc2.listing_id
+          FROM listing_clusters lc2
+          JOIN listings l2 ON l2.id = lc2.listing_id
+          WHERE lc2.cluster_id = lc.cluster_id
+            AND l2.active = l.active
+            AND COALESCE(l2.is_deleted, false) = false
+          ORDER BY l2.price ASC, l2.id ASC
+          LIMIT 1
+        )
       )`);
     }
     if (active !== undefined) {
-      conditions.push(`active = $${paramIndex++}`);
+      conditions.push(`l.active = $${paramIndex++}`);
       params.push(active === 'true');
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Validate sort column (whitelist to prevent SQL injection)
     const allowedSorts = [
       'price',
       'area',
@@ -255,6 +313,8 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       'property_type',
       'typology',
       'city',
+      'neighborhood',
+      'source',
       'has_garage',
       'is_rented',
       'lifetime_rent',
@@ -264,68 +324,83 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
       'estimated_rent',
       'rental_yield',
       'price_drop_pct',
+      'price_spread',
+      'rent_upside_pct',
+      'reversion_yield',
     ];
     const reColumns = new Set(['estimated_rent', 'rental_yield']);
-    const sortCol = allowedSorts.includes(sort as string) ? sort : 'price';
+    const lcColumns = new Set(['price_spread']);
+    const rcdColumns = new Set(['rent_upside_pct', 'reversion_yield']);
+    const sortCol = allowedSorts.includes(sort as string) ? (sort as string) : 'price';
     const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
 
-    // For rental_yield, prefer contract-based yield when available
     const sortExpr =
       sortCol === 'price_drop_pct'
-        ? `(${PREV_PRICE_SQL} - l.price)::float / NULLIF(${PREV_PRICE_SQL}, 0)`
+        ? `COALESCE(l.price_drop_pct::float, (${PREV_PRICE_SQL} - l.price)::float / NULLIF(${PREV_PRICE_SQL}, 0))`
         : sortCol === 'rental_yield'
           ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN (rcd.current_rent * 12) / NULLIF(l.price, 0) ELSE NULL END, re.rental_yield)`
-          : `${reColumns.has(sortCol as string) ? 're' : 'l'}.${sortCol}`;
+          : reColumns.has(sortCol)
+            ? `re.${sortCol}`
+            : lcColumns.has(sortCol)
+              ? `lc.${sortCol}`
+              : rcdColumns.has(sortCol)
+                ? `rcd.${sortCol}`
+                : `l.${sortCol}`;
 
     const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
     const offsetNum = Math.max(Number(offset) || 0, 0);
 
-    let joinClause = '';
-    let isFavoriteSelect = 'false AS is_favorite';
-    let isHiddenSelect = 'false AS is_hidden';
-    const allParams: unknown[] = [];
+    const sharedSelectCols = `
+      re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
+      ${PREV_PRICE_SQL} AS previous_price,
+      l.initial_price, l.price_drop_amount, l.price_drop_pct::float AS price_drop_pct, l.price_change_count,
+      rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry,
+      rcd.current_yield::float AS rent_current_yield, rcd.reversion_yield::float AS rent_reversion_yield,
+      rcd.rent_upside_pct::float AS rent_upside_pct, rcd.months_to_expiry AS rent_months_to_expiry,
+      lc.cluster_id, lc.cluster_size, lc.cluster_min_price, lc.cluster_max_price,
+      lc.price_spread, lc.price_spread_pct::float AS price_spread_pct, lc.is_cheapest, lc.sources AS cluster_sources
+    `;
+
+    const sharedJoins = `
+      LEFT JOIN rental_estimates re ON re.listing_id = l.id
+      LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
+      LEFT JOIN listing_clusters lc ON lc.listing_id = l.id
+    `;
 
     if (userId) {
-      allParams.push(userId); // $1 = userId
-      joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1
+      const allParams: unknown[] = [userId];
+      const joinClause = `LEFT JOIN user_favorites uf ON uf.listing_id = l.id AND uf.user_id = $1
         LEFT JOIN user_hidden uh ON uh.listing_id = l.id AND uh.user_id = $1`;
-      isFavoriteSelect = `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`;
-      isHiddenSelect = `CASE WHEN uh.listing_id IS NOT NULL THEN true ELSE false END AS is_hidden`;
-      // Filter to only favorites if requested (no extra param — references the JOIN)
+      const isFavoriteSelect = `CASE WHEN uf.listing_id IS NOT NULL THEN true ELSE false END AS is_favorite`;
+      const isHiddenSelect = `CASE WHEN uh.listing_id IS NOT NULL THEN true ELSE false END AS is_hidden`;
       if (is_favorite === 'true') {
         conditions.push(`uf.listing_id IS NOT NULL`);
       }
-      // Filter hidden listings based on is_hidden param
       if (is_hidden === 'true') {
         conditions.push(`uh.listing_id IS NOT NULL`);
       } else if (is_hidden === 'false') {
         conditions.push(`uh.listing_id IS NULL`);
       }
-      // Renumber all $N params by +1 (because $1 is now userId)
       const rebuiltWhere =
         conditions.length > 0
           ? `WHERE ${conditions.map((c) => c.replace(/\$(\d+)/g, (_, n) => `$${Number(n) + 1}`)).join(' AND ')}`
           : '';
       allParams.push(...params);
-      const tableRef = 'listings l';
       const dataQuery = `
         SELECT l.id, l.source, l.url, l.title, l.description,
                l.price, l.area, l.price_per_m2,
                l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
                l.has_garage, l.is_rented, l.lifetime_rent, ${isFavoriteSelect}, ${isHiddenSelect}, l.active,
                l.inactive_since, l.first_seen, l.last_seen,
-               re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
-               ${PREV_PRICE_SQL} AS previous_price,
-               rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
-        FROM ${tableRef}
+               ${sharedSelectCols}
+        FROM listings l
         ${joinClause}
-        LEFT JOIN rental_estimates re ON re.listing_id = l.id
-        LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
+        ${sharedJoins}
         ${rebuiltWhere}
         ORDER BY ${sortExpr} ${sortOrder} NULLS LAST
         LIMIT ${limitNum} OFFSET ${offsetNum}
       `;
-      const countQuery = `SELECT count(*)::int AS total FROM ${tableRef} ${joinClause} LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id ${rebuiltWhere}`;
+      const countQuery = `SELECT count(*)::int AS total FROM listings l ${joinClause} ${sharedJoins} ${rebuiltWhere}`;
       const [data, countResult] = await Promise.all([
         sql.query(dataQuery, allParams),
         sql.query(countQuery, allParams),
@@ -340,17 +415,15 @@ async function listingsHandler(req: VercelRequest, res: VercelResponse) {
              l.location, l.city, l.neighborhood, l.property_type, l.typology, l.floor,
              l.has_garage, l.is_rented, l.lifetime_rent, false AS is_favorite, false AS is_hidden, l.active,
              l.inactive_since, l.first_seen, l.last_seen,
-             re.estimated_rent, re.confidence, re.sample_count, re.match_level, re.rental_yield,
-             rcd.current_rent::float AS rent_current_rent, rcd.contract_expiry_date AS rent_contract_expiry
+             ${sharedSelectCols}
       FROM listings l
-      LEFT JOIN rental_estimates re ON re.listing_id = l.id
-      LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id
+      ${sharedJoins}
       ${whereClause}
       ORDER BY ${sortExpr} ${sortOrder} NULLS LAST
       LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
 
-    const countQuery = `SELECT count(*)::int AS total FROM listings l LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id ${whereClause}`;
+    const countQuery = `SELECT count(*)::int AS total FROM listings l ${sharedJoins} ${whereClause}`;
 
     const [data, countResult] = await Promise.all([
       sql.query(dataQuery, params),

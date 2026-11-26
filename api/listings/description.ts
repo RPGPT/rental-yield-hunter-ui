@@ -118,7 +118,6 @@ async function fetchEraData(
   if (!reference) return { description: null, images: [] };
 
   try {
-    // Step 1: load the listing page to get session cookies + CSRF hidden-input token
     const pageRes = await fetch(url, {
       headers: {
         'User-Agent': UA,
@@ -131,7 +130,6 @@ async function fetchEraData(
 
     const html = await pageRes.text();
 
-    // DNN renders the anti-forgery token as a hidden <input> (double-submit cookie pattern)
     const tokenMatch = html.match(
       /<input[^>]+name="__RequestVerificationToken"[^>]+value="([^"]+)"/,
     );
@@ -141,7 +139,6 @@ async function fetchEraData(
     }
     const formToken = tokenMatch[1];
 
-    // Collect all Set-Cookie values (Node 18+ undici supports getSetCookie())
     const h = pageRes.headers as Headers & { getSetCookie?(): string[] };
     const setCookies =
       typeof h.getSetCookie === 'function'
@@ -152,7 +149,6 @@ async function fetchEraData(
       .filter(Boolean)
       .join('; ');
 
-    // Step 2: call the ERA property detail API (DNN ServicesModule)
     const apiUrl = `https://www.era.pt/API/ServicesModule/Property/PropertyDetailByReference?reference=${reference}`;
     const apiRes = await fetch(apiUrl, {
       headers: {
@@ -190,6 +186,50 @@ async function fetchEraData(
   }
 }
 
+// ─── Casa Sapo ───────────────────────────────────────────────────────────────
+
+async function fetchCasaSapoData(
+  url: string,
+): Promise<{ description: string | null; images: { large: string; medium: string }[] }> {
+  try {
+    const pageRes = await fetch(url, {
+      headers: {
+        'User-Agent': UA,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'pt-PT,pt;q=0.9',
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!pageRes.ok) return { description: null, images: [] };
+
+    const html = await pageRes.text();
+    const seen = new Set<string>();
+    const images: { large: string; medium: string }[] = [];
+
+    for (const m of html.matchAll(/https:\/\/media\.casasapo\.pt\/Z\d+x\d+\/[^"'\s,)<>]+/g)) {
+      const rawUrl = m[0].replace(/\.webp$/, '');
+      const large = rawUrl.replace(/\/Z\d+x\d+\//, '/Z1440x1080/');
+      const medium = rawUrl.replace(/\/Z\d+x\d+\//, '/Z720x540/');
+      if (!seen.has(large)) {
+        seen.add(large);
+        images.push({ large, medium });
+      }
+    }
+
+    const descMatch =
+      html.match(/<div class="detail-description-text"[^>]*>([\s\S]*?)<\/div>/i) ??
+      html.match(/<div class="property-description"[^>]*>([\s\S]*?)<\/div>/i);
+
+    return {
+      description: descMatch ? descMatch[1].trim() : null,
+      images,
+    };
+  } catch (err) {
+    console.error('[description] Casa Sapo fetch error:', err);
+    return { description: null, images: [] };
+  }
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -201,6 +241,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── ERA ──
   if (url.includes('era.pt')) {
     const result = await fetchEraData(url);
+    return res.status(200).json({
+      description: result.description,
+      images: result.images,
+      characteristics: [],
+      topInformation: [],
+      additionalInformation: [],
+    });
+  }
+
+  // ── Casa Sapo ──
+  if (url.includes('casa.sapo.pt')) {
+    const result = await fetchCasaSapoData(url);
     return res.status(200).json({
       description: result.description,
       images: result.images,
