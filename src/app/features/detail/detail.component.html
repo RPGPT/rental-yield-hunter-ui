@@ -5,7 +5,7 @@
 } @else if (listing(); as l) {
   <div class="detail-page">
     <div class="detail-header">
-      <a mat-icon-button routerLink="/" class="back-btn" matTooltip="Back to listings">
+      <a mat-icon-button routerLink="/buy" class="back-btn" matTooltip="Back to listings">
         <mat-icon>arrow_back</mat-icon>
       </a>
       <div class="title-with-tags">
@@ -33,7 +33,6 @@
       </div>
 
       <div class="header-actions">
-        <!-- Context menu (three dots) — admin only -->
         @if (isAdmin()) {
           <button
             mat-icon-button
@@ -66,7 +65,6 @@
           </mat-menu>
         }
 
-        <!-- Favorite toggle -->
         <button
           mat-icon-button
           [class.fav-active]="isFavorite()"
@@ -81,7 +79,6 @@
           }
         </button>
 
-        <!-- Hidden toggle -->
         <button
           mat-icon-button
           [class.hidden-active]="isHidden()"
@@ -96,7 +93,6 @@
           }
         </button>
 
-        <!-- Google Maps -->
         @if (mapsUrl(l)) {
           <a
             mat-icon-button
@@ -109,7 +105,6 @@
           </a>
         }
 
-        <!-- Save / download snapshot — always visible -->
         <button
           mat-icon-button
           [disabled]="snapshotLoading()"
@@ -129,7 +124,6 @@
           }
         </button>
 
-        <!-- View original -->
         <a
           mat-raised-button
           [href]="l.url"
@@ -145,7 +139,6 @@
     </div>
 
     <div class="detail-grid">
-      <!-- Left: Metadata -->
       <div class="detail-meta">
         <mat-card>
           <mat-card-header>
@@ -184,7 +177,6 @@
                 <span matListItemLine>{{ l.price_per_m2 | eur }}</span>
               </mat-list-item>
 
-              <!-- Rent Estimate -->
               @if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
                 <mat-list-item>
                   <span matListItemTitle>Contract Rent</span>
@@ -282,7 +274,6 @@
                 </span>
               </mat-list-item>
 
-              <!-- Contract details (is_rented=true, lifetime_rent=false) -->
               @if (l.is_rented && !l.lifetime_rent && !!l.rent_current_rent) {
                 <mat-divider></mat-divider>
                 <mat-list-item>
@@ -357,92 +348,14 @@
         </mat-card>
       </div>
 
-      <!-- Right: Chart + Description -->
       <div class="detail-content">
-        <!-- Image gallery -->
-        @if (l.images.length) {
-          <mat-card class="gallery-card">
-            <mat-card-content>
-              <div class="gallery-main">
-                <img
-                  [src]="slotA()"
-                  alt="Listing image"
-                  class="gallery-main-img"
-                  [class.gallery-img--active]="activeSlot() === 'a'"
-                />
-                <img
-                  [src]="slotB()"
-                  alt="Listing image"
-                  class="gallery-main-img"
-                  [class.gallery-img--active]="activeSlot() === 'b'"
-                />
-                @if (l.images.length > 1) {
-                  <button
-                    class="gallery-nav gallery-prev"
-                    (click)="navigateImage(-1)"
-                    aria-label="Previous image"
-                  >
-                    <mat-icon>chevron_left</mat-icon>
-                  </button>
-                  <button
-                    class="gallery-nav gallery-next"
-                    (click)="navigateImage(1)"
-                    aria-label="Next image"
-                  >
-                    <mat-icon>chevron_right</mat-icon>
-                  </button>
-                  <!-- Image counter -->
-                  <span class="gallery-counter">
-                    {{ currentImageIndex(l.images) + 1 }} / {{ l.images.length }}
-                    @if (currentImageIndex(l.images) === l.images.length - 1) {
-                      <span class="gallery-last-tag">Last</span>
-                    }
-                  </span>
-                }
-              </div>
-              @if (l.images.length > 1) {
-                <div class="gallery-thumbs">
-                  @for (img of l.images; track img.large) {
-                    <button
-                      class="thumb-btn"
-                      [class.thumb-active]="currentImage() === img.large"
-                      (click)="selectImage(img.large)"
-                    >
-                      <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
-                    </button>
-                  }
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-        }
+        <app-image-gallery [images]="l.images" [alt]="l.title" />
 
-        @if (richDescription(); as html) {
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>Description</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="description-text" [innerHTML]="html"></div>
-            </mat-card-content>
-          </mat-card>
-        } @else if (descriptionLoading()) {
-          <mat-card>
-            <mat-card-content class="description-loading">
-              <mat-spinner diameter="24"></mat-spinner>
-              <span>Loading description…</span>
-            </mat-card-content>
-          </mat-card>
-        } @else if (l.description) {
-          <mat-card>
-            <mat-card-header>
-              <mat-card-title>Description</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="description-text">{{ l.description }}</p>
-            </mat-card-content>
-          </mat-card>
-        }
+        <app-description-card
+          [richDescription]="richDescription()"
+          [plainDescription]="l.description"
+          [loading]="descriptionLoading()"
+        />
 
         <mat-card #priceChartCard>
           <mat-card-content>

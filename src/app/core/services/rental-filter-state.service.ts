@@ -1,6 +1,12 @@
 import { Injectable, signal, computed } from '@angular/core';
 import type { Params } from '@angular/router';
 import { RentalFilterState } from '../models/filter.model';
+import {
+  clampPageLimit,
+  parseActiveParam,
+  parseCsvParam,
+  parseNumberParam,
+} from './filter-params.util';
 
 export interface RentalFilterQueryParams {
   price_min?: string;
@@ -82,29 +88,30 @@ export class RentalFilterStateService {
   }
 
   initFromParams(params: Params): void {
-    if (params['price_min']) this.priceMin.set(Number(params['price_min']));
-    if (params['price_max']) this.priceMax.set(Number(params['price_max']));
-    if (params['area_min']) this.areaMin.set(Number(params['area_min']));
-    if (params['area_max']) this.areaMax.set(Number(params['area_max']));
-    if (params['rent_price_per_m2_min'])
-      this.rentPricePerM2Min.set(Number(params['rent_price_per_m2_min']));
-    if (params['rent_price_per_m2_max'])
-      this.rentPricePerM2Max.set(Number(params['rent_price_per_m2_max']));
-    if (params['typology']) this.typology.set(String(params['typology']).split(','));
-    if (params['city']) this.city.set(String(params['city']).split(','));
-    if (params['neighborhood']) this.neighborhood.set(String(params['neighborhood']).split(','));
-    if (params['is_favorite'] != null)
+    if (params['price_min']) this.priceMin.set(parseNumberParam(params['price_min']));
+    if (params['price_max']) this.priceMax.set(parseNumberParam(params['price_max']));
+    if (params['area_min']) this.areaMin.set(parseNumberParam(params['area_min']));
+    if (params['area_max']) this.areaMax.set(parseNumberParam(params['area_max']));
+    if (params['rent_price_per_m2_min']) {
+      this.rentPricePerM2Min.set(parseNumberParam(params['rent_price_per_m2_min']));
+    }
+    if (params['rent_price_per_m2_max']) {
+      this.rentPricePerM2Max.set(parseNumberParam(params['rent_price_per_m2_max']));
+    }
+    if (params['typology']) this.typology.set(parseCsvParam(params['typology']));
+    if (params['city']) this.city.set(parseCsvParam(params['city']));
+    if (params['neighborhood']) this.neighborhood.set(parseCsvParam(params['neighborhood']));
+    if (params['is_favorite'] != null) {
       this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
+    }
     if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
-    if (params['price_change'] === 'reduced' || params['price_change'] === 'increased')
+    if (params['price_change'] === 'reduced' || params['price_change'] === 'increased') {
       this.priceChange.set(params['price_change']);
-    if (params['active'] != null)
-      this.active.set(
-        params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
-      );
+    }
+    if (params['active'] != null) this.active.set(parseActiveParam(params['active']));
     if (params['sort']) this.sort.set(params['sort']);
     if (params['order'] === 'desc') this.order.set('desc');
-    if (params['limit']) this.limit.set(Math.min(100, Math.max(1, Number(params['limit']))));
+    if (params['limit']) this.limit.set(clampPageLimit(params['limit']));
   }
 
   toQueryParams(): RentalFilterQueryParams {

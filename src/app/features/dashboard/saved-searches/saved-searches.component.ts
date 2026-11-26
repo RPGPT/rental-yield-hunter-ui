@@ -44,13 +44,15 @@ export class SavedSearchesComponent implements OnInit {
 
   apply(search: SavedSearch): void {
     const { mode = 'buy', ...params } = search.filters;
-    if (mode === this.mode()) {
-      const state = mode === 'buy' ? this.buyState : this.rentState;
-      state.reset();
-      state.initFromParams(params);
-    } else {
+    const targetState = mode === 'buy' ? this.buyState : this.rentState;
+    // Always reset target singleton state first so stale filters never bleed across modes
+    targetState.reset();
+    targetState.initFromParams(params);
+
+    if (mode !== this.mode()) {
       void this.router.navigate([mode === 'buy' ? '/buy' : '/rent'], { queryParams: params });
     }
+
     this.api.markSavedSearchChecked(search.id).subscribe({
       next: () =>
         this.searches.update((l) =>

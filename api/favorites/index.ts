@@ -1,50 +1,10 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-
-interface NeonAuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-}
-
-function getUserFromRequest(req: VercelRequest): NeonAuthUser | null {
-  const auth = req.headers['authorization'] as string | undefined;
-  if (!auth?.startsWith('Bearer ')) return null;
-  const token = auth.substring(7);
-  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
-    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
-  }
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(
-      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
-    ) as { id?: string; sub?: string; email?: string; name?: string; exp?: number };
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-    const id = payload.id ?? payload.sub;
-    if (!id) return null;
-    return { id, email: payload.email ?? '', name: payload.name ?? null };
-  } catch {
-    return null;
-  }
-}
-
-function sendError(res: VercelResponse, error: unknown, status = 500): VercelResponse {
-  const msg = error instanceof Error ? error.message : String(error);
-  const code = (error as { code?: string }).code;
-  return res.status(status).json({ error: { message: msg, ...(code ? { code } : {}) } });
-}
+import { getFastUserFromRequest } from '../_lib/auth.js';
+import { sendError } from '../_lib/errors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log(
-    '[favorites] start method=%s id=%s hasAuth=%s',
-    req.method,
-    req.query['id'],
-    !!req.headers['authorization'],
-  );
-
-  const user = getUserFromRequest(req);
-  console.log('[favorites] user=%s', user ? user.id : 'null');
+  const user = getFastUserFromRequest(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
   const sql = neon(process.env['DATABASE_URL']!);
@@ -53,10 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     try {
       const rows = await sql`SELECT listing_id FROM user_favorites WHERE user_id = ${user.id}`;
-      console.log('[favorites] GET ok count=%d', rows.length);
       return res.status(200).json(rows.map((r: Record<string, unknown>) => r['listing_id']));
     } catch (error) {
-      console.error('[favorites] GET error:', error);
       return sendError(res, error);
     }
   }
@@ -64,12 +22,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     if (!id) return res.status(400).json({ error: 'Missing listing id' });
     try {
-      console.log('[favorites] POST insert userId=%s listingId=%s', user.id, id);
       await sql`INSERT INTO user_favorites (user_id, listing_id) VALUES (${user.id}, ${id}) ON CONFLICT DO NOTHING`;
-      console.log('[favorites] POST ok');
       return res.status(200).json({ listing_id: id, is_favorite: true });
     } catch (error) {
-      console.error('[favorites] POST error:', error);
       return sendError(res, error);
     }
   }
@@ -77,12 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'DELETE') {
     if (!id) return res.status(400).json({ error: 'Missing listing id' });
     try {
-      console.log('[favorites] DELETE userId=%s listingId=%s', user.id, id);
       await sql`DELETE FROM user_favorites WHERE user_id = ${user.id} AND listing_id = ${id}`;
-      console.log('[favorites] DELETE ok');
       return res.status(200).json({ listing_id: id, is_favorite: false });
     } catch (error) {
-      console.error('[favorites] DELETE error:', error);
       return sendError(res, error);
     }
   }

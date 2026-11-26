@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from './_types';
 import { neon } from '@neondatabase/serverless';
+import { sendError } from './_lib/errors.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
@@ -23,12 +25,6 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       neighborhoods: neighborhoodsByCity,
     });
   } catch (error) {
-    console.error('Error fetching rental filters:', error);
-    return res.status(500).json({
-      error: {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code,
-      },
-    });
+    return sendError(res, error);
   }
 }

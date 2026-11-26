@@ -62,23 +62,37 @@ async function withAlerts(sql: Sql & SqlQuery, row: Record<string, unknown>) {
   if (filters.mode === 'rent') return { ...row, new_matches: 0, price_drops: 0 };
   const { where, params } = buildConditions(filters, 2);
   const since = row['last_checked_at'];
-  const joins = `LEFT JOIN rental_estimates re ON re.listing_id = l.id LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id`;
-  const [fresh, drops] = await Promise.all([
-    sql.query(
-      `SELECT COUNT(*)::int AS n FROM listings l ${joins} WHERE ${where} AND l.first_seen > $1`,
-      [since, ...params],
-    ),
-    sql.query(
-      `SELECT COUNT(*)::int AS n FROM listings l ${joins} WHERE ${where}
-       AND EXISTS (SELECT 1 FROM listing_price_history lph
-                   WHERE lph.listing_id = l.id AND COALESCE(lph.previous_price, lph.price) > l.price AND lph.captured_at > $1)`,
-      [since, ...params],
-    ),
-  ]);
+  const joins = [
+    filters.rental_yield_min ? `LEFT JOIN rental_estimates re ON re.listing_id = l.id` : '',
+    filters.has_contract_details === 'true'
+      ? `LEFT JOIN rent_contract_details rcd ON rcd.listing_id = l.id`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Single-pass aggregation replaces two separate table scans per saved search
+  const counts = await sql.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE l.first_seen > $1)::int AS new_matches,
+       COUNT(*) FILTER (WHERE EXISTS (
+         SELECT 1 FROM listing_price_history lph
+         WHERE lph.listing_id = l.id
+           AND COALESCE(lph.previous_price, lph.price) > l.price
+           AND lph.captured_at > $1
+       ))::int AS price_drops
+     FROM listings l ${joins}
+     WHERE ${where}`,
+    [since, ...params],
+  );
+  const agg = (counts[0] ?? { new_matches: 0, price_drops: 0 }) as {
+    new_matches: number;
+    price_drops: number;
+  };
   return {
     ...row,
-    new_matches: (fresh[0] as { n: number }).n,
-    price_drops: (drops[0] as { n: number }).n,
+    new_matches: agg.new_matches,
+    price_drops: agg.price_drops,
   };
 }
 

@@ -1,0 +1,55 @@
+@if (images().length) {
+  <mat-card class="gallery-card">
+    <mat-card-content>
+      <div class="gallery-main">
+        <img
+          [src]="slotA()"
+          [alt]="alt()"
+          class="gallery-main-img"
+          [class.gallery-img--active]="activeSlot() === 'a'"
+        />
+        <img
+          [src]="slotB()"
+          [alt]="alt()"
+          class="gallery-main-img"
+          [class.gallery-img--active]="activeSlot() === 'b'"
+        />
+        @if (images().length > 1) {
+          <button
+            class="gallery-nav gallery-prev"
+            (click)="navigateImage(-1)"
+            aria-label="Previous image"
+          >
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <button
+            class="gallery-nav gallery-next"
+            (click)="navigateImage(1)"
+            aria-label="Next image"
+          >
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+          <span class="gallery-counter">
+            {{ currentImageIndex() + 1 }} / {{ images().length }}
+            @if (currentImageIndex() === images().length - 1) {
+              <span class="gallery-last-tag">Last</span>
+            }
+          </span>
+        }
+      </div>
+      @if (images().length > 1) {
+        <div class="gallery-thumbs">
+          @for (img of images(); track img.large) {
+            <button
+              class="thumb-btn"
+              [class.thumb-active]="currentImage() === img.large"
+              (click)="selectImage(img.large)"
+            >
+              <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
+            </button>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+}

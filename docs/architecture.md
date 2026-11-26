@@ -80,9 +80,9 @@ Price changes are tracked in two places:
 
 ---
 
-## 3. Live Portal Hydration (`/api/listings/description`)
+## 3. Live Portal Hydration (`/api/listings/description` & `api/_lib/portals.ts`)
 
-Database rows store baseline scraped text and `raw_data` JSON thumbnails, which may be truncated or stale. When opening `DetailComponent` (for Imovirtual, ERA, or Casa Sapo URLs) or `RentalDetailComponent` (currently for Imovirtual URLs), the UI calls `GET /api/listings/description?url=...` (CDN-cached for 1h via `s-maxage=3600, stale-while-revalidate=86400`):
+Database rows store baseline scraped text and `raw_data` JSON thumbnails, which may be truncated or stale. When opening either `DetailComponent` or `RentalDetailComponent` for a supported portal URL (`isPortalHydrationSupported(url)`), the UI calls `GET /api/listings/description?url=...` (CDN-cached for 1h via `s-maxage=3600, stale-while-revalidate=86400`), backed by `api/_lib/portals.ts`:
 
 - **Imovirtual (`imovirtual.com`)**: Extracts the `/pt/anuncio/<slug>` slug, fetches and caches Next.js `buildId` (10-min in-memory TTL), requests `/_next/data/<buildId>/pt/anuncio/<slug>.json`, retries with a fresh `buildId` on miss, and falls back to parsing `<script id="__NEXT_DATA__">` from the HTML page.
 - **ERA (`era.pt`)**: Extracts the numeric property reference from `-<digits>` at the end of the URL, fetches the listing HTML to scrape `__RequestVerificationToken` and session `Set-Cookie` headers, then calls `https://www.era.pt/API/ServicesModule/Property/PropertyDetailByReference?reference=<ref>` (excluding floor plans where `IsPlan === true`).
@@ -102,7 +102,7 @@ Listings frequently disappear from portals once sold or leased. Snapshots preser
   - Uploads `snapshots/<id>.html` to **private** Vercel Blob, upserts `listing_snapshots (listing_id, blob_url)`, and serves the HTML inline through `/api/listings/snapshot-download?id=<id>` (authenticated server-side with `BLOB_READ_WRITE_TOKEN`).
 - **Local Development (`process.env['VERCEL']` falsy)**:
   - Invokes `node_modules/.bin/single-file` CLI (`single-file-cli`) to save `snapshots/<id>.html` on disk without writing to Vercel Blob or `listing_snapshots`.
-  - Served directly by `server.ts` at `GET /api/snapshots/:id` (note: `SnapshotViewerComponent` always points its iframe at `/api/listings/snapshot-download?id=<id>`, which queries `listing_snapshots` + Vercel Blob and therefore returns `404` for purely local disk captures unless opened via `/api/snapshots/:id`).
+  - Served both at `GET /api/snapshots/:id` (`server.ts`) and via local disk fallback inside `GET /api/listings/snapshot-download?id=<id>`, so `SnapshotViewerComponent` works seamlessly in local dev and Vercel production alike.
 
 ---
 

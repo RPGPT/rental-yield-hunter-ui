@@ -45,15 +45,14 @@ Authoritative context and engineering rules for AI coding agents working in `ren
    - Schema migrations are owned by the external `rental-yield-hunter` repository. Do **not** run DDL migrations in API handlers.
    - Always filter out soft-deleted rows using `COALESCE(l.is_deleted, false) = false` unless explicitly querying the Trash view (`deleted === 'true'`).
 
-5. **Two Backend Auth Tiers**:
-   - **Strict Auth (`api/_lib/auth.ts`)**: Cryptographically verifies JWT via Neon Auth JWKS, looks up authoritative `role` in `neon_auth."user"` (since JWT `role` claims can be generic like `"authenticated"`), and falls back to `${NEON_AUTH_URL}/get-session`. Use this for admin/mutation endpoints (`POST /api/listings`, `PATCH`/`DELETE /api/listings/:id`).
-   - **Fast Read/User-State Decode**: Inline base64url JWT `sub`/`id` + `exp` decode (used in `listings/index.ts`, `rental-listings/*`, `favorites/index.ts`, `hidden/index.ts`) to avoid network/DB auth overhead on high-frequency queries.
+5. **Two Backend Auth Tiers (`api/_lib/auth.ts`)**:
+   - **Strict Auth (`getUserFromRequest`)**: Cryptographically verifies JWT via Neon Auth JWKS, looks up authoritative `role` in `neon_auth."user"` (since JWT `role` claims can be generic like `"authenticated"`), and falls back to `${NEON_AUTH_URL}/get-session`. Use this for admin/mutation endpoints (`POST /api/listings`, `PATCH`/`DELETE /api/listings/:id`).
+   - **Fast Read/User-State Decode (`getFastUserFromRequest`)**: Synchronous base64url JWT `sub`/`id` + `exp` decode shared across `listings/index.ts`, `rental-listings/*`, `favorites/index.ts`, and `hidden/index.ts` to avoid network/DB auth overhead on high-frequency queries.
    - Both support `Authorization: Bearer dev-token` when `NODE_ENV !== 'production'` (returns `dev-user` with `role: 'admin'`), matching `environment.ts` (`devBypassAuth: true`).
 
 6. **Angular 21 Zoneless & Bundle Budgets**:
    - The app uses **`provideZonelessChangeDetection()`**. State changes **must** flow through Angular `signal()` / `computed()` / signal `input()` or `AsyncPipe` — mutating plain class fields inside async callbacks will **not** trigger re-renders.
-   - `angular.json` enforces strict production style budgets: **5 kB warning / 8 kB error** per component SCSS (`anyComponentStyle`), and **1.5 MB warning / 2 MB error** initial JS bundle.
-   - **Budget hotspot**: `src/app/features/detail/detail.component.scss` is already **~7.7 kB** (just below the 8 kB hard error) and `rental-detail.component.scss` is **~5.3 kB**. Do **not** append substantial CSS to `detail.component.scss`; extract a child component or place shared rules in `src/styles.scss`. Always verify with `pnpm build`.
+   - `angular.json` enforces strict production style budgets: **5 kB warning / 8 kB error** per component SCSS (`anyComponentStyle`), and **1.5 MB warning / 2 MB error** initial JS bundle. Keep shared UI pieces modular (e.g. `ImageGalleryComponent`, `DescriptionCardComponent`) so detail component styles stay well below 5 kB. Always verify with `pnpm build`.
 
 7. **TypeScript Strictness**:
    - `noPropertyAccessFromIndexSignature: true` is enabled in `tsconfig.json`. Access untyped `Record<string, unknown>` / router `Params` / `process.env` keys with bracket notation (`params['price_min']`, `process.env['DATABASE_URL']`).
@@ -67,9 +66,7 @@ Before writing new SQL or UI plumbing, check what already exists:
 - **Backend filters/sorts already implemented in `GET /api/listings` (not yet in UI controls)**:
   - Query filters `property_type` (CSV) and `has_garage` (`'true' | 'false'`), plus `property_types` returned by `GET /api/filters`.
   - Sort columns `price_spread`, `rent_upside_pct`, and `reversion_yield` (usable today via URL e.g. `/buy?sort=reversion_yield&order=desc`).
-- **Portal hydration asymmetry**: `api/listings/description.ts` supports `imovirtual.com`, `era.pt`, and `casa.sapo.pt`. `DetailComponent` invokes it for all three portals, whereas `RentalDetailComponent` currently only invokes it for `imovirtual.com`.
 - **Admin UI vs. API auth**: `POST /api/listings` enforces `user.role === 'admin'` on the server; `PATCH` and `DELETE` on `/api/listings/:id` and `GET /api/listings?deleted=true` require an authenticated user on the server while their UI triggers are hidden behind `auth.isAdmin()`.
-- **Local vs. Vercel snapshots**: `SnapshotViewerComponent` embeds `/api/listings/snapshot-download?id=<id>` (which reads `listing_snapshots` + Vercel Blob). In local dev (`!process.env['VERCEL']`), `POST /api/listings/snapshot` writes to `snapshots/<id>.html` (served at `/api/snapshots/:id`) without inserting into `listing_snapshots`.
 - **Unmounted component**: `StatsBarComponent` (`src/app/features/dashboard/stats-bar/`) and `GET /api/stats` are implemented and unit-tested, but `StatsBarComponent` is not currently rendered in `dashboard.component.html`.
 
 ---
@@ -80,7 +77,7 @@ Always use `pnpm` (`packageManager: pnpm@10.11.0`):
 
 ```bash
 pnpm start          # Runs API (:3000) + Angular (:4200) concurrently
-pnpm test           # Runs Vitest across both 'angular' (jsdom) and 'api' (node) projects
+pnpm test           # Runs Vitest unit + real-data Neon flow suites ('angular' jsdom + 'api' node)
 pnpm build          # Production Angular build (validates templates + bundle/SCSS budgets)
 pnpm exec prettier --check .   # Check formatting (Husky pre-commit runs prettier via lint-staged)
 ```
@@ -91,12 +88,15 @@ Before committing any code change, run `pnpm test && pnpm build`.
 
 ## 5. Quick Feature & File Map
 
-| Area                      | Key Files                                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Routes & App Bootstrap    | `src/app/app.routes.ts`, `src/app/app.config.ts`, `src/app/app.ts`                                            |
-| Auth & 401 Silent Refresh | `src/app/core/services/auth.service.ts`, `src/app/core/interceptors/error.interceptor.ts`, `api/_lib/auth.ts` |
-| Buy/Rent Filter State     | `src/app/core/services/filter-state.service.ts`, `rental-filter-state.service.ts`, `query-params.util.ts`     |
-| Dashboard & Table         | `src/app/features/dashboard/dashboard.component.ts`, `filters-panel/`, `listings-table/`, `saved-searches/`   |
-| Detail & Portal Hydration | `src/app/features/detail/detail.component.ts`, `rental-detail/`, `api/listings/[id].ts`, `description.ts`     |
-| Manual Listing & Admin    | `src/app/features/create-manual-listing/`, `detail/mark-as-rented-dialog.component.ts`, `api/_lib/audit.ts`   |
-| Snapshots                 | `src/app/features/snapshot/snapshot-viewer.component.ts`, `api/listings/snapshot.ts`, `snapshot-download.ts`  |
+| Area                        | Key Files                                                                                                                          |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Routes & App Bootstrap      | `src/app/app.routes.ts` (all feature routes lazy-loaded), `src/app/app.config.ts`, `src/app/app.ts`                                |
+| Auth & 401 Silent Refresh   | `src/app/core/services/auth.service.ts`, `src/app/core/interceptors/error.interceptor.ts`, `api/_lib/auth.ts`                      |
+| Buy/Rent Filter State       | `src/app/core/services/filter-state.service.ts`, `rental-filter-state.service.ts`, `filter-params.util.ts`, `query-params.util.ts` |
+| Shared Domain & UI Modules  | `src/app/shared/utils/listing.util.ts`, `shared/components/image-gallery/`, `shared/components/description-card/`                  |
+| Backend Domain Modules      | `api/_lib/listings-query.ts`, `rental-listings-query.ts`, `portals.ts`, `price-history.ts`, `saved-searches.ts`, `audit.ts`        |
+| Dashboard & Table           | `src/app/features/dashboard/dashboard.component.ts`, `filters-panel/`, `listings-table/`, `saved-searches/`                        |
+| Detail & Portal Hydration   | `src/app/features/detail/detail.component.ts`, `rental-detail/`, `api/listings/[id].ts`, `description.ts`                          |
+| Manual Listing & Admin      | `src/app/features/create-manual-listing/`, `detail/mark-as-rented-dialog.component.ts`                                             |
+| Snapshots                   | `src/app/features/snapshot/snapshot-viewer.component.ts`, `api/listings/snapshot.ts`, `snapshot-download.ts`                       |
+| Real-Data Integration Flows | `api/_test/real-data-flows.spec.ts`, `src/app/flows/app-flows.real-data.spec.ts`                                                   |

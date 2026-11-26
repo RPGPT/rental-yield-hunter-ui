@@ -65,13 +65,14 @@ src/
       snapshot/                # Iframe viewer for archived listing snapshots
       create-manual-listing/   # Admin dialog using Angular Signal Forms (@angular/forms/signals)
       login/                   # Email/password + Google OAuth login/signup
-    shared/                    # BadgeComponent, EmptyStateComponent, EurPipe, RelativeDatePipe, query-params util
+    shared/                    # ImageGalleryComponent, DescriptionCardComponent, BadgeComponent, pipes, listing & query utils
+    flows/                     # Full-stack Angular + real Neon data integration flow tests
   environments/                # environment.ts (devBypassAuth: true) & environment.prod.ts
   styles/                      # Warm terracotta Material 3 theme, colour & size tokens, chart colours
 
 api/                           # Vercel Serverless Functions (12/12 Hobby plan function slots used)
-  _lib/                        # Shared non-routed helpers (auth.ts, audit.ts, errors.ts, saved-searches.ts)
-  _test/                       # API unit test helpers (mock-res.ts)
+  _lib/                        # Modular backend core (auth, listings-query, rental-listings-query, portals, price-history, saved-searches, audit, errors)
+  _test/                       # API test helpers (mock-res.ts) + real-data Neon flow suite (real-data-flows.spec.ts)
   _types.ts                    # VercelRequest / VercelResponse types
   listings/                    # index.ts, [id].ts, description.ts, snapshot.ts, snapshot-download.ts
   rental-listings/             # index.ts, [id].ts
@@ -163,7 +164,7 @@ Click the eye icon on any buy listing row or detail page to hide it (`user_hidde
 Snapshots are triggered automatically when favouriting a listing or manually via the **Save page snapshot** icon on the detail page:
 
 - **Production (`VERCEL=1`)**: Headless Chromium (`playwright-core` + `@sparticuz/chromium-min`, 300s function timeout) renders the listing page, strips external scripts, inlines stylesheets/fonts as `data:` URIs, injects an offline base64 image gallery lightbox, uploads the self-contained HTML to private Vercel Blob, records the URL in `listing_snapshots`, and serves it inline via `/api/listings/snapshot-download?id=<id>` inside the `/listing/:id/snapshot` (or `/rental/:id/snapshot`) viewer.
-- **Local Dev**: Runs `single-file-cli` to capture a self-contained HTML file into `snapshots/<id>.html`, served directly by `server.ts` at `http://localhost:3000/api/snapshots/<id>` (note that the in-app `/snapshot` iframe route reads from `listing_snapshots` + Vercel Blob).
+- **Local Dev**: Runs `single-file-cli` to capture a self-contained HTML file into `snapshots/<id>.html`, served both directly at `http://localhost:3000/api/snapshots/<id>` and through `/api/listings/snapshot-download?id=<id>` inside the in-app `/snapshot` viewer.
 
 ### Deployment
 

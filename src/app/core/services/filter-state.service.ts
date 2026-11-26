@@ -1,6 +1,13 @@
 import { Injectable, signal, computed } from '@angular/core';
 import type { Params } from '@angular/router';
 import { FilterState } from '../models/filter.model';
+import {
+  clampPageLimit,
+  parseActiveParam,
+  parseCsvParam,
+  parseNumberParam,
+  parseTriStateBool,
+} from './filter-params.util';
 
 export interface FilterQueryParams {
   price_min?: string;
@@ -106,46 +113,40 @@ export class FilterStateService {
   }
 
   initFromParams(params: Params): void {
-    if (params['price_min']) this.priceMin.set(Number(params['price_min']));
-    if (params['price_max']) this.priceMax.set(Number(params['price_max']));
-    if (params['area_min']) this.areaMin.set(Number(params['area_min']));
-    if (params['area_max']) this.areaMax.set(Number(params['area_max']));
-    if (params['typology']) this.typology.set(String(params['typology']).split(','));
-    if (params['city']) this.city.set(String(params['city']).split(','));
-    if (params['neighborhood']) this.neighborhood.set(String(params['neighborhood']).split(','));
-    if (params['source']) this.source.set(String(params['source']).split(','));
-    if (params['rental_yield_min']) this.rentalYieldMin.set(Number(params['rental_yield_min']));
-    if (params['is_rented'] != null)
-      this.isRented.set(
-        params['is_rented'] === 'true' ? true : params['is_rented'] === 'false' ? false : null,
-      );
-    if (params['lifetime_rent'] != null)
-      this.lifetimeRent.set(
-        params['lifetime_rent'] === 'true'
-          ? true
-          : params['lifetime_rent'] === 'false'
-            ? false
-            : null,
-      );
+    if (params['price_min']) this.priceMin.set(parseNumberParam(params['price_min']));
+    if (params['price_max']) this.priceMax.set(parseNumberParam(params['price_max']));
+    if (params['area_min']) this.areaMin.set(parseNumberParam(params['area_min']));
+    if (params['area_max']) this.areaMax.set(parseNumberParam(params['area_max']));
+    if (params['typology']) this.typology.set(parseCsvParam(params['typology']));
+    if (params['city']) this.city.set(parseCsvParam(params['city']));
+    if (params['neighborhood']) this.neighborhood.set(parseCsvParam(params['neighborhood']));
+    if (params['source']) this.source.set(parseCsvParam(params['source']));
+    if (params['rental_yield_min']) {
+      this.rentalYieldMin.set(parseNumberParam(params['rental_yield_min']));
+    }
+    if (params['is_rented'] != null) this.isRented.set(parseTriStateBool(params['is_rented']));
+    if (params['lifetime_rent'] != null) {
+      this.lifetimeRent.set(parseTriStateBool(params['lifetime_rent']));
+    }
     if (params['has_contract_details'] === 'true') this.hasContractDetails.set(true);
-    if (params['is_favorite'] != null)
+    if (params['is_favorite'] != null) {
       this.isFavorite.set(params['is_favorite'] === 'true' ? true : null);
-    if (params['is_hidden'] != null)
+    }
+    if (params['is_hidden'] != null) {
       this.isHidden.set(params['is_hidden'] === 'all' ? null : false);
-    else this.isHidden.set(false);
+    } else {
+      this.isHidden.set(false);
+    }
     if (params['is_new'] != null) this.isNew.set(params['is_new'] === 'true' ? true : null);
     if (params['price_change'] === 'reduced' || params['price_change'] === 'increased') {
       this.priceChange.set(params['price_change']);
     }
     if (params['deduplicate'] === 'true') this.deduplicate.set(true);
-    if (params['active'] != null)
-      this.active.set(
-        params['active'] === 'all' ? null : params['active'] === 'false' ? false : true,
-      );
+    if (params['active'] != null) this.active.set(parseActiveParam(params['active']));
     this.deleted.set(params['deleted'] === 'true');
     if (params['sort']) this.sort.set(params['sort']);
     if (params['order'] === 'desc') this.order.set('desc');
-    if (params['limit']) this.limit.set(Math.min(100, Math.max(1, Number(params['limit']))));
+    if (params['limit']) this.limit.set(clampPageLimit(params['limit']));
   }
 
   toQueryParams(): FilterQueryParams {

@@ -7,6 +7,7 @@ import path from 'path';
 import { put } from '@vercel/blob';
 import chromium from '@sparticuz/chromium-min';
 import { chromium as pw } from 'playwright-core';
+import { fetchImovirtualImages } from '../_lib/portals.js';
 
 const execFileAsync = promisify(execFile);
 const SNAPSHOTS_DIR = path.join(process.cwd(), 'snapshots');
@@ -15,66 +16,6 @@ const CHROMIUM_ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const CHROMIUM_URL =
   process.env['CHROMIUM_DOWNLOAD_URL'] ??
   `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${CHROMIUM_ARCH}.tar`;
-
-const IMOVIRTUAL_BASE = 'https://www.imovirtual.com';
-const IMOVIRTUAL_UA =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-
-let cachedBuildId: string | null = null;
-let buildIdFetchedAt = 0;
-const BUILD_ID_TTL_MS = 10 * 60 * 1000;
-
-async function getImovirtualBuildId(): Promise<string | null> {
-  if (cachedBuildId && Date.now() - buildIdFetchedAt < BUILD_ID_TTL_MS) return cachedBuildId;
-  try {
-    const res = await fetch(`${IMOVIRTUAL_BASE}/pt`, {
-      headers: { 'User-Agent': IMOVIRTUAL_UA, 'Accept-Language': 'pt-PT,pt;q=0.9' },
-      signal: AbortSignal.timeout(8000),
-    });
-    const html = await res.text();
-    const match = html.match(/"buildId"\s*:\s*"([^"]+)"/);
-    if (!match) return null;
-    cachedBuildId = match[1];
-    buildIdFetchedAt = Date.now();
-    return cachedBuildId;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchImovirtualImages(
-  listingUrl: string,
-): Promise<Array<{ large: string; medium: string }>> {
-  const slugMatch = listingUrl.match(/\/pt\/anuncio\/([^/?#]+)/);
-  if (!slugMatch) return [];
-  const slug = slugMatch[1];
-  const buildId = await getImovirtualBuildId();
-  if (!buildId) return [];
-  try {
-    const r = await fetch(`${IMOVIRTUAL_BASE}/_next/data/${buildId}/pt/anuncio/${slug}.json`, {
-      headers: {
-        'User-Agent': IMOVIRTUAL_UA,
-        Accept: 'application/json',
-        'Accept-Language': 'pt-PT,pt;q=0.9',
-        'x-nextjs-data': '1',
-      },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!r.ok) {
-      cachedBuildId = null;
-      return [];
-    }
-    const data = (await r.json()) as {
-      pageProps?: { ad?: { images?: { large?: string; medium?: string }[] } };
-    };
-    return (data?.pageProps?.ad?.images ?? []).map((img) => ({
-      large: img.large ?? '',
-      medium: img.medium ?? '',
-    }));
-  } catch {
-    return [];
-  }
-}
 
 async function capturePageHTML(pageUrl: string, imageUrls: string[]): Promise<string> {
   const browser = await pw.launch({
@@ -274,7 +215,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const listingsTable = isRental ? 'rental_listings' : 'listings';
   const rawDataTable = isRental ? 'rental_raw_data' : 'raw_data';
 
-  const useBlob = !!process.env['BLOB_READ_WRITE_TOKEN'];
   const isVercel = !!process.env['VERCEL'];
   const blobKey = `snapshots/${id}.html`;
 
@@ -329,27 +269,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (isVercel) {
         const existing = await sql`SELECT blob_url FROM listing_snapshots WHERE listing_id = ${id}`;
-        console.log(`[snapshot] existing rows=${existing.length} for ${id}`);
         if (existing.length > 0) {
-          console.log(`[snapshot] existing snapshot found for ${id}, returning`);
           return res
             .status(200)
             .json({ exists: true, url: `/api/listings/snapshot-download?id=${id}` });
         }
 
         const html = await capturePageHTML(url, imageUrls);
-        console.log(`[snapshot] capturePageHTML returned length=${html?.length}`);
         if (!html || html.length < 100) {
           return res.status(500).json({ error: 'Snapshot captured empty content' });
         }
-        const byteLength = Buffer.byteLength(html, 'utf-8');
-        console.log(`[snapshot] captured ${byteLength} bytes for ${id}`);
         const blob = await put(blobKey, html, {
           access: 'private',
           addRandomSuffix: false,
           contentType: 'text/html; charset=utf-8',
         });
-        console.log(`[snapshot] put result: url=${blob.url} size=${(blob as any).size}`);
         await sql`
           INSERT INTO listing_snapshots (listing_id, blob_url)
           VALUES (${id}, ${blob.url})
@@ -369,7 +303,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           timeout: 90_000,
           shell: true,
         });
-        console.log(`[snapshot] ${htmlPath}`);
         return res.status(200).json({ exists: true, url: `/api/snapshots/${id}` });
       }
     } catch (err) {

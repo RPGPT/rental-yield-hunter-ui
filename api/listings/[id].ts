@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
 import { getUserFromRequest } from '../_lib/auth.js';
 import { recordAudit } from '../_lib/audit.js';
+import { sendError } from '../_lib/errors.js';
+import { buildPriceHistory, extractRawImages, type RawPricePoint } from '../_lib/price-history.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -30,9 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       return res.status(200).json({ ok: true });
     } catch (error) {
-      return res.status(500).json({
-        error: { message: error instanceof Error ? error.message : String(error) },
-      });
+      return sendError(res, error);
     }
   }
 
@@ -57,7 +57,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       updates.push(`lifetime_rent = $${pIdx++}`);
       patchParams.push(body['lifetime_rent']);
     }
-
     if ('is_deleted' in body && body['is_deleted'] === false) {
       updates.push(`is_deleted = $${pIdx++}`);
       patchParams.push(false);
@@ -116,9 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       return res.status(200).json({ ok: true });
     } catch (error) {
-      return res.status(500).json({
-        error: { message: error instanceof Error ? error.message : String(error) },
-      });
+      return sendError(res, error);
     }
   }
 
@@ -171,78 +168,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const row = listingResult[0];
+    const hasCluster =
+      typeof row['cluster_size'] === 'number' &&
+      row['cluster_size'] > 1 &&
+      Boolean(row['cluster_id']);
 
-    const rawPriceHistory = (await sql`
-      SELECT price, previous_price, captured_at
-       FROM listing_price_history
-       WHERE listing_id = ${id}
-       ORDER BY captured_at ASC, id ASC
-    `) as Array<{ price: number; previous_price?: number | null; captured_at: string }>;
+    // Fetch price history, raw_data images, and cluster siblings concurrently
+    const [rawPriceHistory, rawDataResult, clusterSiblings] = (await Promise.all([
+      sql`
+        SELECT price, previous_price, captured_at
+        FROM listing_price_history
+        WHERE listing_id = ${id}
+        ORDER BY captured_at ASC, id ASC
+      `,
+      sql`
+        SELECT raw_json->'images' AS images,
+               raw_json->'mainEntity'->>'image' AS ld_image
+        FROM raw_data
+        WHERE listing_id = ${id}
+        LIMIT 1
+      `,
+      hasCluster
+        ? sql.query(
+            `SELECT l2.id, l2.source, l2.url, l2.price, l2.title, l2.area, l2.floor
+             FROM listing_clusters lc2
+             JOIN listings l2 ON l2.id = lc2.listing_id
+             WHERE lc2.cluster_id = $1 AND l2.id <> $2
+               AND l2.active = true AND COALESCE(l2.is_deleted, false) = false
+             ORDER BY l2.price ASC`,
+            [row['cluster_id'], id],
+          )
+        : Promise.resolve([]),
+    ])) as [RawPricePoint[], Array<Record<string, unknown>>, Array<Record<string, unknown>>];
 
-    // Prepend initial_price at first_seen when history starts with a changed price so 1-cut drops plot cleanly
-    const priceHistory: Array<{ price: number; captured_at: string }> = [];
-    const initPrice =
-      typeof row['initial_price'] === 'number'
-        ? row['initial_price']
-        : (rawPriceHistory[0]?.previous_price ?? null);
-    if (
-      rawPriceHistory.length > 0 &&
-      initPrice != null &&
-      initPrice !== rawPriceHistory[0].price &&
-      row['first_seen']
-    ) {
-      priceHistory.push({ price: initPrice, captured_at: String(row['first_seen']) });
-    }
-    for (const pt of rawPriceHistory) {
-      priceHistory.push({ price: pt.price, captured_at: pt.captured_at });
-    }
+    const priceHistory = buildPriceHistory(row, rawPriceHistory);
+    const images = extractRawImages(rawDataResult, true);
 
-    const rawDataResult = (await sql`
-      SELECT raw_json->'images' AS images,
-             raw_json->'mainEntity'->>'image' AS ld_image
-       FROM raw_data
-       WHERE listing_id = ${id}
-       LIMIT 1
-    `) as Record<string, unknown>[];
-
-    let images: Array<{ large: string; medium: string }> = [];
-    if (rawDataResult.length > 0) {
-      if (Array.isArray(rawDataResult[0]['images'])) {
-        images = rawDataResult[0]['images'] as Array<{ large: string; medium: string }>;
-      } else if (typeof rawDataResult[0]['ld_image'] === 'string' && rawDataResult[0]['ld_image']) {
-        const img = rawDataResult[0]['ld_image'];
-        images = [{ large: img, medium: img }];
-      }
-    }
-
-    let clusterSiblings: Array<Record<string, unknown>> = [];
-    if (typeof row['cluster_size'] === 'number' && row['cluster_size'] > 1 && row['cluster_id']) {
-      clusterSiblings = (await sql.query(
-        `SELECT l2.id, l2.source, l2.url, l2.price, l2.title, l2.area, l2.floor
-         FROM listing_clusters lc2
-         JOIN listings l2 ON l2.id = lc2.listing_id
-         WHERE lc2.cluster_id = $1 AND l2.id <> $2
-           AND l2.active = true AND COALESCE(l2.is_deleted, false) = false
-         ORDER BY l2.price ASC`,
-        [row['cluster_id'], id],
-      )) as Array<Record<string, unknown>>;
-    }
-
-    res.status(200).json({
+    return res.status(200).json({
       ...row,
       price_history: priceHistory,
       images,
       ...(clusterSiblings.length > 0 ? { cluster_siblings: clusterSiblings } : {}),
     });
-
-    return;
   } catch (error) {
-    console.error('Error fetching listing:', error);
-    return res.status(500).json({
-      error: {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code,
-      },
-    });
+    return sendError(res, error);
   }
 }

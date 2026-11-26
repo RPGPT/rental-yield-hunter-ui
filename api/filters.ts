@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from './_types';
 import { neon } from '@neondatabase/serverless';
+import { sendError } from './_lib/errors.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
@@ -19,7 +21,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       neighborhoodsByCity[row['city']].push(row['neighborhood']);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       cities: cities.map((r: Record<string, unknown>) => r['city']),
       typologies: typologies.map((r: Record<string, unknown>) => r['typology']),
       property_types: propertyTypes.map((r: Record<string, unknown>) => r['property_type']),
@@ -27,12 +29,6 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       sources: (sources ?? []).map((r: Record<string, unknown>) => r['source']),
     });
   } catch (error) {
-    console.error('Error fetching filters:', error);
-    res.status(500).json({
-      error: {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code,
-      },
-    });
+    return sendError(res, error);
   }
 }

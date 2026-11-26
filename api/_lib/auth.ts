@@ -10,6 +10,12 @@ export interface NeonAuthUser {
   role: string | null;
 }
 
+export interface FastAuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
 interface JwkKey {
   kty: string;
   crv?: string;
@@ -38,6 +44,35 @@ const JWKS_CACHE_TTL_MS = 60 * 60 * 1000;
 
 function b64urlDecode(s: string): Buffer {
   return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+}
+
+export function extractBearerToken(req: VercelRequest): string | null {
+  const auth = req.headers['authorization'] as string | undefined;
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.substring(7);
+}
+
+/**
+ * Lightweight synchronous JWT payload decode (no network/DB roundtrips).
+ * Used for high-frequency user-scoped reads and toggles (listings, favorites, hidden).
+ */
+export function getFastUserFromRequest(req: VercelRequest): FastAuthUser | null {
+  const token = extractBearerToken(req);
+  if (!token) return null;
+  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
+    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
+  }
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(b64urlDecode(parts[1]).toString('utf8')) as JwtPayload;
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    const id = payload.id ?? payload.sub;
+    if (!id) return null;
+    return { id, email: payload.email ?? '', name: payload.name ?? null };
+  } catch {
+    return null;
+  }
 }
 
 async function fetchJwks(): Promise<void> {
@@ -140,12 +175,10 @@ async function verifyNeonAuthSession(token: string): Promise<NeonAuthUser | null
   }
 }
 
-function extractBearerToken(req: VercelRequest): string | null {
-  const auth = req.headers['authorization'] as string | undefined;
-  if (!auth?.startsWith('Bearer ')) return null;
-  return auth.substring(7);
-}
-
+/**
+ * Full cryptographic JWKS + DB role + session fallback verification.
+ * Used for privileged/mutation endpoints.
+ */
 export async function getUserFromRequest(req: VercelRequest): Promise<NeonAuthUser | null> {
   const token = extractBearerToken(req);
   if (!token) return null;

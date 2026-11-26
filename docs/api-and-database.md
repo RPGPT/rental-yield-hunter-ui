@@ -66,12 +66,22 @@ Used by `api/listings/[id].ts` and `POST /api/listings` (`createListing`):
 3. Queries `SELECT role FROM neon_auth."user" WHERE id = $1 LIMIT 1` because Neon Auth JWTs may carry a generic `role` claim (such as `"authenticated"`) while admin privileges live in `neon_auth."user".role`.
 4. Falls back to `${NEON_AUTH_URL}/get-session` (5s timeout) if JWKS verification fails or no role is found.
 
-### Tier B — Lightweight JWT Payload Decode (Inline in Read/Toggle Handlers)
+### Tier B — Lightweight JWT Payload Decode (`getFastUserFromRequest` in `api/_lib/auth.ts`)
 
 Used by `GET /api/listings`, `api/rental-listings/*`, `api/favorites/index.ts`, and `api/hidden/index.ts`:
 
 1. Supports `dev-token` in non-production.
 2. Base64url-decodes the JWT payload, checks `exp`, and extracts `id ?? sub`, `email`, and `name` with zero network/DB auth roundtrips.
+
+### Shared Backend Modules (`api/_lib/`)
+
+- `auth.ts`: `getUserFromRequest` (Tier A) and `getFastUserFromRequest` (Tier B).
+- `listings-query.ts`: Parameterized SQL builder (`buildListingsQueryPlan` with conditional `COUNT(*)` joins and single-evaluation `PREV_PRICE_SQL` sort expression) + `createManualListing`.
+- `rental-listings-query.ts`: Parameterized SQL builder (`buildRentalListingsQueryPlan`) for rental listings.
+- `portals.ts`: Shared Imovirtual (`buildId` cache + NextData + HTML fallback), ERA, and Casa Sapo live scrapers used by `description.ts` and `snapshot.ts`.
+- `price-history.ts`: `buildPriceHistory` (1-cut `initial_price` reconstruction) and `extractRawImages` shared across `listings/[id].ts` and `rental-listings/[id].ts`.
+- `saved-searches.ts`: Single-pass `COUNT(*) FILTER (...)` alert evaluator and CRUD handler multiplexed onto `/api/hidden?resource=saved-searches`.
+- `audit.ts` & `errors.ts`: Audit log writer and structured `sendError` helper.
 
 ---
 

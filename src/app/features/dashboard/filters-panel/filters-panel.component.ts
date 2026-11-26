@@ -26,6 +26,7 @@ import { FilterOptions } from '../../../core/models/filter.model';
 import { FilterStateService } from '../../../core/services/filter-state.service';
 import { RentalFilterStateService } from '../../../core/services/rental-filter-state.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { boolToSelection, selectionToBool } from '../../../core/services/filter-params.util';
 
 @Component({
   selector: 'app-filters-panel',
@@ -100,76 +101,46 @@ export class FiltersPanelComponent implements OnInit {
   }
 
   get isRentedSelection(): string[] {
-    return this.isBuyMode
-      ? this.boolToSelection((this.buyFilterState as FilterStateService).isRented())
-      : [];
+    return this.isBuyMode ? boolToSelection(this.buyFilterState.isRented()) : [];
   }
   get lifetimeRentSelection(): string[] {
-    return this.isBuyMode
-      ? this.boolToSelection((this.buyFilterState as FilterStateService).lifetimeRent())
-      : [];
+    return this.isBuyMode ? boolToSelection(this.buyFilterState.lifetimeRent()) : [];
   }
   get activeSelection(): string[] {
-    return this.boolToSelection(this.filterState.active());
+    return boolToSelection(this.filterState.active());
   }
 
   get rentPerM2Min(): number | null {
-    return this.mode() === 'rent'
-      ? (this.rentalFilterState as RentalFilterStateService).rentPricePerM2Min()
-      : null;
+    return this.mode() === 'rent' ? this.rentalFilterState.rentPricePerM2Min() : null;
   }
   get rentPerM2Max(): number | null {
-    return this.mode() === 'rent'
-      ? (this.rentalFilterState as RentalFilterStateService).rentPricePerM2Max()
-      : null;
+    return this.mode() === 'rent' ? this.rentalFilterState.rentPricePerM2Max() : null;
   }
   get rentalYieldMin(): number | null {
     return this.isBuyMode ? this.buyFilterState.rentalYieldMin() : null;
   }
 
   ngOnInit(): void {
-    this.priceMinSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.filterState.priceMin.set(v ? Number(v) : null);
+    const bindDebounced = (subject: Subject<string>, apply: (v: string) => void) => {
+      subject.pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef)).subscribe((v) => {
+        apply(v);
         this.resetOffset();
       });
-    this.priceMaxSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.filterState.priceMax.set(v ? Number(v) : null);
-        this.resetOffset();
-      });
-    this.areaMinSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.filterState.areaMin.set(v ? Number(v) : null);
-        this.resetOffset();
-      });
-    this.areaMaxSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.filterState.areaMax.set(v ? Number(v) : null);
-        this.resetOffset();
-      });
-    this.rentPerM2MinSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.rentalFilterState.rentPricePerM2Min.set(v ? Number(v) : null);
-        this.resetOffset();
-      });
-    this.rentPerM2MaxSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.rentalFilterState.rentPricePerM2Max.set(v ? Number(v) : null);
-        this.resetOffset();
-      });
-    this.rentalYieldMinSubject
-      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
-      .subscribe((v) => {
-        this.buyFilterState.rentalYieldMin.set(v ? Number(v) / 100 : null);
-        this.resetOffset();
-      });
+    };
+
+    bindDebounced(this.priceMinSubject, (v) => this.filterState.priceMin.set(v ? Number(v) : null));
+    bindDebounced(this.priceMaxSubject, (v) => this.filterState.priceMax.set(v ? Number(v) : null));
+    bindDebounced(this.areaMinSubject, (v) => this.filterState.areaMin.set(v ? Number(v) : null));
+    bindDebounced(this.areaMaxSubject, (v) => this.filterState.areaMax.set(v ? Number(v) : null));
+    bindDebounced(this.rentPerM2MinSubject, (v) =>
+      this.rentalFilterState.rentPricePerM2Min.set(v ? Number(v) : null),
+    );
+    bindDebounced(this.rentPerM2MaxSubject, (v) =>
+      this.rentalFilterState.rentPricePerM2Max.set(v ? Number(v) : null),
+    );
+    bindDebounced(this.rentalYieldMinSubject, (v) =>
+      this.buyFilterState.rentalYieldMin.set(v ? Number(v) / 100 : null),
+    );
   }
 
   onPriceMinInput(value: string): void {
@@ -227,14 +198,14 @@ export class FiltersPanelComponent implements OnInit {
     this.resetOffset();
   }
 
-  onBoolToggle(signal: WritableSignal<boolean | null>, values: string[]): void {
-    signal.set(this.selectionToBool(values));
+  onBoolToggle(target: WritableSignal<boolean | null>, values: string[]): void {
+    target.set(selectionToBool(values));
     this.resetOffset();
   }
 
   cycleFavorite(): void {
     if (!this.auth.isAuthenticated()) {
-      this.router.navigate(['/login']);
+      void this.router.navigate(['/login']);
       return;
     }
     const current = this.filterState.isFavorite();
@@ -248,10 +219,9 @@ export class FiltersPanelComponent implements OnInit {
 
   cycleHidden(): void {
     if (!this.auth.isAuthenticated()) {
-      this.router.navigate(['/login']);
+      void this.router.navigate(['/login']);
       return;
     }
-    // false (default: hide hidden) → null (show all) → false
     const current = this.buyFilterState.isHidden();
     this.buyFilterState.isHidden.set(current === false ? null : false);
     this.resetOffset();
@@ -267,8 +237,6 @@ export class FiltersPanelComponent implements OnInit {
   }
 
   hiddenIcon(): string {
-    // null = showing all (including hidden) → eye open highlighted
-    // false = hiding hidden listings → eye with slash
     return this.buyFilterState.isHidden() === null ? 'visibility' : 'visibility_off';
   }
 
@@ -290,8 +258,9 @@ export class FiltersPanelComponent implements OnInit {
       this.filterState.priceChange.set('reduced');
       this.filterState.sort.set('price_drop_pct');
       this.filterState.order.set('desc');
-    } else if (current === 'reduced') this.filterState.priceChange.set('increased');
-    else {
+    } else if (current === 'reduced') {
+      this.filterState.priceChange.set('increased');
+    } else {
       this.filterState.priceChange.set(null);
       if (this.filterState.sort() === 'price_drop_pct') {
         this.filterState.sort.set('price');
@@ -314,16 +283,5 @@ export class FiltersPanelComponent implements OnInit {
 
   private resetOffset(): void {
     this.filterState.offset.set(0);
-  }
-
-  private boolToSelection(value: boolean | null): string[] {
-    if (value === true) return ['true'];
-    if (value === false) return ['false'];
-    return [];
-  }
-
-  private selectionToBool(values: string[]): boolean | null {
-    if (values.length === 0 || values.length === 2) return null;
-    return values[0] === 'true';
   }
 }

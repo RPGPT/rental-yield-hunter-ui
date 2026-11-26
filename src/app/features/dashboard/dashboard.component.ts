@@ -52,22 +52,30 @@ export class DashboardComponent implements OnInit {
     effect(() => {
       if (this.mode() !== 'buy') return;
       const queryParams = this.filterState.toQueryParams();
-      this.router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' });
+      void this.router.navigate([], {
+        queryParams,
+        replaceUrl: true,
+        queryParamsHandling: 'replace',
+      });
     });
 
     // Sync rent filter state to URL query params
     effect(() => {
       if (this.mode() !== 'rent') return;
       const queryParams = this.rentalFilterState.toQueryParams();
-      this.router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' });
+      void this.router.navigate([], {
+        queryParams,
+        replaceUrl: true,
+        queryParamsHandling: 'replace',
+      });
     });
 
-    // Fetch buy listings
-    effect(() => {
+    // Fetch buy listings (cancelling stale in-flight requests on rapid state changes)
+    effect((onCleanup) => {
       if (this.mode() !== 'buy') return;
       const state = this.filterState.state();
       this.listingsLoading.set(true);
-      this.api.getListings(state).subscribe({
+      const sub = this.api.getListings(state).subscribe({
         next: (res) => {
           this.listings.set(res.data);
           this.total.set(res.total);
@@ -75,14 +83,15 @@ export class DashboardComponent implements OnInit {
         },
         error: () => this.listingsLoading.set(false),
       });
+      onCleanup(() => sub.unsubscribe());
     });
 
-    // Fetch rental listings
-    effect(() => {
+    // Fetch rental listings (cancelling stale in-flight requests on rapid state changes)
+    effect((onCleanup) => {
       if (this.mode() !== 'rent') return;
       const state = this.rentalFilterState.state();
       this.listingsLoading.set(true);
-      this.api.getRentalListings(state).subscribe({
+      const sub = this.api.getRentalListings(state).subscribe({
         next: (res) => {
           this.rentalListings.set(res.data);
           this.total.set(res.total);
@@ -90,6 +99,7 @@ export class DashboardComponent implements OnInit {
         },
         error: () => this.listingsLoading.set(false),
       });
+      onCleanup(() => sub.unsubscribe());
     });
   }
 

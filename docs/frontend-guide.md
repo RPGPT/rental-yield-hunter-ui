@@ -29,8 +29,8 @@ Defined in `src/app/app.routes.ts` (`withComponentInputBinding()` enabled):
 | Route                   | Component                 | Loading | Guard       | Notes                                        |
 | ----------------------- | ------------------------- | ------- | ----------- | -------------------------------------------- |
 | `/`                     | —                         | —       | —           | Redirects to `/buy`                          |
-| `/buy`                  | `DashboardComponent`      | Eager   | `authGuard` | `data: { mode: 'buy' }`                      |
-| `/rent`                 | `DashboardComponent`      | Eager   | `authGuard` | `data: { mode: 'rent' }`                     |
+| `/buy`                  | `DashboardComponent`      | Lazy    | `authGuard` | `data: { mode: 'buy' }`                      |
+| `/rent`                 | `DashboardComponent`      | Lazy    | `authGuard` | `data: { mode: 'rent' }`                     |
 | `/listing/:id`          | `DetailComponent`         | Lazy    | `authGuard` | Buy listing detail, gallery, chart, siblings |
 | `/listing/:id/snapshot` | `SnapshotViewerComponent` | Lazy    | `authGuard` | Iframe viewer (`source` omitted)             |
 | `/rental/:id`           | `RentalDetailComponent`   | Lazy    | `authGuard` | Rental listing detail, gallery, chart        |
@@ -61,9 +61,9 @@ Defined in `src/app/app.routes.ts` (`withComponentInputBinding()` enabled):
 
 Buy and Rent filter states live in singleton root services (`FilterStateService` and `RentalFilterStateService`) so filters persist seamlessly when navigating from `/buy` -> `/listing/:id` -> back to `/buy`:
 
-1. **Hydration**: On `DashboardComponent` construction, `route.snapshot.queryParams` is passed to `initFromParams(params)`. Note that `initFromParams` merges present URL params onto the singleton service without resetting omitted signals (except `isHidden` and `deleted`), so filter state persists across in-app route transitions unless `.reset()` is called first (as `SavedSearchesComponent.apply()` does in same-mode switches).
+1. **Hydration**: On `DashboardComponent` construction, `route.snapshot.queryParams` is passed to `initFromParams(params)` (using shared parsers in `src/app/core/services/filter-params.util.ts`). Note that `initFromParams` merges present URL params onto the singleton service without resetting omitted signals (except `isHidden` and `deleted`), while `SavedSearchesComponent.apply()` always calls `.reset()` on the target state before `initFromParams()` (even across `/buy` <-> `/rent` switches).
 2. **URL Sync**: A signal `effect()` watches `toQueryParams()` and calls `router.navigate([], { queryParams, replaceUrl: true, queryParamsHandling: 'replace' })`. Default values (`sort='price'`, `order='asc'`, `limit=50`, `active=true`, `is_hidden=false`) are omitted from the URL to keep links clean.
-3. **Data Fetch**: Another `effect()` watches `filterState.state()` (which includes `offset`), calling `api.getListings(state)` or `api.getRentalListings(state)`.
+3. **Data Fetch & Stale Cancellation**: Another `effect((onCleanup) => ...)` watches `filterState.state()` (which includes `offset`), calling `api.getListings(state)` or `api.getRentalListings(state)` and registering `onCleanup(() => sub.unsubscribe())` so rapid filter/page changes immediately cancel stale in-flight HTTP requests.
 4. **Pagination Reset**: Every filter mutation in `FiltersPanelComponent` resets `offset.set(0)` so users are never stranded on an out-of-range page.
 5. **Price-Change Cycle Auto-Sort**: Clicking the price-change icon (`cyclePriceChange()`) cycles `null` -> `'reduced'` (auto-setting `sort = 'price_drop_pct'`, `order = 'desc'`) -> `'increased'` -> `null` (resetting `sort = 'price'`, `order = 'asc'` if still on `price_drop_pct`). In Rent mode, `/api/rental-listings` falls back to `sort = 'price'` since `price_drop_pct` is only in Buy's `allowedSorts`.
 
@@ -86,8 +86,12 @@ Be careful with two parameters whose URL representation differs from the API que
 - **Optimistic Table Overrides (`ListingsTableComponent`)**:
   - Toggling favourite or hidden status updates `favoriteOverrides` / `hiddenOverrides` signals immediately without refetching the entire page, reverting on HTTP error.
   - Unfavouriting while `isFavorite() === true`, hiding while `isHidden() !== true`, or restoring a deleted listing in Trash view adds the row ID to `hiddenFromFilter` so it disappears smoothly from `visibleListings()`.
-- **Double-Buffered Gallery Crossfade (`DetailComponent` & `RentalDetailComponent`)**:
-  - Uses two stacked `<img>` slots (`slotA`, `slotB`) and flips `activeSlot` inside `requestAnimationFrame()` so image transitions crossfade without flicker. Supports `ArrowLeft` / `ArrowRight` keyboard navigation (ignoring focused form inputs).
+- **Reusable Gallery & Description Modules**:
+  - `ImageGalleryComponent` (`src/app/shared/components/image-gallery/`) encapsulates the double-buffered crossfade (`slotA`, `slotB`, `requestAnimationFrame`), thumbnail strip, counter, and `ArrowLeft`/`ArrowRight` keyboard navigation for both `DetailComponent` and `RentalDetailComponent`.
+  - `DescriptionCardComponent` (`src/app/shared/components/description-card/`) renders sanitized portal HTML, loading state, or plain-text fallback.
+  - Pure domain formatting, yield math, tooltips, and portal URL helpers live in `src/app/shared/utils/listing.util.ts`.
+- **Reactive Detail Route Transitions**:
+  - Both `DetailComponent` and `RentalDetailComponent` subscribe to `route.paramMap` (with `Subscription` cleanup on ID changes) so clicking `cluster_siblings` links (`/listing/:sibId`) reloads the component cleanly in place.
 - **Caching in `ApiService`**:
   - `getFilterOptions()` and `getRentalFilterOptions()` are cached for the session lifetime with `shareReplay({ bufferSize: 1, refCount: true })`.
   - `getStats()` uses a 30-second TTL cache (`CACHE_DURATION = 30_000`).
@@ -106,19 +110,19 @@ Be careful with two parameters whose URL representation differs from the API que
   - `App` (`src/app/app.ts`) toggles `.dark-theme` on `document.documentElement` and persists `'dark' | 'light'` in `localStorage.getItem('theme')`.
   - TypeScript chart colours live in `src/styles/chart-colors.ts` (`CHART_COLORS`, using `#1565C0` blue for Chart.js line/fill datasets).
 - **Component Style Budget**:
-  - `angular.json` enforces **5 kB warning / 8 kB error** per component stylesheet (`anyComponentStyle`).
-  - **Watch out**: `detail.component.scss` is currently **~7.7 kB** (nearly at the 8 kB build-breaking ceiling) and `rental-detail.component.scss` is **~5.3 kB** (above warning threshold). Extract subcomponents or move shared rules to `src/styles.scss` instead of growing `detail.component.scss`.
+  - `angular.json` enforces **5 kB warning / 8 kB error** per component stylesheet (`anyComponentStyle`). Keep shared subviews (such as `ImageGalleryComponent` and `DescriptionCardComponent`) in dedicated components so detail stylesheets remain well below the 5 kB warning threshold.
 
 ---
 
 ## 7. Testing Guide (Vitest)
 
-Configured in `vitest.config.ts` with **two isolated projects** under one test runner (`pnpm test`):
+Configured in `vitest.config.ts` with **two isolated projects** under one test runner (`pnpm test`), covering both unit specs and **real-data integration flows** against Neon Postgres (auto-skipped via `describe.skipIf` if `DATABASE_URL` is absent):
 
 1. **`angular` project (`src/**/\*.spec.ts`)\*\*:
    - Runs in `jsdom` via `@analogjs/vite-plugin-angular` and `src/test-setup.ts`.
-   - Uses `TestBed` and `ng-mocks` where helpful.
-   - Because change detection is zoneless, call `fixture.detectChanges()` (or `await fixture.whenStable()`) after updating signals in specs.
+   - Unit tests use `TestBed` and `ng-mocks`; call `fixture.detectChanges()` (or `TestBed.flushEffects()`) after updating signals.
+   - **Real-Data UI Flows (`src/app/flows/app-flows.real-data.spec.ts`)**: Mounts real routes, components, `FilterStateService` / `RentalFilterStateService`, `ApiService`, and HTTP interceptors over an in-process `HttpBackend` bridge wired directly to the `api/` handlers + Neon Postgres using an ephemeral user token cleaned up in `afterAll`.
 2. **`api` project (`api/**/\*.spec.ts`)\*\*:
    - Runs in `node` environment.
-   - Mocks `@neondatabase/serverless` (`vi.mock('@neondatabase/serverless', ...)`) and uses `MockRes` from `api/_test/mock-res.ts` (`res._status`, `res._body`) to assert HTTP status codes and JSON payloads directly without spinning up an HTTP socket.
+   - Unit tests mock `@neondatabase/serverless` and assert responses with `MockRes` (`api/_test/mock-res.ts`).
+   - **Real-Data API Flows (`api/_test/real-data-flows.spec.ts`)**: Exercises all 7 major buy, rent, cluster, stats, favourite/hidden, saved-search, and admin manual-listing/trash flows directly against Neon Postgres with `afterAll` cleanup.

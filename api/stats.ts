@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from './_types';
 import { neon } from '@neondatabase/serverless';
+import { sendError } from './_lib/errors.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
@@ -25,14 +27,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       WHERE COALESCE(is_deleted, false) = false
     `;
 
-    res.status(200).json(result[0]);
+    return res.status(200).json(result[0]);
   } catch (error) {
-    console.error('Error fetching stats:', error);
-    res.status(500).json({
-      error: {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code,
-      },
-    });
+    return sendError(res, error);
   }
 }

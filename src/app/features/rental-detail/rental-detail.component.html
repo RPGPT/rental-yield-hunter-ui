@@ -10,7 +10,7 @@
       </a>
       <div class="title-with-tags">
         <h1 class="detail-title">{{ l.title }}</h1>
-        @if (l.price_history.length > 0) {
+        @if (l.price_history.length > 0 || (l.price_drop_amount ?? 0) !== 0) {
           @if (priceWentDown()) {
             <button
               class="price-tag price-tag-down"
@@ -93,7 +93,6 @@
     </div>
 
     <div class="detail-grid">
-      <!-- Left: Metadata -->
       <div class="detail-meta">
         <mat-card>
           <mat-card-header>
@@ -104,6 +103,16 @@
               <mat-list-item>
                 <span matListItemTitle>Monthly Rent</span>
                 <span matListItemLine>{{ l.price | eur }}</span>
+              </mat-list-item>
+              @if (l.initial_price != null && l.initial_price !== l.price) {
+                <mat-list-item>
+                  <span matListItemTitle>Initial Rent</span>
+                  <span matListItemLine>{{ l.initial_price | eur }}</span>
+                </mat-list-item>
+              }
+              <mat-list-item>
+                <span matListItemTitle>Source</span>
+                <span matListItemLine>{{ sourceLabel(l.source) }}</span>
               </mat-list-item>
               <mat-list-item>
                 <span matListItemTitle>Area</span>
@@ -159,86 +168,14 @@
         </mat-card>
       </div>
 
-      <!-- Right: Gallery + Description + Price History -->
       <div class="detail-content">
-        @if (l.images.length) {
-          <mat-card class="gallery-card">
-            <mat-card-content>
-              <div class="gallery-main">
-                <img
-                  [src]="slotA()"
-                  alt="Listing image"
-                  class="gallery-main-img"
-                  [class.gallery-img--active]="activeSlot() === 'a'"
-                />
-                <img
-                  [src]="slotB()"
-                  alt="Listing image"
-                  class="gallery-main-img"
-                  [class.gallery-img--active]="activeSlot() === 'b'"
-                />
-                @if (l.images.length > 1) {
-                  <button
-                    class="gallery-nav gallery-prev"
-                    (click)="navigateImage(-1)"
-                    aria-label="Previous image"
-                  >
-                    <mat-icon>chevron_left</mat-icon>
-                  </button>
-                  <button
-                    class="gallery-nav gallery-next"
-                    (click)="navigateImage(1)"
-                    aria-label="Next image"
-                  >
-                    <mat-icon>chevron_right</mat-icon>
-                  </button>
-                  <span class="gallery-counter">
-                    {{ currentImageIndex(l.images) + 1 }} / {{ l.images.length }}
-                    @if (currentImageIndex(l.images) === l.images.length - 1) {
-                      <span class="gallery-last-tag">Last</span>
-                    }
-                  </span>
-                }
-              </div>
-              @if (l.images.length > 1) {
-                <div class="gallery-thumbs">
-                  @for (img of l.images; track img.large) {
-                    <button
-                      class="thumb-btn"
-                      [class.thumb-active]="currentImage() === img.large"
-                      (click)="selectImage(img.large)"
-                    >
-                      <img [src]="img.medium" alt="Thumbnail" class="thumb-img" />
-                    </button>
-                  }
-                </div>
-              }
-            </mat-card-content>
-          </mat-card>
-        }
+        <app-image-gallery [images]="l.images" [alt]="l.title" />
 
-        @if (richDescription(); as html) {
-          <mat-card>
-            <mat-card-header><mat-card-title>Description</mat-card-title></mat-card-header>
-            <mat-card-content>
-              <div class="description-text" [innerHTML]="html"></div>
-            </mat-card-content>
-          </mat-card>
-        } @else if (descriptionLoading()) {
-          <mat-card>
-            <mat-card-content class="description-loading">
-              <mat-spinner diameter="24"></mat-spinner>
-              <span>Loading description…</span>
-            </mat-card-content>
-          </mat-card>
-        } @else if (l.description) {
-          <mat-card>
-            <mat-card-header><mat-card-title>Description</mat-card-title></mat-card-header>
-            <mat-card-content>
-              <p class="description-text">{{ l.description }}</p>
-            </mat-card-content>
-          </mat-card>
-        }
+        <app-description-card
+          [richDescription]="richDescription()"
+          [plainDescription]="l.description"
+          [loading]="descriptionLoading()"
+        />
 
         <mat-card #priceChartCard>
           <mat-card-content>

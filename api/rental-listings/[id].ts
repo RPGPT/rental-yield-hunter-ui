@@ -1,33 +1,8 @@
 import type { VercelRequest, VercelResponse } from '../_types';
 import { neon } from '@neondatabase/serverless';
-
-interface NeonAuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-}
-
-function getUserFromRequest(req: VercelRequest): NeonAuthUser | null {
-  const auth = req.headers['authorization'] as string | undefined;
-  if (!auth?.startsWith('Bearer ')) return null;
-  const token = auth.substring(7);
-  if (token === 'dev-token' && process.env['NODE_ENV'] !== 'production') {
-    return { id: 'dev-user', email: 'dev@local', name: 'Dev User' };
-  }
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(
-      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'),
-    ) as { id?: string; sub?: string; email?: string; name?: string; exp?: number };
-    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-    const id = payload.id ?? payload.sub;
-    if (!id) return null;
-    return { id, email: payload.email ?? '', name: payload.name ?? null };
-  } catch {
-    return null;
-  }
-}
+import { getFastUserFromRequest } from '../_lib/auth.js';
+import { sendError } from '../_lib/errors.js';
+import { buildPriceHistory, extractRawImages, type RawPricePoint } from '../_lib/price-history.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
@@ -37,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const user = getUserFromRequest(req);
+    const user = getFastUserFromRequest(req);
     const userId = user?.id ?? null;
 
     const isFavoriteSelect = userId
@@ -59,48 +34,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       listingParams,
     )) as Record<string, unknown>[];
 
-    if (listingResult.length === 0)
+    if (listingResult.length === 0) {
       return res.status(404).json({ error: 'Rental listing not found' });
+    }
 
     const [rawPriceHistory, rawDataResult] = (await Promise.all([
       sql`SELECT price, previous_price, captured_at FROM rental_listing_price_history WHERE listing_id = ${id} ORDER BY captured_at ASC, id ASC`,
       sql`SELECT raw_json->'images' AS images FROM rental_raw_data WHERE listing_id = ${id} LIMIT 1`,
-    ])) as [
-      Array<{ price: number; previous_price?: number | null; captured_at: string }>,
-      Array<Record<string, unknown>>,
-    ];
+    ])) as [RawPricePoint[], Array<Record<string, unknown>>];
 
     const row = listingResult[0];
-    const priceHistory: Array<{ price: number; captured_at: string }> = [];
-    const initPrice =
-      typeof row['initial_price'] === 'number'
-        ? row['initial_price']
-        : (rawPriceHistory[0]?.previous_price ?? null);
-    if (
-      rawPriceHistory.length > 0 &&
-      initPrice != null &&
-      initPrice !== rawPriceHistory[0].price &&
-      row['first_seen']
-    ) {
-      priceHistory.push({ price: initPrice, captured_at: String(row['first_seen']) });
-    }
-    for (const pt of rawPriceHistory) {
-      priceHistory.push({ price: pt.price, captured_at: pt.captured_at });
-    }
+    const priceHistory = buildPriceHistory(row, rawPriceHistory);
+    const images = extractRawImages(rawDataResult, false);
 
-    const images: Array<{ large: string; medium: string }> =
-      rawDataResult.length > 0 && Array.isArray(rawDataResult[0]['images'])
-        ? rawDataResult[0]['images']
-        : [];
-
-    return res.status(200).json({ ...listingResult[0], price_history: priceHistory, images });
+    return res.status(200).json({ ...row, price_history: priceHistory, images });
   } catch (error) {
-    console.error('[rental-listings/id] Error:', error);
-    return res.status(500).json({
-      error: {
-        message: error instanceof Error ? error.message : String(error),
-        code: (error as { code?: string }).code,
-      },
-    });
+    return sendError(res, error);
   }
 }

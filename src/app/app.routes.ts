@@ -1,11 +1,22 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { DashboardComponent } from './features/dashboard/dashboard.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'buy' },
-  { path: 'buy', component: DashboardComponent, canMatch: [authGuard], data: { mode: 'buy' } },
-  { path: 'rent', component: DashboardComponent, canMatch: [authGuard], data: { mode: 'rent' } },
+  {
+    path: 'buy',
+    canMatch: [authGuard],
+    data: { mode: 'buy' },
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+  },
+  {
+    path: 'rent',
+    canMatch: [authGuard],
+    data: { mode: 'rent' },
+    loadComponent: () =>
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+  },
   {
     path: 'listing/:id',
     canMatch: [authGuard],
