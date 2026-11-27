@@ -16,6 +16,7 @@ body {
 
 .dark-theme body {
   background-color: $color-dark-bg;
+  color: $color-dark-text;
 }
 
 ::-webkit-scrollbar {
@@ -51,6 +52,10 @@ body {
 .dark-theme {
   .mat-mdc-card-title {
     color: $color-white;
+  }
+
+  .mat-mdc-card-subtitle {
+    color: $color-dark-label;
   }
 
   .mat-mdc-list-item-title,

@@ -21,7 +21,7 @@ describe('GET /api/stats?view=analytics', () => {
     process.env['DATABASE_URL'] = 'postgresql://mock';
   });
 
-  it('returns structured analytics payload with outlier metadata, KPIs, evolution, and breakdowns', async () => {
+  it('returns structured monthly analytics payload with outlier metadata, KPIs, and breakdowns', async () => {
     queryResponses = [
       // 1. meta
       [
@@ -30,7 +30,7 @@ describe('GET /api/stats?view=analytics', () => {
           buy_clean: 980,
           rent_total: 400,
           rent_clean: 390,
-          date_from: '2026-05-02',
+          date_from: '2026-05-12',
           date_to: '2026-11-26',
         },
       ],
@@ -53,12 +53,12 @@ describe('GET /api/stats?view=analytics', () => {
       ],
       // 4. rent kpis
       [{ active_rent_count: 150, median_rent_price: 1200, median_rent_pm2: 18.5 }],
-      // 5. buy weekly
-      [{ week: '2026-11-16', buy_new_count: 80, buy_median_pm2: 4450, buy_median_price: 285000 }],
-      // 6. rent weekly
-      [{ week: '2026-11-16', rent_new_count: 25, rent_median_pm2: 18.2, rent_median_price: 1180 }],
-      // 7. price history weekly
-      [{ week: '2026-11-16', price_drops_count: 14, price_increases_count: 2 }],
+      // 5. buy monthly
+      [{ month: '2026-11', buy_new_count: 80, buy_median_pm2: 4450, buy_median_price: 285000 }],
+      // 6. rent monthly
+      [{ month: '2026-11', rent_new_count: 25, rent_median_pm2: 18.2, rent_median_price: 1180 }],
+      // 7. price history monthly
+      [{ month: '2026-11', price_drops_count: 14, price_increases_count: 2 }],
       // 8. city buy
       [
         {
@@ -87,18 +87,6 @@ describe('GET /api/stats?view=analytics', () => {
       ],
       // 11. typo rent
       [{ typology: 'T2', rent_count: 60, median_rent_price: 1300, median_rent_pm2: 17.5 }],
-      // 12. neighborhoods
-      [
-        {
-          city: 'Porto',
-          neighborhood: 'Paranhos',
-          buy_count: 45,
-          median_buy_price: 270000,
-          median_buy_pm2: 4300,
-          median_est_rent: 1250,
-          median_yield: 0.056,
-        },
-      ],
     ];
 
     const res = new MockRes();
@@ -117,16 +105,13 @@ describe('GET /api/stats?view=analytics', () => {
     expect(body.kpis.price_drop_share_pct).toBe(10);
     expect(body.evolution).toHaveLength(1);
     expect(body.evolution[0]).toMatchObject({
-      week: '2026-11-16',
+      month: '2026-11',
       buy_new_count: 80,
       rent_new_count: 25,
       price_drops_count: 14,
     });
     expect(body.by_city[0]).toMatchObject({ city: 'Porto', median_rent_price: 1250 });
     expect(body.by_typology[0]).toMatchObject({ typology: 'T2', median_rent_pm2: 17.5 });
-    expect(body.top_neighborhoods[0]).toMatchObject({
-      neighborhood: 'Paranhos',
-      median_yield: 0.056,
-    });
+    expect(body.top_neighborhoods).toBeUndefined();
   });
 });

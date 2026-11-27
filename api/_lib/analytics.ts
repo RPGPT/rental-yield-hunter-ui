@@ -25,6 +25,13 @@ export const RENT_BOUNDS = {
   maxPricePerM2: 50,
 } as const;
 
+/**
+ * Initial scraper bootstrap/backfill ran May 3–11, 2026 (~10k buy + ~2.1k rent
+ * listings ingested at once). Exclude that window from monthly evolution so
+ * supply and price-cut trends reflect steady-state market activity.
+ */
+export const EVOLUTION_START_DATE = '2026-05-12';
+
 const BUY_CLEAN_SQL = `
   COALESCE(l.is_deleted, false) = false
   AND l.area BETWEEN ${BUY_BOUNDS.minArea} AND ${BUY_BOUNDS.maxArea}
@@ -98,14 +105,13 @@ export async function handleAnalytics(
     citiesList,
     buyKpiRows,
     rentKpiRows,
-    buyWeeklyRows,
-    rentWeeklyRows,
-    priceHistoryWeeklyRows,
+    buyMonthlyRows,
+    rentMonthlyRows,
+    priceHistoryMonthlyRows,
     cityBuyRows,
     cityRentRows,
     typoBuyRows,
     typoRentRows,
-    neighborhoodRows,
   ] = await Promise.all([
     sql.query(
       `SELECT
@@ -113,7 +119,7 @@ export async function handleAnalytics(
         (SELECT count(*)::int FROM listings l WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}) AS buy_clean,
         (SELECT count(*)::int FROM rental_listings r WHERE 1=1 ${rentFilter.sql}) AS rent_total,
         (SELECT count(*)::int FROM rental_listings r WHERE ${RENT_CLEAN_SQL} ${rentFilter.sql}) AS rent_clean,
-        (SELECT min(l.first_seen)::date::text FROM listings l WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}) AS date_from,
+        (SELECT min(l.first_seen)::date::text FROM listings l WHERE l.first_seen >= '${EVOLUTION_START_DATE}' AND ${BUY_CLEAN_SQL} ${buyFilter.sql}) AS date_from,
         (SELECT max(l.last_seen)::date::text FROM listings l WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}) AS date_to`,
       buyFilter.params,
     ),
@@ -151,36 +157,48 @@ export async function handleAnalytics(
     ),
     sql.query(
       `SELECT
-        date_trunc('week', l.first_seen)::date::text AS week,
+        to_char(date_trunc('month', l.first_seen), 'YYYY-MM') AS month,
         count(*)::int AS buy_new_count,
         round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price_per_m2))::int AS buy_median_pm2,
         round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price))::int AS buy_median_price
       FROM listings l
-      WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}
+      WHERE l.first_seen >= '${EVOLUTION_START_DATE}' AND ${BUY_CLEAN_SQL} ${buyFilter.sql}
       GROUP BY 1
       ORDER BY 1 ASC`,
       buyFilter.params,
     ),
     sql.query(
       `SELECT
-        date_trunc('week', r.first_seen)::date::text AS week,
+        to_char(date_trunc('month', r.first_seen), 'YYYY-MM') AS month,
         count(*)::int AS rent_new_count,
         round((percentile_cont(0.5) WITHIN GROUP (ORDER BY r.rent_price_per_m2))::numeric, 2)::float AS rent_median_pm2,
         round(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.price))::int AS rent_median_price
       FROM rental_listings r
-      WHERE ${RENT_CLEAN_SQL} ${rentFilter.sql}
+      WHERE r.first_seen >= '${EVOLUTION_START_DATE}' AND ${RENT_CLEAN_SQL} ${rentFilter.sql}
       GROUP BY 1
       ORDER BY 1 ASC`,
       rentFilter.params,
     ),
     sql.query(
-      `SELECT
-        date_trunc('week', lph.captured_at)::date::text AS week,
-        count(*) FILTER (WHERE lph.previous_price IS NOT NULL AND lph.price < lph.previous_price)::int AS price_drops_count,
-        count(*) FILTER (WHERE lph.previous_price IS NOT NULL AND lph.price > lph.previous_price)::int AS price_increases_count
-      FROM listing_price_history lph
-      JOIN listings l ON l.id = lph.listing_id
-      WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}
+      `WITH ordered AS (
+        SELECT
+          lph.listing_id,
+          lph.captured_at,
+          lph.price,
+          COALESCE(
+            lph.previous_price,
+            LAG(lph.price) OVER (PARTITION BY lph.listing_id ORDER BY lph.captured_at, lph.id)
+          ) AS prev_price
+        FROM listing_price_history lph
+        JOIN listings l ON l.id = lph.listing_id
+        WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}
+      )
+      SELECT
+        to_char(date_trunc('month', captured_at), 'YYYY-MM') AS month,
+        count(*) FILTER (WHERE prev_price IS NOT NULL AND price < prev_price)::int AS price_drops_count,
+        count(*) FILTER (WHERE prev_price IS NOT NULL AND price > prev_price)::int AS price_increases_count
+      FROM ordered
+      WHERE captured_at >= '${EVOLUTION_START_DATE}'
       GROUP BY 1
       ORDER BY 1 ASC`,
       buyFilter.params,
@@ -199,7 +217,6 @@ export async function handleAnalytics(
       LEFT JOIN rental_estimates re ON re.listing_id = l.id
       WHERE l.active = true AND l.city IS NOT NULL AND ${BUY_CLEAN_SQL} ${cityOnlyBuyFilter.sql}
       GROUP BY l.city
-      HAVING count(*) >= 5
       ORDER BY buy_count DESC`,
       cityOnlyBuyFilter.params,
     ),
@@ -243,25 +260,6 @@ export async function handleAnalytics(
       ORDER BY 1 ASC`,
       typoOnlyRentFilter.params,
     ),
-    sql.query(
-      `SELECT
-        l.city,
-        l.neighborhood,
-        count(*)::int AS buy_count,
-        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price))::int AS median_buy_price,
-        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price_per_m2))::int AS median_buy_pm2,
-        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY re.estimated_rent))::int AS median_est_rent,
-        round((percentile_cont(0.5) WITHIN GROUP (ORDER BY re.rental_yield))::numeric, 4)::float AS median_yield
-      FROM listings l
-      LEFT JOIN rental_estimates re ON re.listing_id = l.id
-      WHERE l.active = true AND l.city IS NOT NULL AND l.neighborhood IS NOT NULL
-        AND ${BUY_CLEAN_SQL} ${buyFilter.sql}
-      GROUP BY l.city, l.neighborhood
-      HAVING count(*) >= 10
-      ORDER BY median_yield DESC NULLS LAST, buy_count DESC
-      LIMIT 20`,
-      buyFilter.params,
-    ),
   ]);
 
   const meta = (metaRows as Record<string, unknown>[])[0] ?? {};
@@ -275,11 +273,11 @@ export async function handleAnalytics(
   const activeBuyCount = Number(buyKpi['active_buy_count'] ?? 0);
   const priceDropCount = Number(buyKpi['price_drop_count'] ?? 0);
 
-  // Merge weekly series across buy, rent, and price history by ISO week
-  const weekMap = new Map<
+  // Merge monthly series across buy, rent, and price history by YYYY-MM
+  const monthMap = new Map<
     string,
     {
-      week: string;
+      month: string;
       buy_new_count: number;
       buy_median_pm2: number | null;
       buy_median_price: number | null;
@@ -291,11 +289,11 @@ export async function handleAnalytics(
     }
   >();
 
-  const getWeek = (week: string) => {
-    let entry = weekMap.get(week);
+  const getMonth = (month: string) => {
+    let entry = monthMap.get(month);
     if (!entry) {
       entry = {
-        week,
+        month,
         buy_new_count: 0,
         buy_median_pm2: null,
         buy_median_price: null,
@@ -305,32 +303,32 @@ export async function handleAnalytics(
         price_drops_count: 0,
         price_increases_count: 0,
       };
-      weekMap.set(week, entry);
+      monthMap.set(month, entry);
     }
     return entry;
   };
 
-  for (const row of buyWeeklyRows as Record<string, unknown>[]) {
-    const entry = getWeek(String(row['week']));
+  for (const row of buyMonthlyRows as Record<string, unknown>[]) {
+    const entry = getMonth(String(row['month']));
     entry.buy_new_count = Number(row['buy_new_count'] ?? 0);
     entry.buy_median_pm2 = row['buy_median_pm2'] != null ? Number(row['buy_median_pm2']) : null;
     entry.buy_median_price =
       row['buy_median_price'] != null ? Number(row['buy_median_price']) : null;
   }
-  for (const row of rentWeeklyRows as Record<string, unknown>[]) {
-    const entry = getWeek(String(row['week']));
+  for (const row of rentMonthlyRows as Record<string, unknown>[]) {
+    const entry = getMonth(String(row['month']));
     entry.rent_new_count = Number(row['rent_new_count'] ?? 0);
     entry.rent_median_pm2 = row['rent_median_pm2'] != null ? Number(row['rent_median_pm2']) : null;
     entry.rent_median_price =
       row['rent_median_price'] != null ? Number(row['rent_median_price']) : null;
   }
-  for (const row of priceHistoryWeeklyRows as Record<string, unknown>[]) {
-    const entry = getWeek(String(row['week']));
+  for (const row of priceHistoryMonthlyRows as Record<string, unknown>[]) {
+    const entry = getMonth(String(row['month']));
     entry.price_drops_count = Number(row['price_drops_count'] ?? 0);
     entry.price_increases_count = Number(row['price_increases_count'] ?? 0);
   }
 
-  const evolution = [...weekMap.values()].sort((a, b) => a.week.localeCompare(b.week));
+  const evolution = [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month));
 
   const cityRentMap = new Map<string, Record<string, unknown>>();
   for (const row of cityRentRows as Record<string, unknown>[]) {
@@ -372,16 +370,6 @@ export async function handleAnalytics(
       median_yield: row['median_yield'] != null ? Number(row['median_yield']) : null,
     };
   });
-
-  const topNeighborhoods = (neighborhoodRows as Record<string, unknown>[]).map((row) => ({
-    city: String(row['city']),
-    neighborhood: String(row['neighborhood']),
-    buy_count: Number(row['buy_count'] ?? 0),
-    median_buy_price: Number(row['median_buy_price'] ?? 0),
-    median_buy_pm2: Number(row['median_buy_pm2'] ?? 0),
-    median_est_rent: row['median_est_rent'] != null ? Number(row['median_est_rent']) : null,
-    median_yield: row['median_yield'] != null ? Number(row['median_yield']) : null,
-  }));
 
   return res.status(200).json({
     meta: {
@@ -426,6 +414,5 @@ export async function handleAnalytics(
     evolution,
     by_city: byCity,
     by_typology: byTypology,
-    top_neighborhoods: topNeighborhoods,
   });
 }

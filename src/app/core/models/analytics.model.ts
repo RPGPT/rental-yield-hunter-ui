@@ -37,8 +37,8 @@ export interface AnalyticsKpis {
   median_days_on_market: number | null;
 }
 
-export interface AnalyticsWeekPoint {
-  week: string;
+export interface AnalyticsMonthPoint {
+  month: string;
   buy_new_count: number;
   buy_median_pm2: number | null;
   buy_median_price: number | null;
@@ -75,16 +75,6 @@ export interface AnalyticsTypologyRow {
   median_yield: number | null;
 }
 
-export interface AnalyticsNeighborhoodRow {
-  city: string;
-  neighborhood: string;
-  buy_count: number;
-  median_buy_price: number;
-  median_buy_pm2: number;
-  median_est_rent: number | null;
-  median_yield: number | null;
-}
-
 export interface AnalyticsResponse {
   meta: {
     cities: string[];
@@ -95,8 +85,7 @@ export interface AnalyticsResponse {
     outliers: AnalyticsOutliers;
   };
   kpis: AnalyticsKpis;
-  evolution: AnalyticsWeekPoint[];
+  evolution: AnalyticsMonthPoint[];
   by_city: AnalyticsCityRow[];
   by_typology: AnalyticsTypologyRow[];
-  top_neighborhoods: AnalyticsNeighborhoodRow[];
 }

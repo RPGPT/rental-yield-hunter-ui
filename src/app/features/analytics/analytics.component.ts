@@ -1,6 +1,7 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  DestroyRef,
   inject,
   signal,
   computed,
@@ -30,7 +31,7 @@ import {
   Filler,
 } from 'chart.js';
 import { ApiService } from '../../core/services/api.service';
-import { AnalyticsNeighborhoodRow, AnalyticsResponse } from '../../core/models/analytics.model';
+import { AnalyticsResponse } from '../../core/models/analytics.model';
 import { EurPipe } from '../../shared/pipes/eur.pipe';
 import { CHART_COLORS } from '../../../styles/chart-colors';
 
@@ -46,8 +47,6 @@ Chart.register(
   Legend,
   Filler,
 );
-
-type NeighborhoodSortKey = 'median_yield' | 'median_buy_pm2' | 'median_buy_price' | 'buy_count';
 
 @Component({
   selector: 'app-analytics',
@@ -70,15 +69,29 @@ type NeighborhoodSortKey = 'median_yield' | 'median_buy_pm2' | 'median_buy_price
 export class AnalyticsComponent {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   selectedCity = signal<string>('');
   selectedTypology = signal<string>('');
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
   data = signal<AnalyticsResponse | null>(null);
-  neighborhoodSort = signal<NeighborhoodSortKey>('median_yield');
+  isDark = signal<boolean>(
+    typeof document !== 'undefined' && document.documentElement.classList.contains('dark-theme'),
+  );
 
   constructor() {
+    if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => {
+        this.isDark.set(document.documentElement.classList.contains('dark-theme'));
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      this.destroyRef.onDestroy(() => observer.disconnect());
+    }
+
     effect((onCleanup) => {
       const city = this.selectedCity() || undefined;
       const typology = this.selectedTypology() || undefined;
@@ -101,6 +114,7 @@ export class AnalyticsComponent {
 
   readonly cities = computed(() => this.data()?.meta.cities ?? []);
   readonly typologies = computed(() => this.data()?.meta.typologies ?? []);
+  readonly scopeLabel = computed(() => this.selectedCity() || 'All Cities');
 
   readonly outlierTooltip = computed(() => {
     const o = this.data()?.meta.outliers;
@@ -116,111 +130,233 @@ export class AnalyticsComponent {
     );
   });
 
+  private readonly chartTextColor = computed(() =>
+    this.isDark() ? 'rgba(255, 255, 255, 0.85)' : '#2a1f1a',
+  );
+  private readonly chartGridColor = computed(() =>
+    this.isDark() ? 'rgba(255, 255, 255, 0.12)' : 'rgba(42, 31, 26, 0.1)',
+  );
+
   readonly pm2EvolutionData = computed<ChartConfiguration<'line'>['data']>(() => {
-    const weeks = this.data()?.evolution ?? [];
+    const months = this.data()?.evolution ?? [];
     return {
-      labels: weeks.map((w) => this.formatWeek(w.week)),
+      labels: months.map((m) => this.formatMonth(m.month)),
       datasets: [
         {
           label: 'Buy Median €/m²',
-          data: weeks.map((w) => w.buy_median_pm2),
+          data: months.map((m) => m.buy_median_pm2),
           yAxisID: 'yBuy',
           borderColor: CHART_COLORS.primary,
           backgroundColor: CHART_COLORS.primaryAlpha,
           fill: true,
           tension: 0.25,
-          pointRadius: 2.5,
+          pointRadius: 4,
           spanGaps: true,
         },
         {
           label: 'Rent Median €/m²',
-          data: weeks.map((w) => w.rent_median_pm2),
+          data: months.map((m) => m.rent_median_pm2),
           yAxisID: 'yRent',
           borderColor: CHART_COLORS.success,
           backgroundColor: 'rgba(46, 125, 50, 0.1)',
           fill: false,
           tension: 0.25,
-          pointRadius: 2.5,
+          pointRadius: 4,
           spanGaps: true,
         },
       ],
     };
   });
 
-  readonly pm2EvolutionOptions: ChartConfiguration<'line'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { position: 'top' },
-    },
-    scales: {
-      yBuy: {
-        type: 'linear',
-        position: 'left',
-        title: { display: true, text: 'Buy (€/m²)' },
-        ticks: {
-          callback: (v) => `${Number(v).toLocaleString('pt-PT')}€`,
+  readonly pm2EvolutionOptions = computed<ChartConfiguration<'line'>['options']>(() => {
+    const text = this.chartTextColor();
+    const grid = this.chartGridColor();
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { color: text } },
+      },
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        yBuy: {
+          type: 'linear',
+          position: 'left',
+          title: { display: true, text: 'Buy (€/m²)', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
+          grid: { color: grid },
+        },
+        yRent: {
+          type: 'linear',
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Rent (€/m²)', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toFixed(0)}€` },
         },
       },
-      yRent: {
-        type: 'linear',
-        position: 'right',
-        grid: { drawOnChartArea: false },
-        title: { display: true, text: 'Rent (€/m²)' },
-        ticks: {
-          callback: (v) => `${Number(v).toFixed(0)}€`,
-        },
-      },
-    },
-  };
+    };
+  });
 
   readonly activityEvolutionData = computed<ChartConfiguration<'bar' | 'line'>['data']>(() => {
-    const weeks = this.data()?.evolution ?? [];
+    const months = this.data()?.evolution ?? [];
     return {
-      labels: weeks.map((w) => this.formatWeek(w.week)),
+      labels: months.map((m) => this.formatMonth(m.month)),
       datasets: [
         {
           type: 'bar',
           label: 'New Buy Listings',
-          data: weeks.map((w) => w.buy_new_count),
-          backgroundColor: 'rgba(21, 101, 192, 0.55)',
-          borderRadius: 3,
+          data: months.map((m) => m.buy_new_count),
+          backgroundColor: 'rgba(21, 101, 192, 0.65)',
+          borderRadius: 4,
         },
         {
           type: 'bar',
           label: 'New Rentals',
-          data: weeks.map((w) => w.rent_new_count),
-          backgroundColor: 'rgba(46, 125, 50, 0.55)',
-          borderRadius: 3,
+          data: months.map((m) => m.rent_new_count),
+          backgroundColor: 'rgba(46, 125, 50, 0.65)',
+          borderRadius: 4,
         },
         {
           type: 'line',
           label: 'Price Drops',
-          data: weeks.map((w) => w.price_drops_count),
+          data: months.map((m) => m.price_drops_count),
           borderColor: CHART_COLORS.error,
           backgroundColor: CHART_COLORS.error,
           tension: 0.25,
-          pointRadius: 2.5,
+          pointRadius: 4,
         },
       ],
     };
   });
 
-  readonly activityEvolutionOptions: ChartConfiguration['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { position: 'top' },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: 'Weekly Listings / Events' },
+  readonly activityEvolutionOptions = computed<ChartConfiguration['options']>(() => {
+    const text = this.chartTextColor();
+    const grid = this.chartGridColor();
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { color: text } },
       },
-    },
-  };
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Monthly Listings / Events', color: text },
+          ticks: { color: text },
+          grid: { color: grid },
+        },
+      },
+    };
+  });
+
+  readonly typologyBuyChartData = computed<ChartConfiguration<'bar'>['data']>(() => {
+    const rows = this.data()?.by_typology ?? [];
+    return {
+      labels: rows.map((r) => r.typology),
+      datasets: [
+        {
+          label: 'Median Buy Price (€)',
+          data: rows.map((r) => r.median_buy_price),
+          yAxisID: 'yPrice',
+          backgroundColor: 'rgba(21, 101, 192, 0.72)',
+          borderRadius: 4,
+        },
+        {
+          label: 'Median Buy €/m²',
+          data: rows.map((r) => r.median_buy_pm2),
+          yAxisID: 'yPm2',
+          backgroundColor: 'rgba(255, 143, 0, 0.78)',
+          borderRadius: 4,
+        },
+      ],
+    };
+  });
+
+  readonly typologyBuyChartOptions = computed<ChartConfiguration<'bar'>['options']>(() => {
+    const text = this.chartTextColor();
+    const grid = this.chartGridColor();
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: text } } },
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        yPrice: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Buy Price (€)', color: text },
+          ticks: { color: text, callback: (v) => `${Math.round(Number(v) / 1000)}k€` },
+          grid: { color: grid },
+        },
+        yPm2: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Buy €/m²', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
+        },
+      },
+    };
+  });
+
+  readonly typologyRentChartData = computed<ChartConfiguration<'bar'>['data']>(() => {
+    const rows = this.data()?.by_typology ?? [];
+    return {
+      labels: rows.map((r) => r.typology),
+      datasets: [
+        {
+          label: 'Median Rent (€/mo)',
+          data: rows.map((r) => r.median_rent_price ?? 0),
+          yAxisID: 'yRent',
+          backgroundColor: 'rgba(46, 125, 50, 0.75)',
+          borderRadius: 4,
+        },
+        {
+          label: 'Median Gross Yield (%)',
+          data: rows.map((r) =>
+            r.median_yield != null ? Number((r.median_yield * 100).toFixed(2)) : 0,
+          ),
+          yAxisID: 'yYield',
+          backgroundColor: 'rgba(181, 116, 96, 0.8)',
+          borderRadius: 4,
+        },
+      ],
+    };
+  });
+
+  readonly typologyRentChartOptions = computed<ChartConfiguration<'bar'>['options']>(() => {
+    const text = this.chartTextColor();
+    const grid = this.chartGridColor();
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: text } } },
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        yRent: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Rent (€/mo)', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
+          grid: { color: grid },
+        },
+        yYield: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Gross Yield (%)', color: text },
+          ticks: { color: text, callback: (v) => `${v}%` },
+        },
+      },
+    };
+  });
 
   readonly cityComparisonData = computed<ChartConfiguration<'bar'>['data']>(() => {
     const rows = this.data()?.by_city ?? [];
@@ -247,60 +383,33 @@ export class AnalyticsComponent {
     };
   });
 
-  readonly cityComparisonOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'top' } },
-    scales: {
-      yPm2: {
-        type: 'linear',
-        position: 'left',
-        beginAtZero: true,
-        title: { display: true, text: 'Buy €/m²' },
-        ticks: { callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
-      },
-      yYield: {
-        type: 'linear',
-        position: 'right',
-        beginAtZero: true,
-        grid: { drawOnChartArea: false },
-        title: { display: true, text: 'Gross Yield (%)' },
-        ticks: { callback: (v) => `${v}%` },
-      },
-    },
-  };
-
-  readonly typologyChartData = computed<ChartConfiguration<'bar'>['data']>(() => {
-    const rows = this.data()?.by_typology ?? [];
+  readonly cityComparisonOptions = computed<ChartConfiguration<'bar'>['options']>(() => {
+    const text = this.chartTextColor();
+    const grid = this.chartGridColor();
     return {
-      labels: rows.map((r) => r.typology),
-      datasets: [
-        {
-          label: 'Median Buy €/m²',
-          data: rows.map((r) => r.median_buy_pm2),
-          backgroundColor: 'rgba(255, 143, 0, 0.75)',
-          borderRadius: 4,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { color: text } } },
+      scales: {
+        x: { ticks: { color: text }, grid: { color: grid } },
+        yPm2: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          title: { display: true, text: 'Buy €/m²', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
+          grid: { color: grid },
         },
-      ],
-    };
-  });
-
-  readonly typologyChartOptions: ChartConfiguration<'bar'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: { callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
+        yYield: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Gross Yield (%)', color: text },
+          ticks: { color: text, callback: (v) => `${v}%` },
+        },
       },
-    },
-  };
-
-  readonly sortedNeighborhoods = computed<AnalyticsNeighborhoodRow[]>(() => {
-    const rows = [...(this.data()?.top_neighborhoods ?? [])];
-    const key = this.neighborhoodSort();
-    return rows.sort((a, b) => (b[key] ?? -1) - (a[key] ?? -1));
+    };
   });
 
   clearFilters(): void {
@@ -312,18 +421,12 @@ export class AnalyticsComponent {
     void this.router.navigate(['/buy'], { queryParams: { city } });
   }
 
-  openBuyForNeighborhood(row: AnalyticsNeighborhoodRow): void {
-    void this.router.navigate(['/buy'], {
-      queryParams: { city: row.city, neighborhood: row.neighborhood },
-    });
-  }
-
   formatYield(value: number | null): string {
     return value != null ? `${(value * 100).toFixed(2)}%` : '—';
   }
 
-  private formatWeek(isoDate: string): string {
-    const d = new Date(isoDate + 'T00:00:00');
-    return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+  private formatMonth(ym: string): string {
+    const d = new Date(`${ym}-01T00:00:00`);
+    return d.toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' });
   }
 }

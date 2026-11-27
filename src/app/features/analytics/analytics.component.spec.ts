@@ -13,7 +13,7 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
     typologies: ['T0', 'T1', 'T2', 'T3', 'T4+'],
     selected_city: null,
     selected_typology: null,
-    date_range: { from: '2026-05-02', to: '2026-11-26' },
+    date_range: { from: '2026-05-12', to: '2026-11-26' },
     outliers: {
       buy_excluded: 154,
       buy_total: 42866,
@@ -54,26 +54,26 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
   },
   evolution: [
     {
-      week: '2026-11-09',
-      buy_new_count: 626,
+      month: '2026-10',
+      buy_new_count: 2626,
       buy_median_pm2: 4182,
       buy_median_price: 285000,
-      rent_new_count: 190,
+      rent_new_count: 790,
       rent_median_pm2: 17.6,
       rent_median_price: 1120,
-      price_drops_count: 42,
-      price_increases_count: 5,
+      price_drops_count: 142,
+      price_increases_count: 15,
     },
     {
-      week: '2026-11-16',
-      buy_new_count: 641,
+      month: '2026-11',
+      buy_new_count: 2641,
       buy_median_pm2: 4167,
       buy_median_price: 288000,
-      rent_new_count: 205,
+      rent_new_count: 805,
       rent_median_pm2: 17.9,
       rent_median_price: 1150,
-      price_drops_count: 51,
-      price_increases_count: 4,
+      price_drops_count: 151,
+      price_increases_count: 14,
     },
   ],
   by_city: [
@@ -104,26 +104,6 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
       median_yield: 0.053,
     },
   ],
-  top_neighborhoods: [
-    {
-      city: 'Porto',
-      neighborhood: 'Paranhos',
-      buy_count: 210,
-      median_buy_price: 270000,
-      median_buy_pm2: 4400,
-      median_est_rent: 1220,
-      median_yield: 0.056,
-    },
-    {
-      city: 'Porto',
-      neighborhood: 'Bonfim',
-      buy_count: 180,
-      median_buy_price: 285000,
-      median_buy_pm2: 4900,
-      median_est_rent: 1200,
-      median_yield: 0.052,
-    },
-  ],
 };
 
 describe('AnalyticsComponent', () => {
@@ -144,7 +124,7 @@ describe('AnalyticsComponent', () => {
     });
   });
 
-  it('loads analytics on init and computes chart datasets + outlier tooltip', () => {
+  it('loads monthly analytics on init and computes evolution, city, and typology charts', () => {
     const fixture = TestBed.createComponent(AnalyticsComponent);
     fixture.detectChanges();
     const comp = fixture.componentInstance;
@@ -153,17 +133,21 @@ describe('AnalyticsComponent', () => {
     expect(comp.loading()).toBe(false);
     expect(comp.pm2EvolutionData().datasets).toHaveLength(2);
     expect(comp.activityEvolutionData().datasets).toHaveLength(3);
+    expect(comp.typologyBuyChartData().datasets).toHaveLength(2);
+    expect(comp.typologyRentChartData().datasets).toHaveLength(2);
     expect(comp.cityComparisonData().labels).toEqual(['Porto']);
     expect(comp.outlierTooltip()).toContain('154');
   });
 
-  it('re-fetches analytics when city or typology filter changes', () => {
+  it('re-fetches analytics when city or typology filter changes and updates scopeLabel', () => {
     const fixture = TestBed.createComponent(AnalyticsComponent);
     fixture.detectChanges();
     const comp = fixture.componentInstance;
 
+    expect(comp.scopeLabel()).toBe('All Cities');
     comp.selectedCity.set('Porto');
     fixture.detectChanges();
+    expect(comp.scopeLabel()).toBe('Porto');
     expect(apiSpy.getAnalytics).toHaveBeenLastCalledWith({ city: 'Porto', typology: undefined });
 
     comp.clearFilters();
@@ -171,23 +155,13 @@ describe('AnalyticsComponent', () => {
     expect(apiSpy.getAnalytics).toHaveBeenLastCalledWith({ city: undefined, typology: undefined });
   });
 
-  it('sorts neighborhoods by selected ranking metric and navigates on click', () => {
+  it('navigates to /buy filtered by city on city row click', () => {
     const fixture = TestBed.createComponent(AnalyticsComponent);
     fixture.detectChanges();
     const comp = fixture.componentInstance;
 
-    expect(comp.sortedNeighborhoods()[0].neighborhood).toBe('Paranhos');
-
-    comp.neighborhoodSort.set('median_buy_pm2');
-    expect(comp.sortedNeighborhoods()[0].neighborhood).toBe('Bonfim');
-
     comp.openBuyForCity('Porto');
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/buy'], { queryParams: { city: 'Porto' } });
-
-    comp.openBuyForNeighborhood(MOCK_ANALYTICS.top_neighborhoods[0]);
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/buy'], {
-      queryParams: { city: 'Porto', neighborhood: 'Paranhos' },
-    });
   });
 
   it('sets error state when API call fails', () => {

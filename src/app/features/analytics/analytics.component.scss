@@ -7,7 +7,8 @@
   padding: $size-20;
   display: flex;
   flex-direction: column;
-  gap: $size-20;
+  gap: $size-16;
+  color: $color-text;
 }
 
 .analytics-header {
@@ -31,7 +32,7 @@
     align-items: center;
     gap: $size-12;
     font-size: $size-13;
-    opacity: 0.78;
+    color: $color-text-secondary;
   }
 }
 
@@ -60,9 +61,39 @@
   gap: $size-12;
 }
 
-.filter-field,
-.sort-field {
+.filter-field {
   width: 175px;
+}
+
+.city-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $size-8;
+}
+
+.city-pill {
+  border: 1px solid $color-grey-mid;
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: $size-13;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: $color-primary-alpha;
+    border-color: $color-primary;
+  }
+
+  &--active {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: $color-white;
+  }
 }
 
 .center-state {
@@ -98,7 +129,7 @@
   font-size: $size-12;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  opacity: 0.7;
+  color: $color-text-secondary;
 }
 
 .kpi-value {
@@ -116,7 +147,7 @@
 
 .kpi-sub {
   font-size: $size-12;
-  opacity: 0.72;
+  color: $color-text-secondary;
 }
 
 .charts-grid,
@@ -157,14 +188,14 @@
   th,
   td {
     padding: 8px 10px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
     white-space: nowrap;
   }
 
   th {
     text-align: left;
     font-weight: 600;
-    opacity: 0.75;
+    color: $color-text-secondary;
     font-size: $size-12;
   }
 
@@ -183,7 +214,7 @@
   }
 
   .muted {
-    opacity: 0.72;
+    color: $color-text-secondary;
   }
 }
 
@@ -195,10 +226,40 @@
   }
 }
 
-.neighborhoods-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: $size-12;
+:host-context(.dark-theme) {
+  .analytics-page {
+    color: $color-dark-text;
+  }
+
+  .header-title .subtitle,
+  .kpi-label,
+  .kpi-sub,
+  .data-table th,
+  .data-table .muted {
+    color: $color-dark-label;
+  }
+
+  .outlier-pill {
+    background: rgba(216, 150, 111, 0.18);
+    color: $color-clay;
+  }
+
+  .city-pill {
+    border-color: rgba(255, 255, 255, 0.22);
+    color: $color-dark-text;
+
+    &--active {
+      border-color: $color-primary;
+      color: $color-white;
+    }
+  }
+
+  .kpi-value--green,
+  .data-table .yield-cell {
+    color: #66bb6a;
+  }
+
+  .kpi-value--amber {
+    color: #ffb74d;
+  }
 }
