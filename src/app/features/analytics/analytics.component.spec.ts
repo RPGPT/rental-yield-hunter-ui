@@ -61,8 +61,6 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
       rent_new_count: 790,
       rent_median_pm2: 17.6,
       rent_median_price: 1120,
-      price_drops_count: 142,
-      price_increases_count: 15,
     },
     {
       month: '2026-11',
@@ -72,8 +70,6 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
       rent_new_count: 805,
       rent_median_pm2: 17.9,
       rent_median_price: 1150,
-      price_drops_count: 151,
-      price_increases_count: 14,
     },
   ],
   by_city: [
@@ -104,6 +100,19 @@ const MOCK_ANALYTICS: AnalyticsResponse = {
       median_yield: 0.053,
     },
   ],
+  by_typology_inactive: [
+    {
+      typology: 'T2',
+      buy_count: 8200,
+      median_buy_price: 298000,
+      median_buy_pm2: 3920,
+      median_area: 79,
+      rent_count: 2100,
+      median_rent_price: 1180,
+      median_rent_pm2: 15.8,
+      median_yield: 0.054,
+    },
+  ],
 };
 
 describe('AnalyticsComponent', () => {
@@ -132,9 +141,9 @@ describe('AnalyticsComponent', () => {
     expect(apiSpy.getAnalytics).toHaveBeenCalledWith({ city: undefined, typology: undefined });
     expect(comp.loading()).toBe(false);
     expect(comp.pm2EvolutionData().datasets).toHaveLength(2);
-    expect(comp.activityEvolutionData().datasets).toHaveLength(3);
-    expect(comp.typologyBuyChartData().datasets).toHaveLength(2);
-    expect(comp.typologyRentChartData().datasets).toHaveLength(2);
+    expect(comp.activityEvolutionData().datasets).toHaveLength(2);
+    expect(comp.activeTypologyChartData().datasets).toHaveLength(2);
+    expect(comp.inactiveTypologyChartData().datasets).toHaveLength(2);
     expect(comp.cityComparisonData().labels).toEqual(['Porto']);
     expect(comp.outlierTooltip()).toContain('154');
   });

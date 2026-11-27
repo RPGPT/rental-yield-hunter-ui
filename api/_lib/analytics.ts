@@ -107,11 +107,12 @@ export async function handleAnalytics(
     rentKpiRows,
     buyMonthlyRows,
     rentMonthlyRows,
-    priceHistoryMonthlyRows,
     cityBuyRows,
     cityRentRows,
     typoBuyRows,
     typoRentRows,
+    typoInactiveBuyRows,
+    typoInactiveRentRows,
   ] = await Promise.all([
     sql.query(
       `SELECT
@@ -180,30 +181,6 @@ export async function handleAnalytics(
       rentFilter.params,
     ),
     sql.query(
-      `WITH ordered AS (
-        SELECT
-          lph.listing_id,
-          lph.captured_at,
-          lph.price,
-          COALESCE(
-            lph.previous_price,
-            LAG(lph.price) OVER (PARTITION BY lph.listing_id ORDER BY lph.captured_at, lph.id)
-          ) AS prev_price
-        FROM listing_price_history lph
-        JOIN listings l ON l.id = lph.listing_id
-        WHERE ${BUY_CLEAN_SQL} ${buyFilter.sql}
-      )
-      SELECT
-        to_char(date_trunc('month', captured_at), 'YYYY-MM') AS month,
-        count(*) FILTER (WHERE prev_price IS NOT NULL AND price < prev_price)::int AS price_drops_count,
-        count(*) FILTER (WHERE prev_price IS NOT NULL AND price > prev_price)::int AS price_increases_count
-      FROM ordered
-      WHERE captured_at >= '${EVOLUTION_START_DATE}'
-      GROUP BY 1
-      ORDER BY 1 ASC`,
-      buyFilter.params,
-    ),
-    sql.query(
       `SELECT
         l.city,
         count(*)::int AS buy_count,
@@ -260,6 +237,35 @@ export async function handleAnalytics(
       ORDER BY 1 ASC`,
       typoOnlyRentFilter.params,
     ),
+    sql.query(
+      `SELECT
+        ${TYPOLOGY_BUCKET_SQL('l')} AS typology,
+        count(*)::int AS buy_count,
+        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price))::int AS median_buy_price,
+        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price_per_m2))::int AS median_buy_pm2,
+        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY l.area))::int AS median_area,
+        round((percentile_cont(0.5) WITHIN GROUP (ORDER BY re.rental_yield))::numeric, 4)::float AS median_yield
+      FROM listings l
+      LEFT JOIN rental_estimates re ON re.listing_id = l.id
+      WHERE l.active = false AND ${BUY_CLEAN_SQL} ${typoOnlyBuyFilter.sql}
+        AND ${TYPOLOGY_BUCKET_SQL('l')} IS NOT NULL
+      GROUP BY 1
+      ORDER BY 1 ASC`,
+      typoOnlyBuyFilter.params,
+    ),
+    sql.query(
+      `SELECT
+        ${TYPOLOGY_BUCKET_SQL('r')} AS typology,
+        count(*)::int AS rent_count,
+        round(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.price))::int AS median_rent_price,
+        round((percentile_cont(0.5) WITHIN GROUP (ORDER BY r.rent_price_per_m2))::numeric, 2)::float AS median_rent_pm2
+      FROM rental_listings r
+      WHERE r.active = false AND ${RENT_CLEAN_SQL} ${typoOnlyRentFilter.sql}
+        AND ${TYPOLOGY_BUCKET_SQL('r')} IS NOT NULL
+      GROUP BY 1
+      ORDER BY 1 ASC`,
+      typoOnlyRentFilter.params,
+    ),
   ]);
 
   const meta = (metaRows as Record<string, unknown>[])[0] ?? {};
@@ -273,7 +279,7 @@ export async function handleAnalytics(
   const activeBuyCount = Number(buyKpi['active_buy_count'] ?? 0);
   const priceDropCount = Number(buyKpi['price_drop_count'] ?? 0);
 
-  // Merge monthly series across buy, rent, and price history by YYYY-MM
+  // Merge monthly series across buy and rent by YYYY-MM
   const monthMap = new Map<
     string,
     {
@@ -284,8 +290,6 @@ export async function handleAnalytics(
       rent_new_count: number;
       rent_median_pm2: number | null;
       rent_median_price: number | null;
-      price_drops_count: number;
-      price_increases_count: number;
     }
   >();
 
@@ -300,8 +304,6 @@ export async function handleAnalytics(
         rent_new_count: 0,
         rent_median_pm2: null,
         rent_median_price: null,
-        price_drops_count: 0,
-        price_increases_count: 0,
       };
       monthMap.set(month, entry);
     }
@@ -321,11 +323,6 @@ export async function handleAnalytics(
     entry.rent_median_pm2 = row['rent_median_pm2'] != null ? Number(row['rent_median_pm2']) : null;
     entry.rent_median_price =
       row['rent_median_price'] != null ? Number(row['rent_median_price']) : null;
-  }
-  for (const row of priceHistoryMonthlyRows as Record<string, unknown>[]) {
-    const entry = getMonth(String(row['month']));
-    entry.price_drops_count = Number(row['price_drops_count'] ?? 0);
-    entry.price_increases_count = Number(row['price_increases_count'] ?? 0);
   }
 
   const evolution = [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month));
@@ -352,24 +349,38 @@ export async function handleAnalytics(
     };
   });
 
-  const typoRentMap = new Map<string, Record<string, unknown>>();
-  for (const row of typoRentRows as Record<string, unknown>[]) {
-    typoRentMap.set(String(row['typology']), row);
-  }
-  const byTypology = (typoBuyRows as Record<string, unknown>[]).map((row) => {
-    const r = typoRentMap.get(String(row['typology']));
-    return {
-      typology: String(row['typology']),
-      buy_count: Number(row['buy_count'] ?? 0),
-      median_buy_price: Number(row['median_buy_price'] ?? 0),
-      median_buy_pm2: Number(row['median_buy_pm2'] ?? 0),
-      median_area: Number(row['median_area'] ?? 0),
-      rent_count: r ? Number(r['rent_count'] ?? 0) : 0,
-      median_rent_price: r?.['median_rent_price'] != null ? Number(r['median_rent_price']) : null,
-      median_rent_pm2: r?.['median_rent_pm2'] != null ? Number(r['median_rent_pm2']) : null,
-      median_yield: row['median_yield'] != null ? Number(row['median_yield']) : null,
-    };
-  });
+  const mergeTypology = (
+    buyRows: Record<string, unknown>[],
+    rentRows: Record<string, unknown>[],
+  ) => {
+    const rentMap = new Map<string, Record<string, unknown>>();
+    for (const row of rentRows) {
+      rentMap.set(String(row['typology']), row);
+    }
+    return buyRows.map((row) => {
+      const r = rentMap.get(String(row['typology']));
+      return {
+        typology: String(row['typology']),
+        buy_count: Number(row['buy_count'] ?? 0),
+        median_buy_price: Number(row['median_buy_price'] ?? 0),
+        median_buy_pm2: Number(row['median_buy_pm2'] ?? 0),
+        median_area: Number(row['median_area'] ?? 0),
+        rent_count: r ? Number(r['rent_count'] ?? 0) : 0,
+        median_rent_price: r?.['median_rent_price'] != null ? Number(r['median_rent_price']) : null,
+        median_rent_pm2: r?.['median_rent_pm2'] != null ? Number(r['median_rent_pm2']) : null,
+        median_yield: row['median_yield'] != null ? Number(row['median_yield']) : null,
+      };
+    });
+  };
+
+  const byTypology = mergeTypology(
+    typoBuyRows as Record<string, unknown>[],
+    typoRentRows as Record<string, unknown>[],
+  );
+  const byTypologyInactive = mergeTypology(
+    typoInactiveBuyRows as Record<string, unknown>[],
+    typoInactiveRentRows as Record<string, unknown>[],
+  );
 
   return res.status(200).json({
     meta: {
@@ -414,5 +425,6 @@ export async function handleAnalytics(
     evolution,
     by_city: byCity,
     by_typology: byTypology,
+    by_typology_inactive: byTypologyInactive,
   });
 }

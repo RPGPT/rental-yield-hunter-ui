@@ -57,9 +57,7 @@ describe('GET /api/stats?view=analytics', () => {
       [{ month: '2026-11', buy_new_count: 80, buy_median_pm2: 4450, buy_median_price: 285000 }],
       // 6. rent monthly
       [{ month: '2026-11', rent_new_count: 25, rent_median_pm2: 18.2, rent_median_price: 1180 }],
-      // 7. price history monthly
-      [{ month: '2026-11', price_drops_count: 14, price_increases_count: 2 }],
-      // 8. city buy
+      // 7. city buy
       [
         {
           city: 'Porto',
@@ -72,9 +70,9 @@ describe('GET /api/stats?view=analytics', () => {
           price_drop_share_pct: 9.5,
         },
       ],
-      // 9. city rent
+      // 8. city rent
       [{ city: 'Porto', rent_count: 100, median_rent_price: 1250, median_rent_pm2: 19.2 }],
-      // 10. typo buy
+      // 9. typo buy (active)
       [
         {
           typology: 'T2',
@@ -85,8 +83,21 @@ describe('GET /api/stats?view=analytics', () => {
           median_yield: 0.054,
         },
       ],
-      // 11. typo rent
+      // 10. typo rent (active)
       [{ typology: 'T2', rent_count: 60, median_rent_price: 1300, median_rent_pm2: 17.5 }],
+      // 11. typo buy (inactive)
+      [
+        {
+          typology: 'T2',
+          buy_count: 400,
+          median_buy_price: 295000,
+          median_buy_pm2: 3900,
+          median_area: 78,
+          median_yield: 0.055,
+        },
+      ],
+      // 12. typo rent (inactive)
+      [{ typology: 'T2', rent_count: 120, median_rent_price: 1200, median_rent_pm2: 16.4 }],
     ];
 
     const res = new MockRes();
@@ -108,10 +119,14 @@ describe('GET /api/stats?view=analytics', () => {
       month: '2026-11',
       buy_new_count: 80,
       rent_new_count: 25,
-      price_drops_count: 14,
     });
     expect(body.by_city[0]).toMatchObject({ city: 'Porto', median_rent_price: 1250 });
     expect(body.by_typology[0]).toMatchObject({ typology: 'T2', median_rent_pm2: 17.5 });
+    expect(body.by_typology_inactive[0]).toMatchObject({
+      typology: 'T2',
+      median_buy_price: 295000,
+      median_rent_price: 1200,
+    });
     expect(body.top_neighborhoods).toBeUndefined();
   });
 });

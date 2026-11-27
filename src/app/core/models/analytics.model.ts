@@ -45,8 +45,6 @@ export interface AnalyticsMonthPoint {
   rent_new_count: number;
   rent_median_pm2: number | null;
   rent_median_price: number | null;
-  price_drops_count: number;
-  price_increases_count: number;
 }
 
 export interface AnalyticsCityRow {
@@ -88,4 +86,5 @@ export interface AnalyticsResponse {
   evolution: AnalyticsMonthPoint[];
   by_city: AnalyticsCityRow[];
   by_typology: AnalyticsTypologyRow[];
+  by_typology_inactive: AnalyticsTypologyRow[];
 }

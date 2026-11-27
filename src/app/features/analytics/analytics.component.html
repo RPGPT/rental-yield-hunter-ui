@@ -141,16 +141,14 @@
 
       <mat-card class="chart-card">
         <mat-card-header>
-          <mat-card-title
-            >Market Activity &amp; Price Cuts (Monthly) — {{ scopeLabel() }}</mat-card-title
-          >
-          <mat-card-subtitle>Monthly new buy/rental supply and price reductions</mat-card-subtitle>
+          <mat-card-title>Market Activity (Monthly) — {{ scopeLabel() }}</mat-card-title>
+          <mat-card-subtitle>Monthly new buy and rental supply</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="chart-box">
             <canvas
               baseChart
-              type="bar"
+              type="line"
               [data]="activityEvolutionData()"
               [options]="activityEvolutionOptions()"
             ></canvas>
@@ -162,16 +160,18 @@
     <section class="charts-grid">
       <mat-card class="chart-card">
         <mat-card-header>
-          <mat-card-title>Buy Price &amp; €/m² by Typology — {{ scopeLabel() }}</mat-card-title>
-          <mat-card-subtitle>Median purchase price and €/m² per bedroom count</mat-card-subtitle>
+          <mat-card-title
+            >Active: Buy Price &amp; Rent by Typology — {{ scopeLabel() }}</mat-card-title
+          >
+          <mat-card-subtitle>Median buy price and monthly rent (active listings)</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="chart-box">
             <canvas
               baseChart
               type="bar"
-              [data]="typologyBuyChartData()"
-              [options]="typologyBuyChartOptions()"
+              [data]="activeTypologyChartData()"
+              [options]="typologyPriceRentOptions()"
             ></canvas>
           </div>
         </mat-card-content>
@@ -179,9 +179,11 @@
 
       <mat-card class="chart-card">
         <mat-card-header>
-          <mat-card-title>Rent &amp; Gross Yield by Typology — {{ scopeLabel() }}</mat-card-title>
+          <mat-card-title
+            >Inactive: Buy Price &amp; Rent by Typology — {{ scopeLabel() }}</mat-card-title
+          >
           <mat-card-subtitle
-            >Median monthly rent and estimated gross yield per typology</mat-card-subtitle
+            >Median buy price and monthly rent (inactive / off-market listings)</mat-card-subtitle
           >
         </mat-card-header>
         <mat-card-content>
@@ -189,8 +191,8 @@
             <canvas
               baseChart
               type="bar"
-              [data]="typologyRentChartData()"
-              [options]="typologyRentChartOptions()"
+              [data]="inactiveTypologyChartData()"
+              [options]="typologyPriceRentOptions()"
             ></canvas>
           </div>
         </mat-card-content>
