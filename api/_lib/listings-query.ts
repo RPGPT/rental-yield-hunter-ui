@@ -179,13 +179,15 @@ export function buildListingsQueryPlan(
       ? `COALESCE(NULLIF(l.price_drop_pct::float, 0), 1.0 - (l.price::float / NULLIF(${PREV_PRICE_SQL}, 0)))`
       : sortCol === 'rental_yield'
         ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN (rcd.current_rent * 12) / NULLIF(l.price, 0) ELSE NULL END, re.rental_yield)`
-        : RE_COLUMNS.has(sortCol)
-          ? `re.${sortCol}`
-          : LC_COLUMNS.has(sortCol)
-            ? `lc.${sortCol}`
-            : RCD_COLUMNS.has(sortCol)
-              ? `rcd.${sortCol}`
-              : `l.${sortCol}`;
+        : sortCol === 'estimated_rent'
+          ? `COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN rcd.current_rent ELSE NULL END, re.estimated_rent)`
+          : RE_COLUMNS.has(sortCol)
+            ? `re.${sortCol}`
+            : LC_COLUMNS.has(sortCol)
+              ? `lc.${sortCol}`
+              : RCD_COLUMNS.has(sortCol)
+                ? `rcd.${sortCol}`
+                : `l.${sortCol}`;
 
   const limitNum = Math.min(Math.max(Number(limit) || 50, 1), 100);
   const offsetNum = Math.max(Number(offset) || 0, 0);

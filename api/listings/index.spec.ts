@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import handler from './index';
+import { buildListingsQueryPlan } from '../_lib/listings-query';
 import { MockRes } from '../_test/mock-res';
 
 let queryIndex = 0;
@@ -132,6 +133,13 @@ describe('api/listings/index handler', () => {
       res as any,
     );
     expect(res._status).toBe(200);
+  });
+
+  it('sorts estimated_rent using displayed contract rent when rented with contract details', () => {
+    const plan = buildListingsQueryPlan({ sort: 'estimated_rent', order: 'desc' }, null);
+    expect(plan.dataQuery).toContain(
+      'ORDER BY COALESCE(CASE WHEN l.is_rented AND NOT l.lifetime_rent AND rcd.current_rent IS NOT NULL THEN rcd.current_rent ELSE NULL END, re.estimated_rent) DESC NULLS LAST',
+    );
   });
 
   it('filters by price_min and price_max', async () => {
