@@ -366,16 +366,14 @@ export class AnalyticsComponent {
         {
           label: 'Median Buy €/m²',
           data: rows.map((r) => r.median_buy_pm2),
-          yAxisID: 'yPm2',
+          yAxisID: 'yBuyPm2',
           backgroundColor: 'rgba(21, 101, 192, 0.72)',
           borderRadius: 4,
         },
         {
-          label: 'Median Gross Yield (%)',
-          data: rows.map((r) =>
-            r.median_yield != null ? Number((r.median_yield * 100).toFixed(2)) : 0,
-          ),
-          yAxisID: 'yYield',
+          label: 'Median Rent €/m²',
+          data: rows.map((r) => r.median_rent_pm2 ?? 0),
+          yAxisID: 'yRentPm2',
           backgroundColor: 'rgba(46, 125, 50, 0.72)',
           borderRadius: 4,
         },
@@ -392,21 +390,21 @@ export class AnalyticsComponent {
       plugins: { legend: { position: 'top', labels: { color: text } } },
       scales: {
         x: { ticks: { color: text }, grid: { color: grid } },
-        yPm2: {
+        yBuyPm2: {
           type: 'linear',
           position: 'left',
           beginAtZero: true,
-          title: { display: true, text: 'Buy €/m²', color: text },
+          title: { display: true, text: 'Buy (€/m²)', color: text },
           ticks: { color: text, callback: (v) => `${Number(v).toLocaleString('pt-PT')}€` },
           grid: { color: grid },
         },
-        yYield: {
+        yRentPm2: {
           type: 'linear',
           position: 'right',
           beginAtZero: true,
           grid: { drawOnChartArea: false },
-          title: { display: true, text: 'Gross Yield (%)', color: text },
-          ticks: { color: text, callback: (v) => `${v}%` },
+          title: { display: true, text: 'Rent (€/m²)', color: text },
+          ticks: { color: text, callback: (v) => `${Number(v).toFixed(0)}€` },
         },
       },
     };
