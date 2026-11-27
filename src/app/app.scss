@@ -27,6 +27,18 @@
   font-weight: 500;
 }
 
+.toolbar-nav-link {
+  margin-left: $size-16;
+  color: $color-white;
+  opacity: 0.88;
+
+  &:hover,
+  &.toolbar-nav-active {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+}
+
 .toolbar-spacer {
   flex: 1;
 }

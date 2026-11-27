@@ -18,6 +18,12 @@ export const routes: Routes = [
       import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
+    path: 'analytics',
+    canMatch: [authGuard],
+    loadComponent: () =>
+      import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
+  },
+  {
     path: 'listing/:id',
     canMatch: [authGuard],
     loadComponent: () =>

@@ -1,12 +1,17 @@
 import type { VercelRequest, VercelResponse } from './_types';
 import { neon } from '@neondatabase/serverless';
 import { sendError } from './_lib/errors.js';
+import { handleAnalytics } from './_lib/analytics.js';
 
-export default async function handler(_req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = neon(process.env['DATABASE_URL']!);
 
   try {
+    if (req.query?.['view'] === 'analytics') {
+      return await handleAnalytics(req, res, sql);
+    }
+
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     const result = await sql`
       SELECT
         count(*) FILTER (WHERE active)::int AS total_active,

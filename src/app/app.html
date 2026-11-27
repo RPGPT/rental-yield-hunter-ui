@@ -3,6 +3,18 @@
     <mat-icon>home</mat-icon>
     <span class="toolbar-title">Rental Yield Hunter</span>
   </a>
+  @if (auth.isAuthenticated()) {
+    <a
+      mat-button
+      routerLink="/analytics"
+      routerLinkActive="toolbar-nav-active"
+      class="toolbar-nav-link"
+      matTooltip="Market Analytics & Price Evolution"
+    >
+      <mat-icon>insights</mat-icon>
+      <span class="hide-mobile">Analytics</span>
+    </a>
+  }
   <span class="toolbar-spacer"></span>
 
   <!-- Theme toggle -->

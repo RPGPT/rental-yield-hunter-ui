@@ -10,6 +10,7 @@ import {
   RentalListingDetail,
 } from '../models/listing.model';
 import { Stats } from '../models/stats.model';
+import { AnalyticsResponse } from '../models/analytics.model';
 import {
   FilterOptions,
   FilterState,
@@ -163,6 +164,13 @@ export class ApiService {
         .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.statsCache$;
+  }
+
+  getAnalytics(filters?: { city?: string; typology?: string }): Observable<AnalyticsResponse> {
+    const params: Record<string, string> = { view: 'analytics' };
+    if (filters?.city) params['city'] = filters.city;
+    if (filters?.typology) params['typology'] = filters.typology;
+    return this.http.get<AnalyticsResponse>(`${this.baseUrl}/stats`, { params });
   }
 
   getFilterOptions(): Observable<FilterOptions> {

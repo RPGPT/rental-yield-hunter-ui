@@ -1,0 +1,314 @@
+<div class="analytics-page">
+  <header class="analytics-header">
+    <div class="header-title">
+      <h1>Market Analytics</h1>
+      @if (data(); as d) {
+        <span class="subtitle">
+          {{ d.meta.date_range.from }} → {{ d.meta.date_range.to }}
+          <span class="outlier-pill" [matTooltip]="outlierTooltip()">
+            <mat-icon>verified_user</mat-icon>
+            {{ d.meta.outliers.buy_excluded + d.meta.outliers.rent_excluded }} outliers filtered ·
+            Medians &amp; IQR
+          </span>
+        </span>
+      }
+    </div>
+
+    <div class="header-filters">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>City</mat-label>
+        <mat-select [value]="selectedCity()" (selectionChange)="selectedCity.set($event.value)">
+          <mat-option value="">All cities</mat-option>
+          @for (city of cities(); track city) {
+            <mat-option [value]="city">{{ city }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Typology</mat-label>
+        <mat-select
+          [value]="selectedTypology()"
+          (selectionChange)="selectedTypology.set($event.value)"
+        >
+          <mat-option value="">All typologies</mat-option>
+          @for (t of typologies(); track t) {
+            <mat-option [value]="t">{{ t }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (selectedCity() || selectedTypology()) {
+        <button mat-stroked-button (click)="clearFilters()">
+          <mat-icon>clear</mat-icon>
+          Reset
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (loading() && !data()) {
+    <div class="center-state">
+      <mat-spinner diameter="44"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="center-state error-text">{{ error() }}</div>
+  } @else if (data(); as d) {
+    <section class="kpi-grid" [class.is-refreshing]="loading()">
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Median Buy €/m²</span>
+        <span class="kpi-value">{{ d.kpis.median_buy_pm2 | eur }}/m²</span>
+        <span class="kpi-sub">
+          IQR: {{ d.kpis.p25_buy_pm2 | eur }} – {{ d.kpis.p75_buy_pm2 | eur }}
+        </span>
+      </mat-card>
+
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Median Buy Price</span>
+        <span class="kpi-value">{{ d.kpis.median_buy_price | eur }}</span>
+        <span class="kpi-sub">
+          {{ d.kpis.active_buy_count }} active · {{ d.kpis.median_area }} m² median
+        </span>
+      </mat-card>
+
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Median Rent</span>
+        <span class="kpi-value">
+          {{ d.kpis.median_rent_price != null ? (d.kpis.median_rent_price | eur) : '—' }}/mo
+        </span>
+        <span class="kpi-sub">
+          {{ d.kpis.median_rent_pm2 != null ? d.kpis.median_rent_pm2.toFixed(1) + ' €/m²' : '—' }} ·
+          {{ d.kpis.active_rent_count }} active
+        </span>
+      </mat-card>
+
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Median Gross Yield</span>
+        <span class="kpi-value kpi-value--green">{{ formatYield(d.kpis.median_gross_yield) }}</span>
+        <span class="kpi-sub">Estimated gross annual return</span>
+      </mat-card>
+
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Price Drops</span>
+        <span class="kpi-value kpi-value--amber">{{ d.kpis.price_drop_share_pct }}%</span>
+        <span class="kpi-sub">
+          Active listings cut
+          @if (d.kpis.median_price_drop_pct != null) {
+            (median -{{ (d.kpis.median_price_drop_pct * 100).toFixed(1) }}%)
+          }
+        </span>
+      </mat-card>
+
+      <mat-card class="kpi-card">
+        <span class="kpi-label">Median Days Listed</span>
+        <span class="kpi-value">{{ d.kpis.median_days_on_market ?? '—' }}d</span>
+        <span class="kpi-sub">Time since first seen (active)</span>
+      </mat-card>
+    </section>
+
+    <section class="charts-grid">
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Buy &amp; Rent €/m² Evolution (Weekly)</mat-card-title>
+          <mat-card-subtitle>Median €/m² of newly listed properties per week</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              type="line"
+              [data]="pm2EvolutionData()"
+              [options]="pm2EvolutionOptions"
+            ></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Market Activity &amp; Price Cuts (Weekly)</mat-card-title>
+          <mat-card-subtitle>New buy/rental supply and recorded price reductions</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              type="bar"
+              [data]="activityEvolutionData()"
+              [options]="activityEvolutionOptions"
+            ></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <section class="charts-grid">
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Cities: Median €/m² vs Gross Yield</mat-card-title>
+          <mat-card-subtitle>Active clean listings (cities with 5+ listings)</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              type="bar"
+              [data]="cityComparisonData()"
+              [options]="cityComparisonOptions"
+            ></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Typology Price per m²</mat-card-title>
+          <mat-card-subtitle>Smaller units command higher €/m²</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-box">
+            <canvas
+              baseChart
+              type="bar"
+              [data]="typologyChartData()"
+              [options]="typologyChartOptions"
+            ></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    <section class="tables-grid">
+      <mat-card class="table-card">
+        <mat-card-header>
+          <mat-card-title>City Breakdown</mat-card-title>
+          <mat-card-subtitle>Click a city to explore its Buy listings</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>City</th>
+                <th class="num">Active</th>
+                <th class="num">Med. Price</th>
+                <th class="num">Med. €/m²</th>
+                <th class="num">P25–P75 €/m²</th>
+                <th class="num">Med. Rent</th>
+                <th class="num">Yield</th>
+                <th class="num">Cuts %</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.by_city; track row.city) {
+                <tr class="clickable-row" (click)="openBuyForCity(row.city)">
+                  <td class="primary-cell">{{ row.city }}</td>
+                  <td class="num">{{ row.buy_count }}</td>
+                  <td class="num">{{ row.median_buy_price | eur }}</td>
+                  <td class="num">{{ row.median_buy_pm2 | eur }}</td>
+                  <td class="num muted">
+                    {{ row.p25_buy_pm2 | eur }} – {{ row.p75_buy_pm2 | eur }}
+                  </td>
+                  <td class="num">
+                    {{ row.median_rent_price != null ? (row.median_rent_price | eur) : '—' }}
+                  </td>
+                  <td class="num yield-cell">{{ formatYield(row.median_yield) }}</td>
+                  <td class="num">{{ row.price_drop_share_pct }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="table-card">
+        <mat-card-header>
+          <mat-card-title>Typology Breakdown</mat-card-title>
+          <mat-card-subtitle>Active listings by bedroom count</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Typology</th>
+                <th class="num">Buy</th>
+                <th class="num">Med. Area</th>
+                <th class="num">Med. Price</th>
+                <th class="num">Med. €/m²</th>
+                <th class="num">Med. Rent</th>
+                <th class="num">Yield</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.by_typology; track row.typology) {
+                <tr>
+                  <td class="primary-cell">{{ row.typology }}</td>
+                  <td class="num">{{ row.buy_count }}</td>
+                  <td class="num">{{ row.median_area }} m²</td>
+                  <td class="num">{{ row.median_buy_price | eur }}</td>
+                  <td class="num">{{ row.median_buy_pm2 | eur }}</td>
+                  <td class="num">
+                    {{ row.median_rent_price != null ? (row.median_rent_price | eur) : '—' }}
+                  </td>
+                  <td class="num yield-cell">{{ formatYield(row.median_yield) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    </section>
+
+    @if (sortedNeighborhoods().length > 0) {
+      <mat-card class="table-card neighborhoods-card">
+        <mat-card-header class="neighborhoods-header">
+          <div>
+            <mat-card-title>Top Neighborhoods (10+ active listings)</mat-card-title>
+            <mat-card-subtitle>Click any neighborhood to open filtered Buy view</mat-card-subtitle>
+          </div>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sort-field">
+            <mat-label>Rank by</mat-label>
+            <mat-select
+              [value]="neighborhoodSort()"
+              (selectionChange)="neighborhoodSort.set($event.value)"
+            >
+              <mat-option value="median_yield">Highest Yield</mat-option>
+              <mat-option value="median_buy_pm2">Highest €/m²</mat-option>
+              <mat-option value="median_buy_price">Highest Price</mat-option>
+              <mat-option value="buy_count">Most Listings</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </mat-card-header>
+        <mat-card-content class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Neighborhood</th>
+                <th>City</th>
+                <th class="num">Active</th>
+                <th class="num">Med. Price</th>
+                <th class="num">Med. €/m²</th>
+                <th class="num">Med. Est. Rent</th>
+                <th class="num">Med. Yield</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of sortedNeighborhoods(); track row.city + '-' + row.neighborhood) {
+                <tr class="clickable-row" (click)="openBuyForNeighborhood(row)">
+                  <td class="primary-cell">{{ row.neighborhood }}</td>
+                  <td class="muted">{{ row.city }}</td>
+                  <td class="num">{{ row.buy_count }}</td>
+                  <td class="num">{{ row.median_buy_price | eur }}</td>
+                  <td class="num">{{ row.median_buy_pm2 | eur }}</td>
+                  <td class="num">
+                    {{ row.median_est_rent != null ? (row.median_est_rent | eur) : '—' }}
+                  </td>
+                  <td class="num yield-cell">{{ formatYield(row.median_yield) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>
